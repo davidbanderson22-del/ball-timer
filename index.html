@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Game Timer Scorecard</title>
+    <title>Game Time Tracker & Scorecard</title>
     
-    <!-- React & Babel Engines -->
+    <!-- React & Babel Frameworks -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
@@ -16,13 +16,28 @@
 
     <div id="root"></div>
 
-    <!-- EVERYTHING RUNS INSIDE HERE NOW -->
     <script type="text/babel">
-      // Constants & Utility Engine
+      // Core configuration constants
       const C = { bg: "#fcfbf9", card: "#fff", text: "#1a1a1a", border: "#1a1a1a" };
       const PHASE = { TOP: "TOP", BOT: "BOT", WARMUP_TOP: "W_TOP", WARMUP_BOT: "W_BOT" };
-      const nowHM = () => { const d = new Date(); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
-      const parseTime = str => { if (!str) return null; const [h, m] = str.split(':').map(Number); return (h * 60) + m; };
+      
+      const nowHM = () => { 
+        const d = new Date(); 
+        return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; 
+      };
+      
+      const parseTime = str => { 
+        if (!str) return null; 
+        const [h, m] = str.split(':').map(Number); 
+        return (h * 60) + m; 
+      };
+
+      const formatTime = mins => {
+        if (mins == null || isNaN(mins)) return "—";
+        const h = Math.floor(mins / 60) % 24;
+        const m = Math.floor(mins % 60);
+        return `${h}:${String(m).padStart(2, '0')}`;
+      };
 
       // ==========================================
       // 1. SETUP SCREEN
@@ -84,22 +99,30 @@
         let currentInning = 1;
         let currentPhase = PHASE.WARMUP_TOP;
         let outsInHalf = 0;
+        
+        // Sort explicitly by timestamp order
         const sorted = [...events].sort((a, b) => a.time - b.time);
+        
         for (const ev of sorted) {
           if (ev.type === "OUT") {
             outsInHalf += ev.count;
             if (outsInHalf >= 3) {
               outsInHalf = 0;
               if (currentPhase === PHASE.TOP) currentPhase = PHASE.WARMUP_BOT;
-              else if (currentPhase === PHASE.BOT) { currentInning += 1; currentPhase = PHASE.WARMUP_TOP; }
+              else if (currentPhase === PHASE.BOT) { 
+                currentInning += 1; 
+                currentPhase = PHASE.WARMUP_TOP; 
+              }
             }
-          } else if (ev.type === "PHASE_START") { currentPhase = ev.phase; }
+          } else if (ev.type === "PHASE_START") { 
+            currentPhase = ev.phase; 
+          }
         }
         return { currentInning, currentPhase, outsInHalf };
       }
 
       // ==========================================
-      // 3. LIVE TRACKER
+      // 3. LIVE TRACKER & TIME PROJECTIONS
       // ==========================================
       function GameTracker({ config, onNewGame, initialState }) {
         const { away, home, totalInnings } = config;
@@ -110,6 +133,44 @@
         const [entryTime, setEntryTime] = React.useState(nowHM());
 
         const { currentInning, currentPhase, outsInHalf } = getLiveState(events, totalInnings);
+
+        // ── CALCULATE ESTIMATES ──
+        const calcEstimates = () => {
+          if (events.length === 0) return { pace: "—", projectedEnd: "—" };
+          
+          const sorted = [...events].sort((a, b) => a.time - b.time);
+          const firstEventTime = sorted[0].time;
+          const totalHalfInnings = (totalInnings * 2);
+
+          // Find out how far along we are based on completed sections
+          let completedHalfs = (currentInning - 1) * 2;
+          if (currentPhase === PHASE.BOT) completedHalfs += 1;
+          
+          // Add partial fractional progress for currently open active frames
+          let currentProgress = completedHalfs;
+          if (currentPhase === PHASE.TOP || currentPhase === PHASE.BOT) {
+            currentProgress += (outsInHalf / 3);
+          }
+
+          if (currentProgress === 0) return { pace: "Calculating...", projectedEnd: "—" };
+
+          const latestTime = sorted[sorted.length - 1].time;
+          const elapsedMins = latestTime - firstEventTime;
+          
+          if (elapsedMins <= 0) return { pace: "Pacing...", projectedEnd: "—" };
+
+          // Determine current operational pace metrics
+          const minsPerHalfInning = elapsedMins / currentProgress;
+          const remainingHalfs = totalHalfInnings - currentProgress;
+          const projectedRemainingMins = remainingHalfs * minsPerHalfInning;
+          
+          return {
+            pace: `${minsPerHalfInning.toFixed(1)}m`,
+            projectedEnd: formatTime(latestTime + projectedRemainingMins)
+          };
+        };
+
+        const { pace, projectedEnd } = calcEstimates();
 
         const logEvent = (type, details = {}) => {
           const t = parseTime(entryTime) ?? parseTime(nowHM());
@@ -148,9 +209,11 @@
 
         return (
           <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: "monospace", maxWidth: "440px", margin: "0 auto", padding: "16px", borderLeft: "2px dashed #ccc", borderRight: "2px dashed #ccc", boxSizing: "border-box" }}>
+            
+            {/* SCORECARD CELL */}
             <div style={{ border: "2px solid #1a1a1a", padding: "12px", background: "#fff", marginBottom: "16px", boxShadow: "4px 4px 0px #1a1a1a" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: "bold", borderBottom: "1px solid #1a1a1a", paddingBottom: "6px" }}>
-                <div>GAME TRACKER</div><div>INN LIMIT: {totalInnings}</div>
+                <div>OFFICIAL SCORECARD</div><div>INN LIMIT: {totalInnings}</div>
               </div>
               <table style={{ width: "100%", marginTop: "8px", borderCollapse: "collapse", textAlign: "center" }}>
                 <thead>
@@ -171,10 +234,24 @@
               </table>
             </div>
 
+            {/* LIVE SYSTEM STATUS PANEL */}
             <div style={{ border: "2px solid #1a1a1a", padding: "10px", background: currentPhase.startsWith("W_") ? "#fff9e6" : "#e6f4ea", marginBottom: "16px", textAlign: "center", fontSize: "11px", fontWeight: "bold" }}>
               {currentPhase.startsWith("W_") ? <div>⏳ FIELD WARMUP: {currentPhase === PHASE.WARMUP_TOP ? `Top ${currentInning}` : `Bot ${currentInning}`}</div> : <div>⚾ LIVE ACTION: Inning {currentInning} ({currentPhase})</div>}
             </div>
 
+            {/* ESTIMATION BLOCK RESTORED */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+              <div style={{ border: "2px solid #1a1a1a", padding: "10px", background: "#fff", textAlign: "center" }}>
+                <div style={{ fontSize: "9px", color: "#666", fontWeight: "bold" }}>ESTIMATED END TIME</div>
+                <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>{projectedEnd}</div>
+              </div>
+              <div style={{ border: "2px solid #1a1a1a", padding: "10px", background: "#fff", textAlign: "center" }}>
+                <div style={{ fontSize: "9px", color: "#666", fontWeight: "bold" }}>PACE / HALF-INN</div>
+                <div style={{ fontSize: "20px", fontWeight: "bold", marginTop: "4px" }}>{pace}</div>
+              </div>
+            </div>
+
+            {/* QUICK ACTIONS INTERFACE */}
             <div style={{ border: "2px solid #1a1a1a", padding: "14px", background: "#fff", marginBottom: "16px", boxShadow: "4px 4px 0px #1a1a1a" }}>
               <span style={{ fontSize: "11px", fontWeight: "bold", textTransform: "uppercase" }}>Quick Logger</span>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: "12px 0" }}>
@@ -196,6 +273,7 @@
               </div>
             </div>
 
+            {/* LEDGER DISPLAY */}
             <div style={{ border: "2px solid #1a1a1a", padding: "12px", background: "#fff", marginBottom: "16px" }}>
               <span style={{ fontSize: "10px", fontWeight: "bold" }}>Ledger Log</span>
               <div style={{ maxHeight: "100px", overflowY: "auto", fontSize: "11px", marginTop: "6px" }}>
@@ -205,6 +283,7 @@
               </div>
             </div>
 
+            {/* UTILITY CORE ACTIONS */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
               <button onClick={exportGameData} style={{ padding: "8px", background: "#eee", border: "1px solid #1a1a1a", fontFamily: "monospace", fontSize: "11px", cursor: "pointer" }}>💾 Save Scorecard</button>
               <button onClick={onNewGame} style={{ padding: "8px", background: "#fff", border: "1px solid #f85149", color: "#f85149", fontFamily: "monospace", fontSize: "11px", cursor: "pointer" }}>🔄 Reset Board</button>
@@ -236,7 +315,6 @@
         return <SetupScreen onStart={handleStart} onImport={handleImport} />;
       }
 
-      // Render App to browser
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
     </script>
