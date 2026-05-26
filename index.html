@@ -117,8 +117,7 @@ function isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mer
 
   if (mercyAfter && mercyRuns && lastCompleted >= mercyAfter && diff >= mercyRuns) return true;
   if (mercyAfter && mercyRuns && last.phase === EV.BOT && last.inning >= mercyAfter && diff >= mercyRuns && score.home > score.away) return true;
-  
-  if (last.inning === totalInnings && last.phase === EV.MID && score.home > score.away) return true;
+  if (last.inning >= totalInnings && last.phase === EV.MID && score.home > score.away) return true;
   if (lastCompleted >= totalInnings && score.home !== score.away) return true;
   
   return false;
@@ -380,6 +379,293 @@ function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInni
   );
 }
 
+// ── Accuracy Graph ────────────────────────────────────────────────────────────
+function AccuracyGraph({ estimateHistory, endTime, config }) {
+  const [xMode, setXMode] = useState("inning");
+  const [yMode, setYMode] = useState("signed");
+  const svgRef = useRef(null);
+
+  const points = useMemo(() => {
+    if (!endTime || !estimateHistory.length) return [];
+    return estimateHistory
+      .filter(h => h.estimate != null)
+      .map(h => ({
+        ...h,
+        error: yMode === "signed" ? Math.round(h.estimate - endTime) : Math.round(Math.abs(h.estimate - endTime)),
+        xVal:  xMode === "inning" ? h.inning + (h.phase === EV.MID || h.phase === EV.BOT ? 0.5 : 0) : h.wallTime,
+      }));
+  }, [estimateHistory, endTime, xMode, yMode]);
+
+  if (!points.length) return null;
+
+  const W = 320, H = 180, PL = 44, PR = 12, PT = 16, PB = 28;
+  const IW = W - PL - PR, IH = H - PT - PB;
+  const xs = points.map(p => p.xVal);
+  const ys = points.map(p => p.error);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yAbsMax = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 5);
+  const yMin = yMode === "signed" ? -yAbsMax : 0;
+  const yMax = yAbsMax;
+
+  const toSVG = (xv, yv) => ({
+    x: PL + ((xv - xMin) / (xMax - xMin || 1)) * IW,
+    y: PT + (1 - (yv - yMin) / (yMax - yMin || 1)) * IH,
+  });
+
+  const zeroY = PT + (1 - (0 - yMin) / (yMax - yMin || 1)) * IH;
+  const pathD = points.map((p, i) => { const { x, y } = toSVG(p.xVal, p.error); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ");
+
+  const yTicks = [];
+  const step = Math.ceil(yAbsMax / 3);
+  for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) yTicks.push(v);
+  const xTicks = xMode === "inning"
+    ? Array.from({ length: config.totalInnings }, (_, i) => i + 1).filter(v => v >= xMin && v <= xMax)
+    : points.map(p => p.xVal);
+
+  return (
+    <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "14px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+        <Label style={{ marginBottom: 0 }}>ESTIMATE ACCURACY</Label>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {[["signed", "±"], ["absolute", "|e|"]].map(([v, l]) => (
+            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+          ))}
+          {[["inning", "INN"], ["time", "TIME"]].map(([v, l]) => (
+            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.blue : "transparent", border: `1px solid ${xMode === v ? C.blue : C.text}`, color: xMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px 0" }}>
+        <svg ref={svgRef} width={W} height={H} style={{ display: "block", margin: "0 auto" }}>
+          {yMode === "signed" && <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke={C.borderBright} strokeWidth="2" strokeDasharray="4,4" />}
+          {yTicks.map(v => {
+            const y = PT + (1 - (v - yMin) / (yMax - yMin || 1)) * IH;
+            return <line key={v} x1={PL} y1={y} x2={W - PR} y2={y} stroke={C.borderBright} strokeWidth="1" strokeDasharray="2,2" />;
+          })}
+          <line x1={PL} y1={PT} x2={PL} y2={PT + IH} stroke={C.text} strokeWidth="2" />
+          <line x1={PL} y1={PT + IH} x2={W - PR} y2={PT + IH} stroke={C.text} strokeWidth="2" />
+          {yTicks.map(v => {
+            const y = PT + (1 - (v - yMin) / (yMax - yMin || 1)) * IH;
+            return <text key={v} x={PL - 6} y={y + 4} textAnchor="end" fontSize="10" fill={C.text} fontFamily={MONO} fontWeight="bold">{v > 0 ? `+${v}` : v}m</text>;
+          })}
+          {xMode === "inning" ? xTicks.map(v => {
+            const { x } = toSVG(v, 0);
+            return <text key={v} x={x} y={H - 6} textAnchor="middle" fontSize="10" fill={C.text} fontFamily={MONO} fontWeight="bold">{v}</text>;
+          }) : points.map((p, i) => {
+            if (i % Math.max(1, Math.floor(points.length / 5)) !== 0) return null;
+            const { x } = toSVG(p.xVal, 0);
+            return <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="9" fill={C.muted} fontFamily={MONO}>{formatTime(p.wallTime)}</text>;
+          })}
+          {points.length > 1 && <path d={`${pathD} L${toSVG(points[points.length - 1].xVal, yMin).x},${toSVG(points[points.length - 1].xVal, yMin).y} L${toSVG(points[0].xVal, yMin).x},${toSVG(points[0].xVal, yMin).y} Z`} fill={C.accentDim} opacity="0.4" />}
+          {points.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
+          {points.map((p, i) => {
+            const { x, y } = toSVG(p.xVal, p.error);
+            const col = yMode === "signed"
+              ? (p.error > 0 ? C.yellow : p.error < 0 ? C.blue : C.green)
+              : (Math.abs(p.error) <= 5 ? C.green : Math.abs(p.error) <= 15 ? C.yellow : C.red);
+            return <circle key={i} cx={x} cy={y} r="5" fill={col} stroke={C.bg} strokeWidth="2" />;
+          })}
+          <text x={PL + IW / 2} y={H} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold">{xMode === "inning" ? "INNING" : "TIME"}</text>
+          <text x={10} y={PT + IH / 2} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold" transform={`rotate(-90,10,${PT + IH / 2})`}>ERROR (MIN)</text>
+        </svg>
+      </div>
+
+      <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "12px" }}>
+        {yMode === "signed"
+          ? [["Long", C.yellow], ["Short", C.blue], ["Exact", C.green]].map(([l, c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
+              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
+            </div>
+          ))
+          : [["≤5m", C.green], ["≤15m", C.yellow], [">15m", C.red]].map(([l, c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
+              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" };
+const modalStyle   = { background: C.bg, border: `4px solid ${C.text}`, padding: "20px", width: "100%", maxWidth: "360px", boxShadow: `6px 6px 0px rgba(0,0,0,0.2)` };
+
+function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState(null);
+  const [step, setStep] = useState(hasActiveGame ? "warn" : "paste");
+  const fileRef = useRef(null);
+
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setText(ev.target.result);
+    reader.readAsText(file);
+  };
+
+  const handleImport = () => {
+    const result = parseImport(text);
+    if (!result.ok) { setError(result.error); return; }
+    onImport(result.data);
+  };
+
+  if (step === "warn") {
+    return (
+      <div style={overlayStyle}>
+        <div style={modalStyle}>
+          <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>GAME IN PROGRESS</div>
+          <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "18px", lineHeight: "1.6", fontWeight: "bold" }}>
+            You have an active game. Importing will overwrite it.<br />Save the current game first?
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Btn full variant="highlight" onClick={() => { onExportFirst(); setStep("paste"); }}>SAVE CURRENT GAME FIRST</Btn>
+            <Btn full variant="outline"   onClick={() => setStep("paste")}>DISCARD & IMPORT</Btn>
+            <Btn full variant="ghost"     onClick={onCancel}>CANCEL</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>IMPORT SAVED GAME</div>
+        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Upload a .json file or paste exported text.</div>
+        <input ref={fileRef} type="file" accept=".json,text/plain" onChange={handleFile} style={{ display: "none" }} />
+        <Btn full variant="outline" small onClick={() => fileRef.current.click()} style={{ marginBottom: "12px" }}>📂 CHOOSE FILE</Btn>
+        <textarea
+          value={text} onChange={e => setText(e.target.value)}
+          placeholder="Or paste exported text here..."
+          style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }}
+        />
+        {error && <div style={{ fontSize: "12px", color: C.red, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{error}</div>}
+        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+          <Btn full variant="primary" onClick={handleImport} disabled={!text.trim()}>IMPORT →</Btn>
+          <Btn full variant="ghost"   onClick={onCancel}>CANCEL</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopyModal({ text, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard?.writeText(text).then(() => setCopied(true)); };
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>COPY SCORECARD</div>
+        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Copy this text to save your game anywhere.</div>
+        <textarea readOnly value={text} style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "11px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }} />
+        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+          <Btn full variant={copied ? "success" : "primary"} onClick={copy}>{copied ? "COPIED ✓" : "COPY TEXT"}</Btn>
+          <Btn full variant="ghost" onClick={onClose}>DONE</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Summary Screen ────────────────────────────────────────────────────────────
+function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, onNewGame }) {
+  const { away, home, totalInnings } = config;
+  
+  const phaseEvents = events.filter(e => e.type === 'phase' || !e.type);
+  const sorted = [...phaseEvents].sort((a, b) => a.time - b.time);
+  const startTime = sorted[0]?.time;
+  const actualDuration = endTime && startTime ? endTime - startTime : null;
+  const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
+  
+  const halfDurs = [], warmupDurs = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const c = sorted[i], n = sorted[i + 1];
+    const d = n.time - c.time;
+    if (d < 0 || d > 90) continue;
+    if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
+    if (c.phase === EV.BOT  && n.phase === EV.START && n.inning === c.inning + 1) halfDurs.push(d);
+  }
+
+  const score = { home: baseScore.home, away: baseScore.away };
+  events.filter(e => e.type === 'run').forEach(e => score[e.team] += e.val);
+  
+  const combinedRunsLog = [...baseRunsLog, ...events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half }))];
+
+  const firstEst = estimateHistory.find(h => h.estimate != null);
+  const firstEstError = firstEst && endTime ? Math.round(firstEst.estimate - endTime) : null;
+  const winner = score.home > score.away ? home : score.away > score.home ? away : null;
+  
+  const [showCopy, setShowCopy] = useState(false);
+  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory);
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
+      <link rel="stylesheet" href={FONT} />
+      {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
+
+      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
+        <div style={{ fontSize: "72px", fontFamily: DISPLAY, marginTop: "8px", lineHeight: 1 }}>{score.away} – {score.home}</div>
+        <div style={{ fontSize: "16px", color: C.text, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{away} @ {home}</div>
+        {winner ? <div style={{ marginTop: "12px", fontSize: "16px", color: C.accent, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>{winner.toUpperCase()} WINS</div>
+                : <div style={{ marginTop: "12px", fontSize: "16px", color: C.text, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>TIE GAME</div>}
+      </div>
+
+      <div style={{ padding: "20px 16px", maxWidth: "440px", margin: "0 auto" }}>
+        
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>FINAL LINESCORE</Label>
+          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} />
+        </div>
+
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>GAME TIME & PACE</Label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+            <StatBox label="FIRST PITCH" value={formatTime(startTime)} />
+            <StatBox label="FINAL OUT"   value={formatTime(endTime)} />
+            <StatBox label="DURATION"    value={formatDur(actualDuration)} />
+            <StatBox label="INNINGS"     value={`${lastCompleted}`} sub={lastCompleted > totalInnings ? "EXTRA INNINGS" : "REGULATION"} />
+          </div>
+          <Divider label="Measured Pace" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <StatBox label="AVG ½-INN"  value={formatDur(avg(halfDurs))}   sub={`${halfDurs.length} measured`} />
+            <StatBox label="AVG WARMUP" value={formatDur(avg(warmupDurs))} sub={`${warmupDurs.length} measured`} />
+          </div>
+        </div>
+
+        {firstEstError !== null && (
+          <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+            <Label>FIRST ESTIMATE ACCURACY</Label>
+            <div style={{ fontSize: "40px", fontFamily: DISPLAY, color: Math.abs(firstEstError) <= 5 ? C.green : Math.abs(firstEstError) <= 15 ? C.yellow : C.red }}>
+              {firstEstError > 0 ? "+" : ""}{firstEstError}m
+            </div>
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginTop: "6px", fontWeight: "bold" }}>
+              {Math.abs(firstEstError) <= 5 ? "Excellent (within 5 min)" : Math.abs(firstEstError) <= 15 ? "Good (within 15 min)" : "Off pace (unusual game length)"}
+            </div>
+          </div>
+        )}
+
+        <AccuracyGraph estimateHistory={estimateHistory} endTime={endTime} config={config} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
+          <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory)}>⬇ Download JSON</Btn>
+            <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Setup Screen ──────────────────────────────────────────────────────────────
 function SetupScreen({ onStart, onImport }) {
   const [league, setLeague]         = useState("hs");
@@ -392,6 +678,7 @@ function SetupScreen({ onStart, onImport }) {
   const [useTimeLimit, setUseTimeLimit] = useState(false);
   const [timeLimit, setTimeLimit]   = useState("120");
   const [startTime, setStartTime]   = useState(nowHM());
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     if (league === "custom") return;
@@ -406,6 +693,14 @@ function SetupScreen({ onStart, onImport }) {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
       <link rel="stylesheet" href={FONT} />
+      {showImport && (
+        <ImportModal
+          hasActiveGame={false}
+          onImport={data => { setShowImport(false); onImport(data); }}
+          onCancel={() => setShowImport(false)}
+          onExportFirst={() => {}}
+        />
+      )}
       <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
         <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
         <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
@@ -443,10 +738,13 @@ function SetupScreen({ onStart, onImport }) {
           )}
         </div>
 
-        <Btn full disabled={!valid} onClick={() => {
-          const t = parseTime(startTime) ?? parseTime(nowHM());
-          onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
-        }}>Start Game →</Btn>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full disabled={!valid} onClick={() => {
+            const t = parseTime(startTime) ?? parseTime(nowHM());
+            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
+          }}>START GAME →</Btn>
+          <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
+        </div>
       </div>
     </div>
   );
@@ -457,22 +755,30 @@ function GameTracker({ config, onNewGame, initialState }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, timeLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
 
   // Unified Timeline Event Stream
-  // Event: { id, batchId, type: 'phase'|'run'|'out', phase, inning, half, team, val, time }
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
   const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
   const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
   
-  // Legacy support for older saves that had score/runsLog distinct from events
+  // Legacy support & initial states
   const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
 
+  // Modals & End Game state
   const [entryTime, setEntryTime] = useState(nowHM());
+  const [gameOverPrompt, setGameOverPrompt] = useState(false);
+  const [endTimeInput,   setEndTimeInput]   = useState(nowHM());
+  const [showSummary,    setShowSummary]    = useState(false);
+  const [finalEndTime,   setFinalEndTime]   = useState(null);
+  
+  const [showImport, setShowImport] = useState(false);
+  const [showCopy, setShowCopy]     = useState(false);
+  const [copyText, setCopyText]     = useState("");
 
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
 
   // Derived State
-  const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); // !e.type handles v1 legacy saves
+  const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
   const lastPhase = phaseEvents.length ? [...phaseEvents].sort((a,b)=>a.time-b.time).pop() : null;
   const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
   
@@ -518,6 +824,15 @@ function GameTracker({ config, onNewGame, initialState }) {
     });
   }, [events, est?.estimatedEnd]);
 
+  // Check Game Over
+  const potOver = isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mercyRuns);
+  useEffect(() => { 
+    if (potOver && !gameOverPrompt && !showSummary) { 
+      setGameOverPrompt(true); 
+      setEndTimeInput(nowHM()); 
+    } 
+  }, [potOver, showSummary]);
+
   const commitEventBatch = (newEvents, logs = []) => {
       setEvents(p => [...p, ...newEvents]);
       setGameLog(p => [...p, ...logs.map(msg => ({ msg, ts: nowHM(), batchId: newEvents[0].batchId }))]);
@@ -562,9 +877,31 @@ function GameTracker({ config, onNewGame, initialState }) {
       setEvents(p => p.filter(e => (e.batchId || e.id) !== lastBatchId));
       setGameLog(p => p.filter(l => l.batchId !== lastBatchId));
       setEstimateHistory(p => p.filter(h => h.batchId !== lastBatchId));
+      setGameOverPrompt(false);
   };
 
-  const potOver = isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mercyRuns);
+  const handleEndGame = () => {
+    const t = parseTime(endTimeInput) ?? parseTime(nowHM());
+    setFinalEndTime(t);
+    setGameLog(p => [...p, { msg: `🏁 Final out logged at ${formatTime(t)}`, ts: nowHM(), batchId: Date.now() }]);
+    setShowSummary(true);
+  };
+
+  const handleImport = data => {
+    setShowImport(false);
+    setEvents(data.events ?? []);
+    setBaseScore(data.baseScore ?? { home: 0, away: 0 });
+    setBaseRunsLog(data.baseRunsLog ?? []);
+    setGameLog(data.gameLog ?? []);
+    setEstimateHistory(data.estimateHistory ?? []);
+  };
+  
+  const doExport = () => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory);
+  const doCopyText = () => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory)); setShowCopy(true); };
+
+  if (showSummary) {
+    return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} onNewGame={onNewGame} />;
+  }
 
   const inWarmup = est?.currentlyInWarmup ?? false;
   const lastCompleted = est?.lastCompletedInning ?? 0;
@@ -573,6 +910,16 @@ function GameTracker({ config, onNewGame, initialState }) {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, maxWidth: "440px", margin: "0 auto", paddingBottom: "48px" }}>
       <link rel="stylesheet" href={FONT} />
+
+      {showCopy   && <CopyModal text={copyText} onClose={() => setShowCopy(false)} />}
+      {showImport && (
+        <ImportModal
+          hasActiveGame={events.length > 0}
+          onImport={handleImport}
+          onCancel={() => setShowImport(false)}
+          onExportFirst={doExport}
+        />
+      )}
 
       {/* ── Header ── */}
       <div style={{ background: C.card, borderBottom: `2px solid ${C.text}`, padding: "16px 16px 12px" }}>
@@ -585,9 +932,12 @@ function GameTracker({ config, onNewGame, initialState }) {
               {away} <span style={{ color: C.faint, fontSize: "20px" }}>@</span> {home}
             </div>
           </div>
-          <div style={{ display: "flex", gap: "6px", flexDirection: "column" }}>
-            <Btn small variant="ghost" onClick={onNewGame}>Quit</Btn>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "160px" }}>
             {events.length > 0 && <Btn small variant="outline" onClick={handleUndo}>↩ Undo</Btn>}
+            <Btn small variant="ghost" onClick={doExport}>⬇</Btn>
+            <Btn small variant="ghost" onClick={doCopyText}>📋</Btn>
+            <Btn small variant="ghost" onClick={() => setShowImport(true)}>⬆</Btn>
+            <Btn small variant="ghost" onClick={onNewGame}>Quit</Btn>
           </div>
         </div>
 
@@ -606,60 +956,74 @@ function GameTracker({ config, onNewGame, initialState }) {
       {/* Banners */}
       {est?.mercyEligible && <div style={{ background: C.redDim, borderBottom: `2px solid ${C.red}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.red, fontWeight: "bold" }}>⚠ MERCY ELIGIBLE — {score.home > score.away ? home : away} +{runDiff}</div>}
       {inWarmup && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
-      {potOver && <div style={{ background: C.yellowDim, borderBottom: `2px solid ${C.yellow}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.text, fontWeight: "bold" }}>🏁 GAME OVER CONDITION REACHED</div>}
 
       <div style={{ padding: "16px 16px 0" }}>
 
+        {/* Game Over Prompt */}
+        {gameOverPrompt && (
+          <div style={{ background: C.card, border: `2px solid ${C.yellow}`, padding: "16px", marginBottom: "16px" }}>
+            <Label>GAME OVER?</Label>
+            <div style={{ fontSize: "14px", color: C.text, fontFamily: MONO, marginBottom: "12px" }}>The game condition has been reached. Log end time to finalize.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
+              <div><Label>END TIME</Label><Inp value={endTimeInput} onChange={setEndTimeInput} placeholder="H:MM" /></div>
+              <Btn onClick={handleEndGame} variant="highlight">END GAME</Btn>
+              <Btn onClick={() => setGameOverPrompt(false)} variant="ghost" small>MORE INN</Btn>
+            </div>
+          </div>
+        )}
+
         {/* Active Inning Controls vs Next Phase Controls */}
-        {inActiveInning ? (
-          <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px", position: "relative" }}>
-             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <div>
-                <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.text, lineHeight: 1 }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</div>
-                <div style={{ fontSize: "12px", fontFamily: MONO, color: C.accent, marginTop: "4px", fontWeight: "bold" }}>▶ {battingTeam === 'away' ? away : home} BATTING</div>
+        {!gameOverPrompt && (
+          inActiveInning ? (
+            <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px", position: "relative" }}>
+               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div>
+                  <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.text, lineHeight: 1 }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</div>
+                  <div style={{ fontSize: "12px", fontFamily: MONO, color: C.accent, marginTop: "4px", fontWeight: "bold" }}>▶ {battingTeam === 'away' ? away : home} BATTING</div>
+                </div>
+                <div>
+                   <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
+                   <div style={{ display: "flex", gap: "6px" }}>
+                      {[1,2,3].map(i => (
+                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
+                      ))}
+                   </div>
+                </div>
               </div>
-              <div>
-                 <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
-                 <div style={{ display: "flex", gap: "6px" }}>
-                    {[1,2,3].map(i => (
-                        <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
-                    ))}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                 <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
+                    <Label>RUN FOR {battingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
+                    <Btn full variant="outline" onClick={() => handleAddRun(1)}>+1 Run</Btn>
+                 </div>
+                 <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
+                    <Label>OUT FOR {fieldingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <Btn full variant="outline" onClick={() => handleAddOut(1)}>+1</Btn>
+                      {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)}>+2</Btn>}
+                      {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)}>+3</Btn>}
+                    </div>
                  </div>
               </div>
-            </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-               <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
-                  <Label>RUN FOR {battingTeam === 'away' ? "AWAY" : "HOME"}</Label>
-                  <Btn full variant="outline" onClick={() => handleAddRun(1)}>+1 Run</Btn>
-               </div>
-               <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
-                  <Label>OUT FOR {fieldingTeam === 'home' ? "HOME" : "AWAY"}</Label>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <Btn full variant="outline" onClick={() => handleAddOut(1)}>+1</Btn>
-                    {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)}>+2</Btn>}
-                    {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)}>+3</Btn>}
-                  </div>
-               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "end" }}>
+                <div><Label>EVENT TIME (H:MM)</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
+                <Btn variant="ghost" onClick={() => setEntryTime(nowHM())}>NOW</Btn>
+              </div>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "end" }}>
-              <div><Label>EVENT TIME (H:MM)</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
-              <Btn variant="ghost" onClick={() => setEntryTime(nowHM())}>NOW</Btn>
+          ) : (
+            <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+              <Label>NEXT PHASE TO LOG</Label>
+              <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
+              <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase)}</div>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
+                <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
+                <Btn variant="ghost" onClick={() => { const t = nowHM(); setEntryTime(t); handleLogNextPhase(); }}>NOW</Btn>
+                <Btn variant="primary" onClick={handleLogNextPhase}>LOG ↵</Btn>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
-            <Label>NEXT PHASE TO LOG</Label>
-            <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
-            <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase)}</div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
-              <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
-              <Btn variant="ghost" onClick={() => { const t = nowHM(); setEntryTime(t); handleLogNextPhase(); }}>NOW</Btn>
-              <Btn variant="primary" onClick={handleLogNextPhase}>LOG ↵</Btn>
-            </div>
-          </div>
+          )
         )}
 
         {/* Estimate card */}
@@ -698,13 +1062,20 @@ function GameTracker({ config, onNewGame, initialState }) {
         </div>
 
         {/* Game log */}
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "12px", marginBottom: "20px" }}>
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "12px", marginBottom: "12px" }}>
           <Label>GAME LOG</Label>
           <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px", maxHeight: "160px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
             {gameLog.length === 0 ? <span style={{ color: C.faint }}>No events logged yet.</span>
               : gameLog.map((e, i) => <div key={i} style={{ color: i === gameLog.length - 1 ? C.text : C.muted }}><span style={{ color: C.faint }}>{e.ts} </span>{e.msg}</div>)}
           </div>
         </div>
+
+        {/* Manual End Game Button */}
+        {events.length > 0 && !gameOverPrompt && (
+          <div style={{ marginTop: "16px", textAlign: "center" }}>
+            <button onClick={() => { setGameOverPrompt(true); setEndTimeInput(nowHM()); }} style={{ background: "none", border: "none", color: C.faint, fontSize: "12px", fontFamily: MONO, cursor: "pointer", textDecoration: "underline", fontWeight: "bold" }}>End game manually</button>
+          </div>
+        )}
 
       </div>
     </div>
