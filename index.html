@@ -71,7 +71,7 @@ function phaseDesc(phase) {
   return m[phase] ?? "";
 }
 
-// ── Time utils ────────────────────────────────────────────────────────────────
+// ── Time & Sorting Utils ──────────────────────────────────────────────────────
 function parseTime(str) {
   if (!str) return null;
   const [h, m] = str.trim().split(":").map(Number);
@@ -96,10 +96,28 @@ function nowHM() {
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+// Robust sorting: Tie-breaker with ID to guarantee chronological order for same-minute events
+function sortEvents(arr) {
+  return [...arr].sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time;
+    return (a.id || 0) - (b.id || 0);
+  });
+}
+
+function getSafeTime(inputTime, allEvents) {
+  let t = parseTime(inputTime) ?? parseTime(nowHM());
+  if (allEvents && allEvents.length > 0) {
+      const sorted = sortEvents(allEvents);
+      const lastTime = sorted[sorted.length - 1].time;
+      if (t < lastTime) return lastTime; // Clamp backward time travel
+  }
+  return t;
+}
+
 // ── Next phase logic ──────────────────────────────────────────────────────────
 function getNextPhase(phaseEvents) {
   if (!phaseEvents.length) return { inning: 1, phase: EV.START };
-  const sorted = [...phaseEvents].sort((a, b) => a.time - b.time);
+  const sorted = sortEvents(phaseEvents);
   const last = sorted[sorted.length - 1];
   const idx = PHASE_ORDER.indexOf(last.phase);
   if (idx < 3) {
@@ -110,7 +128,7 @@ function getNextPhase(phaseEvents) {
 
 function isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mercyRuns) {
   if (!phaseEvents.length) return false;
-  const sorted = [...phaseEvents].sort((a, b) => a.time - b.time);
+  const sorted = sortEvents(phaseEvents);
   const last = sorted[sorted.length - 1];
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
   const diff = Math.abs(score.home - score.away);
@@ -165,7 +183,7 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
 // ── Core estimate engine ──────────────────────────────────────────────────────
 function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog }) {
   if (!phaseEvents.length) return null;
-  const sorted = [...phaseEvents].sort((a, b) => a.time - b.time);
+  const sorted = sortEvents(phaseEvents);
   const halfDurs = [], warmupDurs = [];
   for (let i = 0; i < sorted.length - 1; i++) {
     const c = sorted[i], n = sorted[i + 1];
@@ -302,20 +320,6 @@ function Toggle({ on, onToggle, label }) {
         <div style={{ position: "absolute", top: "2px", left: on ? "18px" : "2px", width: "14px", height: "14px", background: on ? C.bg : C.text, transition: "left 0.2s" }} />
       </button>
       <span style={{ fontSize: "12px", color: C.text, fontFamily: MONO, fontWeight: "bold" }}>{label}</span>
-    </div>
-  );
-}
-function ProbBar({ label, value, color }) {
-  const pct = Math.round((value ?? 0) * 100);
-  return (
-    <div style={{ marginBottom: "9px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-        <span style={{ fontSize: "11px", color: C.text, fontFamily: MONO }}>{label}</span>
-        <span style={{ fontSize: "11px", color, fontFamily: MONO, fontWeight: "bold" }}>{pct}%</span>
-      </div>
-      <div style={{ height: "6px", background: C.card, border: `1px solid ${C.borderBright}` }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: color, transition: "width 0.6s ease" }} />
-      </div>
     </div>
   );
 }
@@ -577,7 +581,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   const { away, home, totalInnings } = config;
   
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type);
-  const sorted = [...phaseEvents].sort((a, b) => a.time - b.time);
+  const sorted = sortEvents(phaseEvents);
   const startTime = sorted[0]?.time;
   const actualDuration = endTime && startTime ? endTime - startTime : null;
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
@@ -779,7 +783,8 @@ function GameTracker({ config, onNewGame, initialState }) {
 
   // Derived State
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
-  const lastPhase = phaseEvents.length ? [...phaseEvents].sort((a,b)=>a.time-b.time).pop() : null;
+  const sortedPhaseEvents = sortEvents(phaseEvents);
+  const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
   const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
   
   let activeHalf = null, activeInningNum = null, battingTeam = null, fieldingTeam = null, currentOuts = 0;
@@ -840,7 +845,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   };
 
   const handleLogNextPhase = () => {
-      const t = parseTime(entryTime) ?? parseTime(nowHM());
+      const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const next = getNextPhase(phaseEvents);
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
@@ -849,7 +854,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   };
 
   const handleAddRun = (val) => {
-      const t = parseTime(entryTime) ?? parseTime(nowHM());
+      const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'run', val, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf }];
       const logs = [`🏃 +${val} Run for ${battingTeam === 'away' ? away : home} at ${formatTime(t)}`];
@@ -857,7 +862,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   };
 
   const handleAddOut = (val) => {
-      const t = parseTime(entryTime) ?? parseTime(nowHM());
+      const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'out', val, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
       const logs = [`⚾ ${val} Out(s) recorded at ${formatTime(t)}`];
@@ -881,7 +886,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   };
 
   const handleEndGame = () => {
-    const t = parseTime(endTimeInput) ?? parseTime(nowHM());
+    const t = getSafeTime(endTimeInput, events);
     setFinalEndTime(t);
     setGameLog(p => [...p, { msg: `🏁 Final out logged at ${formatTime(t)}`, ts: nowHM(), batchId: Date.now() }]);
     setShowSummary(true);
@@ -999,7 +1004,7 @@ function GameTracker({ config, onNewGame, initialState }) {
                  <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
                     <Label>OUT FOR {fieldingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
                     <div style={{ display: "flex", gap: "6px" }}>
-                      <Btn full variant="outline" onClick={() => handleAddOut(1)}>+1</Btn>
+                      {currentOuts < 3 && <Btn full variant="outline" onClick={() => handleAddOut(1)}>+1</Btn>}
                       {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)}>+2</Btn>}
                       {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)}>+3</Btn>}
                     </div>
