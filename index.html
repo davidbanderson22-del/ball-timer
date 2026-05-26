@@ -3,31 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scorecard Estimator</title>
+    <title>The Official Game Ledger</title>
+    
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+DW+Pica&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --paper: #f4f1ea;
             --ink: #2b2b2b;
             --ink-fade: #5e5e5e;
             --border: #d1cdc2;
-            --accent: #8b4513; /* Leather/Wood accent */
+            --accent: #8b4513; 
             --highlight: #d4a017;
+            --red-ink: #a63a2e;
         }
+
         body { 
             margin: 0; 
             padding: 0; 
             background-color: #d1cdc2; 
             color: var(--ink);
             font-family: 'IM Fell DW Pica', serif;
+            background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
         }
-        /* Paper texture effect */
+
         .paper-texture {
             background-color: var(--paper);
             background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.05);
+        }
+
+        /* Custom Scrollbar for Rustic Look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--paper); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: sepia(100%) brightness(50%);
+        }
+
+        .handwritten {
+            font-family: 'Special Elite', cursive;
         }
     </style>
 </head>
@@ -37,335 +57,459 @@
     <script type="text/babel">
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
-// ── Constants & Helpers ───────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────
 const EV = { START: "start", TOP: "top", MID: "mid", BOT: "bot" };
 const PHASE_ORDER = [EV.START, EV.TOP, EV.MID, EV.BOT];
 
 const LEAGUES = {
-    hs: { label: "High School", halfInning: 10, warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
-    college: { label: "College", halfInning: 11, warmup: 2.5, innings: 9, mercy: 10, mercyAfter: 7 },
-    rec: { label: "Adult Rec", halfInning: 13, warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
-    mlb: { label: "MLB / Pro", halfInning: 10, warmup: 2.0, innings: 9, mercy: null, mercyAfter: null },
-    softball: { label: "Softball", halfInning: 9, warmup: 2.5, innings: 7, mercy: 10, mercyAfter: 5 },
-    custom: { label: "Custom", halfInning: 11, warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+  hs:       { label: "High School",         halfInning: 10,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+  college:  { label: "College / NCAA",      halfInning: 11,  warmup: 2.5, innings: 9, mercy: 10, mercyAfter: 7 },
+  rec:      { label: "Adult Rec / Amateur", halfInning: 13,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+  mlb:      { label: "MLB / Pro",           halfInning: 10,  warmup: 2.0, innings: 9, mercy: null, mercyAfter: null },
+  softball: { label: "Softball",            halfInning: 9,   warmup: 2.5, innings: 7, mercy: 10, mercyAfter: 5 },
+  custom:   { label: "Custom",              halfInning: 11,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
 };
 
+// ── Time Utils ───────────────────────────────────────────────────────────────
+function parseTime(str) {
+  if (!str) return null;
+  const [h, m] = str.trim().split(":").map(Number);
+  return h * 60 + m;
+}
 function formatTime(min) {
-    if (min == null) return "—";
-    const t = ((Math.round(min)) % 1440 + 1440) % 1440;
-    const h = Math.floor(t / 60), m = t % 60;
-    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+  if (min == null || isNaN(min)) return "—";
+  const t = ((Math.round(min)) % 1440 + 1440) % 1440;
+  const h = Math.floor(t / 60), m = t % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 function formatDur(min) {
-    const m = Math.round(min);
-    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+  if (min == null || isNaN(min)) return "—";
+  const m = Math.round(min);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
 }
 function nowHM() {
-    const d = new Date();
-    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const d = new Date();
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
-function parseTime(str) {
-    if (!str) return null;
-    const parts = str.trim().split(":");
-    if (parts.length !== 2) return null;
-    const h = parseInt(parts[0]), m = parseInt(parts[1]);
-    return h * 60 + m;
+function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ── Probability Engine (v5 Logic) ───────────────────────────────────────────
+function poissonSample(lambda) {
+  if (lambda <= 0) return 0;
+  const L = Math.exp(-Math.min(lambda, 20));
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
 }
 
-// ── Components ────────────────────────────────────────────────────────────────
-const Typewriter = ({ children, style }) => (
-    <span style={{ fontFamily: "'Special Elite', cursive", ...style }}>{children}</span>
-);
+function computeProbs({ score, events, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount }) {
+  if (halfDurCount < 2) return null;
+  const prior = 0.8, pw = 2;
+  const runsLog = events.filter(e => e.type === 'run');
+  const awayRuns = runsLog.filter(r => r.team === "away").reduce((s, r) => s + r.value, 0);
+  const homeRuns = runsLog.filter(r => r.team === "home").reduce((s, r) => s + r.value, 0);
+  const awayHalves = Math.max(1, events.filter(e => e.type === 'phase' && e.phase === EV.TOP).length);
+  const homeHalves = Math.max(1, events.filter(e => e.type === 'phase' && e.phase === EV.BOT).length);
+  
+  const awayRate = (awayRuns + pw * prior) / (awayHalves + pw);
+  const homeRate = (homeRuns + pw * prior) / (homeHalves + pw);
+  
+  const remAway = Math.max(0, totalInnings - Math.ceil(halfDurCount / 2));
+  const remHome = Math.max(0, totalInnings - lastCompletedInning);
+  
+  const N = 3000;
+  let mercy = 0, endTop = 0, endBot = 0, extra = 0;
+  for (let i = 0; i < N; i++) {
+    let a = score.away, h = score.home;
+    for (let j = 0; j < remAway; j++) a += poissonSample(awayRate);
+    for (let j = 0; j < remHome; j++) h += poissonSample(homeRate);
+    const diff = Math.abs(a - h);
+    if (mercyAfter && mercyRuns && diff >= mercyRuns && lastCompletedInning >= mercyAfter - 1) mercy++;
+    if (h > a) endTop++; else if (a > h) endBot++; else extra++;
+  }
+  return {
+    mercy: clamp(mercy / N, 0, 0.97),
+    endAfterTop: clamp(endTop / N, 0, 0.97),
+    endAfterBot: clamp(endBot / N, 0, 0.97),
+    extra: clamp(extra / N, 0, 0.97),
+    awayRate, homeRate,
+  };
+}
 
-const Card = ({ children, style }) => (
+// ── Components ───────────────────────────────────────────────────────────────
+const LedgerCard = ({ children, style, red }) => (
     <div className="paper-texture" style={{ 
-        border: '1px solid var(--border)', 
-        boxShadow: '2px 2px 5px rgba(0,0,0,0.1)', 
-        padding: '15px', 
-        marginBottom: '15px', 
+        border: `1px solid ${red ? 'var(--red-ink)' : 'var(--border)'}`, 
+        boxShadow: '2px 3px 10px rgba(0,0,0,0.1)', 
+        padding: '18px', 
+        marginBottom: '16px', 
         position: 'relative',
+        borderRadius: '2px',
         ...style 
     }}>
         {children}
     </div>
 );
 
-const Button = ({ onClick, children, variant = "ink", disabled, small }) => {
+const HandwrittenLabel = ({ children, style }) => (
+    <div style={{ 
+        fontSize: '11px', 
+        letterSpacing: '1px', 
+        color: 'var(--ink-fade)', 
+        fontFamily: "'Courier Prime', monospace", 
+        textTransform: 'uppercase',
+        marginBottom: '4px',
+        ...style 
+    }}>{children}</div>
+);
+
+const QuillButton = ({ children, onClick, variant = "ink", disabled, full }) => {
     const styles = {
-        ink: { background: 'var(--ink)', color: 'var(--paper)' },
-        paper: { background: 'transparent', color: 'var(--ink)', border: '1px solid var(--ink)' },
-        accent: { background: 'var(--accent)', color: 'white' }
+        ink: { background: 'var(--ink)', color: 'var(--paper)', border: 'none' },
+        quill: { background: 'transparent', color: 'var(--ink)', border: '1px solid var(--ink)' },
+        red: { background: 'var(--red-ink)', color: 'white', border: 'none' }
     };
     return (
-        <button 
-            onClick={onClick} 
-            disabled={disabled}
-            style={{
-                ...styles[variant],
-                fontFamily: "'Special Elite', cursive",
-                padding: small ? '4px 8px' : '10px 15px',
-                cursor: disabled ? 'default' : 'pointer',
-                opacity: disabled ? 0.4 : 1,
-                border: variant === 'paper' ? '1px solid var(--ink)' : 'none',
-                borderRadius: '2px'
-            }}
-        >
-            {children}
-        </button>
+        <button onClick={onClick} disabled={disabled} style={{
+            ...styles[variant],
+            fontFamily: "'Special Elite', cursive",
+            padding: '10px 16px',
+            cursor: disabled ? 'default' : 'pointer',
+            opacity: disabled ? 0.3 : 1,
+            width: full ? '100%' : 'auto',
+            borderRadius: '1px',
+            fontSize: '14px'
+        }}>{children}</button>
     );
 };
 
-// ── Main App ──────────────────────────────────────────────────────────────────
+// ── Main Game Logic ───────────────────────────────────────────────────────────
 function App() {
-    const [view, setView] = useState("setup");
-    const [config, setConfig] = useState(null);
-    const [events, setEvents] = useState([]); // { type: 'phase'|'run'|'out', inning, phase, time, value }
-    const [outs, setOuts] = useState(0);
-    const [score, setScore] = useState({ away: 0, home: 0 });
-    const [entryTime, setEntryTime] = useState(nowHM());
+  const [screen, setScreen] = useState("setup");
+  const [config, setConfig] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [outs, setOuts] = useState(0);
+  const [score, setScore] = useState({ away: 0, home: 0 });
+  const [entryTime, setEntryTime] = useState(nowHM());
+  const [estimateHistory, setEstimateHistory] = useState([]);
+  const [finalEndTime, setFinalEndTime] = useState(null);
 
-    // ── Logic ─────────────────────────────────────────────────────────────────
-    const currentStatus = useMemo(() => {
-        if (!events.length) return { inning: 1, phase: EV.START };
-        const last = [...events].sort((a,b) => a.id - b.id).pop();
-        return { inning: last.inning, phase: last.phase };
-    }, [events]);
+  // Status derived from event log
+  const status = useMemo(() => {
+    if (!events.length) return { inning: 1, phase: EV.START };
+    const phaseEvents = events.filter(e => e.type === 'phase');
+    if (!phaseEvents.length) return { inning: 1, phase: EV.START };
+    const last = phaseEvents[phaseEvents.length - 1];
+    return { inning: last.inning, phase: last.phase };
+  }, [events]);
 
-    const logEvent = (type, value = null, timeOverride = null) => {
-        const time = parseTime(timeOverride || entryTime);
-        const newEvent = {
-            id: Date.now(),
-            type,
-            value,
-            time,
-            inning: currentStatus.inning,
-            phase: currentStatus.phase
-        };
-        
-        setEvents(prev => [...prev, newEvent]);
+  const logEvent = (type, val = null, timeOverride = null) => {
+    const time = parseTime(timeOverride || entryTime);
+    const newEv = {
+        id: Date.now(),
+        type,
+        value: val,
+        time,
+        inning: status.inning,
+        phase: status.phase,
+        team: status.phase === EV.TOP ? 'away' : status.phase === EV.BOT ? 'home' : null
+    };
 
-        // Logic for score/outs
-        if (type === 'run') {
-            const team = currentStatus.phase === EV.TOP ? 'away' : 'home';
-            setScore(prev => ({ ...prev, [team]: prev[team] + value }));
-        }
-        
-        if (type === 'out') {
-            const newOutTotal = outs + value;
-            if (newOutTotal >= 3) {
-                setOuts(0);
-                triggerTransition(time);
-            } else {
-                setOuts(newOutTotal);
-            }
-        }
-
-        if (type === 'phase') {
+    if (type === 'run') setScore(s => ({ ...s, [newEv.team]: s[newEv.team] + val }));
+    
+    if (type === 'out') {
+        const total = outs + val;
+        if (total >= 3) {
             setOuts(0);
+            setEvents(prev => [...prev, newEv]);
+            transition(time); 
+            return;
+        } else {
+            setOuts(total);
         }
+    }
 
-        setEntryTime(nowHM());
-    };
+    setEvents(prev => [...prev, newEv]);
+    setEntryTime(nowHM());
+  };
 
-    const triggerTransition = (time) => {
-        const { inning, phase } = currentStatus;
-        let nextInning = inning;
-        let nextPhase = phase;
+  const transition = (time) => {
+    let nextI = status.inning;
+    let nextP = status.phase;
 
-        if (phase === EV.START) nextPhase = EV.TOP;
-        else if (phase === EV.TOP) nextPhase = EV.MID;
-        else if (phase === EV.MID) nextPhase = EV.BOT;
-        else { nextPhase = EV.START; nextInning++; }
+    if (status.phase === EV.START) nextP = EV.TOP;
+    else if (status.phase === EV.TOP) nextP = EV.MID;
+    else if (status.phase === EV.MID) nextP = EV.BOT;
+    else { nextP = EV.START; nextI++; }
 
-        setEvents(prev => [...prev, {
-            id: Date.now() + 1,
-            type: 'phase',
-            time,
-            inning: nextInning,
-            phase: nextPhase
-        }]);
-    };
+    setEvents(prev => [...prev, {
+        id: Date.now() + 1,
+        type: 'phase',
+        time,
+        inning: nextI,
+        phase: nextP
+    }]);
+  };
 
-    const undo = () => {
-        if (!events.length) return;
-        const last = events[events.length - 1];
-        
-        if (last.type === 'run') {
-            const team = last.phase === EV.TOP ? 'away' : 'home';
-            setScore(prev => ({ ...prev, [team]: prev[team] - last.value }));
-        } else if (last.type === 'out') {
-            setOuts(prev => prev - last.value);
-        } else if (last.type === 'phase') {
-            // Complex undo for phases requires recalculating outs from history
-            // For brevity, we simply pop and the useMemo handles status
-            setOuts(0); 
+  const undo = () => {
+    if (!events.length) return;
+    const last = events[events.length - 1];
+    if (last.type === 'run') setScore(s => ({ ...s, [last.team]: Math.max(0, s[last.team] - last.value) }));
+    if (last.type === 'out') setOuts(prev => Math.max(0, prev - last.value));
+    setEvents(prev => prev.slice(0, -1));
+  };
+
+  // ── Accuracy and Estimates (v5 Logic) ──────────────────────────────────────
+  const est = useMemo(() => {
+    const phaseEvents = events.filter(e => e.type === 'phase');
+    if (phaseEvents.length < 2) return null;
+
+    const halfDurs = [];
+    const warmDurs = [];
+    for(let i=0; i < phaseEvents.length - 1; i++){
+        const d = phaseEvents[i+1].time - phaseEvents[i].time;
+        if (d > 0 && d < 60) {
+            if ([EV.START, EV.MID].includes(phaseEvents[i].phase)) warmDurs.push(d);
+            else halfDurs.push(d);
         }
-        setEvents(prev => prev.slice(0, -1));
-    };
+    }
 
-    // ── Estimate Engine (Simplified for Rustic flow) ──────────────────────────
-    const estimate = useMemo(() => {
-        if (!config || events.length < 3) return null;
-        
-        // Calculate averages from phase events
-        const phaseEvents = events.filter(e => e.type === 'phase');
-        const halfDurs = [];
-        const warmDurs = [];
+    const avgH = avg(halfDurs) || config.fallbackHalf;
+    const avgW = avg(warmDurs) || config.fallbackWarmup;
+    
+    const lastCompleted = phaseEvents.filter(e => e.phase === EV.BOT).reduce((m, e) => Math.max(m, e.inning), 0);
+    const currentIdx = (status.inning - 1) * 4 + PHASE_ORDER.indexOf(status.phase);
+    const endIdx = (config.totalInnings - 1) * 4 + 3;
 
-        for(let i=0; i < phaseEvents.length - 1; i++) {
-            const dur = phaseEvents[i+1].time - phaseEvents[i].time;
-            if (dur <= 0 || dur > 60) continue;
-            if ([EV.START, EV.MID].includes(phaseEvents[i].phase)) warmDurs.push(dur);
-            else halfDurs.push(dur);
-        }
+    let remH = 0, remW = 0;
+    for(let i = currentIdx + 1; i <= endIdx; i++) {
+        const p = PHASE_ORDER[i % 4];
+        if (p === EV.TOP || p === EV.BOT) remH++; else remW++;
+    }
 
-        const avgHalf = halfDurs.length ? halfDurs.reduce((a,b)=>a+b,0)/halfDurs.length : config.fallbackHalf;
-        const avgWarm = warmDurs.length ? warmDurs.reduce((a,b)=>a+b,0)/warmDurs.length : config.fallbackWarmup;
+    const lastTime = events[events.length-1].time;
+    const end = lastTime + (remH * avgH) + (remW * avgW);
+    
+    const probs = computeProbs({ score, events, totalInnings: config.totalInnings, mercyAfter: config.mercyAfter, mercyRuns: config.mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length });
 
-        // Remaining
-        const currentTotalIdx = (currentStatus.inning - 1) * 4 + PHASE_ORDER.indexOf(currentStatus.phase);
-        const gameEndIdx = (config.totalInnings - 1) * 4 + 3; // End of Bot
-        
-        let remHalf = 0, remWarm = 0;
-        for (let i = currentTotalIdx + 1; i <= gameEndIdx; i++) {
-            const p = PHASE_ORDER[i % 4];
-            if ([EV.TOP, EV.BOT].includes(p)) remHalf++;
-            else remWarm++;
-        }
+    return { end, avgH, avgW, halfCount: halfDurs.length, warmCount: warmDurs.length, probs, lastCompleted };
+  }, [events, score, status]);
 
-        const lastTime = events[events.length - 1].time;
-        const projectedEnd = lastTime + (remHalf * avgHalf) + (remWarm * avgWarm);
+  // Record history for graph
+  useEffect(() => {
+    if (est && events.length) {
+        const last = events[events.length-1];
+        setEstimateHistory(prev => {
+            if (prev.length && prev[prev.length-1].eventId === last.id) return prev;
+            return [...prev, { eventId: last.id, estimate: est.end, inning: last.inning, wallTime: last.time, phase: last.phase }];
+        });
+    }
+  }, [events.length, est?.end]);
 
-        return { end: projectedEnd, avgHalf, avgWarm };
-    }, [events, config, currentStatus]);
+  // ── Views ───────────────────────────────────────────────────────────────────
+  if (screen === "setup") return (
+    <div style={{ maxWidth: '420px', margin: '40px auto', padding: '20px' }}>
+        <LedgerCard style={{ border: '2px solid var(--ink)', padding: '30px' }}>
+            <h1 style={{ fontFamily: "'Special Elite', cursive", textAlign: 'center', margin: '0 0 30px' }}>GAME LEDGER v6</h1>
+            <HandwrittenLabel>Away Club</HandwrittenLabel>
+            <input id="away" className="paper-texture" placeholder="Visitors" style={{ border: 'none', borderBottom: '1px solid var(--ink)', width: '100%', fontSize: '24px', marginBottom: '20px', fontFamily: "'Special Elite', cursive" }} />
+            
+            <HandwrittenLabel>Home Club</HandwrittenLabel>
+            <input id="home" className="paper-texture" placeholder="Local" style={{ border: 'none', borderBottom: '1px solid var(--ink)', width: '100%', fontSize: '24px', marginBottom: '30px', fontFamily: "'Special Elite', cursive" }} />
+            
+            <HandwrittenLabel>Regulation Rules</HandwrittenLabel>
+            <select id="league" className="paper-texture" style={{ width: '100%', padding: '10px', border: '1px solid var(--ink)', marginBottom: '30px' }}>
+                {Object.entries(LEAGUES).map(([k,v]) => <option key={k} value={k}>{v.label} ({v.innings} Innings)</option>)}
+            </select>
 
-    // ── Render Helpers ────────────────────────────────────────────────────────
-    if (view === "setup") return (
-        <div style={{ maxWidth: '400px', margin: '20px auto', padding: '20px' }}>
-            <Card style={{ textAlign: 'center', border: '2px solid var(--ink)' }}>
-                <h1 style={{ fontFamily: "'Special Elite', cursive", textDecoration: 'underline' }}>Official Game Ledger</h1>
-                <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', fontSize: '12px' }}>AWAY TEAM</label>
-                    <input id="away" className="paper-texture" style={{ border: 'none', borderBottom: '1px solid var(--ink)', textAlign: 'center', fontSize: '20px', width: '80%' }} />
+            <QuillButton full onClick={() => {
+                const l = document.getElementById('league').value;
+                const cfg = { ...LEAGUES[l], away: document.getElementById('away').value || "Away", home: document.getElementById('home').value || "Home" };
+                cfg.fallbackHalf = cfg.halfInning; cfg.fallbackWarmup = cfg.warmup;
+                setConfig(cfg);
+                setScreen("game");
+                setEvents([{ id: 1, type: 'phase', phase: EV.START, inning: 1, time: parseTime(nowHM()) }]);
+            }}>Open Ledger & Start Warmup</QuillButton>
+        </LedgerCard>
+    </div>
+  );
+
+  if (screen === "summary") return (
+      <SummaryView config={config} events={events} score={score} endTime={finalEndTime} estHistory={estimateHistory} onReset={() => window.location.reload()} />
+  );
+
+  return (
+    <div style={{ maxWidth: '460px', margin: '0 auto', padding: '15px' }}>
+        {/* Scoreboard */}
+        <LedgerCard style={{ textAlign: 'center', borderBottom: '4px double var(--ink)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+                <div>
+                    <HandwrittenLabel>{config.away}</HandwrittenLabel>
+                    <div style={{ fontSize: '64px', fontFamily: "'Special Elite', cursive" }}>{score.away}</div>
                 </div>
-                <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', fontSize: '12px' }}>HOME TEAM</label>
-                    <input id="home" className="paper-texture" style={{ border: 'none', borderBottom: '1px solid var(--ink)', textAlign: 'center', fontSize: '20px', width: '80%' }} />
+                <div style={{ fontSize: '24px', opacity: 0.3, padding: '0 15px' }}>&</div>
+                <div>
+                    <HandwrittenLabel>{config.home}</HandwrittenLabel>
+                    <div style={{ fontSize: '64px', fontFamily: "'Special Elite', cursive" }}>{score.home}</div>
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px' }}>LEAGUE PRESET</label>
-                    <select id="league" className="paper-texture" style={{ border: '1px solid var(--ink)', padding: '5px' }}>
-                        {Object.entries(LEAGUES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                    </select>
+            </div>
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: '10px', paddingTop: '10px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                <div><HandwrittenLabel>Inning</HandwrittenLabel><span className="handwritten">{status.phase} {status.inning}</span></div>
+                <div><HandwrittenLabel>Outs</HandwrittenLabel>
+                    <div style={{ fontSize: '18px' }}>
+                        {[1,2,3].map(i => <span key={i} style={{ color: outs >= i ? 'var(--red-ink)' : 'var(--border)', margin: '0 3px' }}>ⓧ</span>)}
+                    </div>
                 </div>
-                <Button onClick={() => {
-                    const l = document.getElementById('league').value;
-                    setConfig({
-                        away: document.getElementById('away').value || "Away",
-                        home: document.getElementById('home').value || "Home",
-                        ...LEAGUES[l],
-                        fallbackHalf: LEAGUES[l].halfInning,
-                        fallbackWarmup: LEAGUES[l].warmup
-                    });
-                    setView("game");
-                }}>Open Ledger</Button>
-            </Card>
+            </div>
+        </LedgerCard>
+
+        {/* Estimation Engine readout */}
+        <LedgerCard>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <HandwrittenLabel>Projected Conclusion</HandwrittenLabel>
+                    <div style={{ fontSize: '32px', fontFamily: "'Special Elite', cursive", color: 'var(--accent)' }}>
+                        {est ? formatTime(est.end) : "Calibrating..."}
+                    </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                    <HandwrittenLabel>Pace</HandwrittenLabel>
+                    <div style={{ fontSize: '12px' }}>½ Inn: {est ? formatDur(est.avgH) : '--'}</div>
+                    <div style={{ fontSize: '12px' }}>Warm: {est ? formatDur(est.avgW) : '--'}</div>
+                </div>
+            </div>
+            {est?.probs && (
+                <div style={{ marginTop: '15px', borderTop: '1px dashed var(--border)', paddingTop: '10px' }}>
+                    <HandwrittenLabel style={{ fontSize: '9px' }}>Win Probability (Monte Carlo)</HandwrittenLabel>
+                    <div style={{ display: 'flex', height: '4px', background: var(--border), borderRadius: '2px', overflow: 'hidden', marginTop: '5px' }}>
+                        <div style={{ width: `${est.probs.endAfterBot*100}%`, background: 'var(--ink)' }} />
+                        <div style={{ width: `${est.probs.extra*100}%`, background: 'var(--highlight)' }} />
+                        <div style={{ width: `${est.probs.endAfterTop*100}%`, background: 'var(--red-ink)' }} />
+                    </div>
+                </div>
+            )}
+        </LedgerCard>
+
+        {/* Live Controls */}
+        <LedgerCard red={status.phase === EV.TOP || status.phase === EV.BOT}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <input type="time" value={entryTime} onChange={e => setEntryTime(e.target.value)} className="paper-texture" style={{ border: '1px solid var(--ink)', padding: '8px', fontFamily: "'Courier Prime', monospace" }} />
+                <QuillButton variant="quill" onClick={() => setEntryTime(nowHM())}>Now</QuillButton>
+                <div style={{ flex: 1 }} />
+                <QuillButton variant="quill" onClick={undo}>Undo</QuillButton>
+            </div>
+
+            {([EV.START, EV.MID].includes(status.phase)) ? (
+                <QuillButton full variant="ink" onClick={() => logEvent('phase')}>
+                    Begin {status.phase === EV.START ? `Top ${status.inning}` : `Bot ${status.inning}`} Half
+                </QuillButton>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '15px' }}>
+                    <div>
+                        <HandwrittenLabel>Record Score</HandwrittenLabel>
+                        <QuillButton full variant="ink" onClick={() => logEvent('run', 1)}>+1 Run</QuillButton>
+                    </div>
+                    <div>
+                        <HandwrittenLabel>Record Outs</HandwrittenLabel>
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                            <QuillButton variant="red" onClick={() => logEvent('out', 1)}>+1</QuillButton>
+                            {outs === 0 && <QuillButton variant="red" onClick={() => logEvent('out', 2)}>+2</QuillButton>}
+                            {outs === 0 && <QuillButton variant="red" onClick={() => logEvent('out', 3)}>+3</QuillButton>}
+                            {outs === 1 && <QuillButton variant="red" onClick={() => logEvent('out', 2)}>+2</QuillButton>}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </LedgerCard>
+
+        {/* Ledger Entries */}
+        <LedgerCard style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <HandwrittenLabel>Chronological Journal</HandwrittenLabel>
+            <div style={{ fontFamily: "'Special Elite', cursive", fontSize: '13px' }}>
+                {[...events].reverse().map(e => (
+                    <div key={e.id} style={{ borderBottom: '1px solid #e0ddd5', padding: '4px 0' }}>
+                        <span style={{ opacity: 0.5 }}>[{formatTime(e.time)}]</span> 
+                        <span style={{ marginLeft: '10px' }}>
+                            {e.type === 'phase' && `Transition to ${e.phase.toUpperCase()} ${e.inning}`}
+                            {e.type === 'run' && `Run scored by ${e.team === 'away' ? config.away : config.home}`}
+                            {e.type === 'out' && `${e.value} Out(s) recorded`}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </LedgerCard>
+
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+            <button onClick={() => { setFinalEndTime(parseTime(entryTime)); setScreen("summary"); }} style={{ background: 'none', border: 'none', textDecoration: 'underline', color: 'var(--ink-fade)', cursor: 'pointer', fontFamily: "'Courier Prime', monospace" }}>Finalize Ledger</button>
+        </div>
+    </div>
+  );
+}
+
+// ── Summary View (v5 Accuracy Logic) ──────────────────────────────────────────
+function SummaryView({ config, events, score, endTime, estHistory, onReset }) {
+    return (
+        <div style={{ maxWidth: '500px', margin: '40px auto', padding: '20px' }}>
+            <LedgerCard style={{ textAlign: 'center' }}>
+                <h1 style={{ fontFamily: "'Special Elite', cursive" }}>FINAL ACCOUNT</h1>
+                <div style={{ fontSize: '48px', fontFamily: "'Special Elite', cursive", margin: '20px 0' }}>
+                    {score.away} - {score.home}
+                </div>
+                <HandwrittenLabel>{config.away} @ {config.home}</HandwrittenLabel>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '30px' }}>
+                    <div style={{ border: '1px solid var(--border)', padding: '10px' }}>
+                        <HandwrittenLabel>Duration</HandwrittenLabel>
+                        <div className="handwritten">{formatDur(endTime - events[0].time)}</div>
+                    </div>
+                    <div style={{ border: '1px solid var(--border)', padding: '10px' }}>
+                        <HandwrittenLabel>Conclusion</HandwrittenLabel>
+                        <div className="handwritten">{formatTime(endTime)}</div>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '30px', textAlign: 'left' }}>
+                    <HandwrittenLabel>Estimate Accuracy</HandwrittenLabel>
+                    <AccuracyChart estHistory={estHistory} endTime={endTime} config={config} />
+                </div>
+
+                <QuillButton full onClick={onReset} style={{ marginTop: '30px' }}>Archive & Start New</QuillButton>
+            </LedgerCard>
         </div>
     );
+}
+
+// ── Accuracy Chart ────────────────────────────────────────────────────────────
+function AccuracyChart({ estHistory, endTime, config }) {
+    if (!estHistory.length) return null;
+    const W = 360, H = 150;
+    const padding = 30;
+    
+    const points = estHistory.map(h => ({
+        x: h.wallTime,
+        y: Math.round(h.estimate - endTime)
+    }));
+
+    const xMin = Math.min(...points.map(p => p.x));
+    const xMax = Math.max(...points.map(p => p.x));
+    const yMax = Math.max(...points.map(p => Math.abs(p.y)), 10);
+
+    const getX = (val) => padding + ((val - xMin) / (xMax - xMin || 1)) * (W - padding * 2);
+    const getY = (val) => (H/2) - (val / yMax) * (H/2 - 10);
+
+    const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(p.x)} ${getY(p.y)}`).join(' ');
 
     return (
-        <div style={{ maxWidth: '450px', margin: '0 auto', padding: '10px' }}>
-            {/* Scoreboard */}
-            <Card style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', textAlign: 'center', borderBottom: '3px double var(--ink)' }}>
-                <div>
-                    <div style={{ fontSize: '12px' }}>{config.away}</div>
-                    <div style={{ fontSize: '48px', fontFamily: "'Special Elite', cursive" }}>{score.away}</div>
-                </div>
-                <div style={{ padding: '0 20px', fontSize: '24px' }}>vs</div>
-                <div>
-                    <div style={{ fontSize: '12px' }}>{config.home}</div>
-                    <div style={{ fontSize: '48px', fontFamily: "'Special Elite', cursive" }}>{score.home}</div>
-                </div>
-            </Card>
-
-            {/* Status & Estimate */}
-            <Card style={{ textAlign: 'center' }}>
-                <Typewriter style={{ fontSize: '18px', color: 'var(--accent)' }}>
-                    {currentStatus.phase === EV.START && `Pre-Game Warmup`}
-                    {currentStatus.phase === EV.TOP && `Top of the ${currentStatus.inning}`}
-                    {currentStatus.phase === EV.MID && `Middle of the ${currentStatus.inning}`}
-                    {currentStatus.phase === EV.BOT && `Bottom of the ${currentStatus.inning}`}
-                </Typewriter>
-                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                    <div style={{ border: '1px solid var(--border)', padding: '5px 15px' }}>
-                        <label style={{ display: 'block', fontSize: '9px' }}>OUTS</label>
-                        <div style={{ fontSize: '20px' }}>
-                            {[1,2,3].map(i => <span key={i} style={{ color: outs >= i ? 'var(--ink)' : 'var(--border)', margin: '0 2px' }}>●</span>)}
-                        </div>
-                    </div>
-                    <div style={{ border: '1px solid var(--border)', padding: '5px 15px' }}>
-                        <label style={{ display: 'block', fontSize: '9px' }}>EST. FINISH</label>
-                        <Typewriter style={{ fontSize: '18px' }}>{estimate ? formatTime(estimate.end) : "Pending..."}</Typewriter>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Controls */}
-            <Card>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <input 
-                        type="time" 
-                        value={entryTime} 
-                        onChange={e => setEntryTime(e.target.value)} 
-                        className="paper-texture"
-                        style={{ border: '1px solid var(--ink)', padding: '5px', fontFamily: "'Courier Prime', monospace" }} 
-                    />
-                    <Button small variant="paper" onClick={() => setEntryTime(nowHM())}>Now</Button>
-                    <div style={{ flex: 1 }} />
-                    <Button small variant="paper" onClick={undo} disabled={!events.length}>Undo</Button>
-                </div>
-
-                {/* Contextual Buttons */}
-                {([EV.START, EV.MID].includes(currentStatus.phase)) ? (
-                    <Button variant="accent" full onClick={() => logEvent('phase')}>
-                        Start {currentStatus.phase === EV.START ? `Top ${currentStatus.inning}` : `Bot ${currentStatus.inning}`}
-                    </Button>
-                ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '10px' }}>
-                        <div>
-                            <label style={{ fontSize: '10px', display: 'block', marginBottom: '5px' }}>RECORD RUNS</label>
-                            <Button variant="ink" onClick={() => logEvent('run', 1)}>+1 Run</Button>
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '10px', display: 'block', marginBottom: '5px' }}>RECORD OUTS</label>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <Button variant="ink" onClick={() => logEvent('out', 1)}>+1</Button>
-                                {outs === 0 && <Button variant="ink" onClick={() => logEvent('out', 2)}>+2</Button>}
-                                {outs === 0 && <Button variant="ink" onClick={() => logEvent('out', 3)}>+3</Button>}
-                                {outs === 1 && <Button variant="ink" onClick={() => logEvent('out', 2)}>+2</Button>}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </Card>
-
-            {/* Log */}
-            <Card style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                <label style={{ fontSize: '10px', textDecoration: 'underline' }}>GAME LEDGER</label>
-                <div style={{ fontSize: '12px', marginTop: '5px', lineHeight: '1.6' }}>
-                    {[...events].reverse().map(e => (
-                        <div key={e.id} style={{ borderBottom: '1px dashed var(--border)' }}>
-                            <Typewriter style={{ color: 'var(--ink-fade)' }}>[{formatTime(e.time)}]</Typewriter>
-                            <span style={{ marginLeft: '8px' }}>
-                                {e.type === 'phase' && `Transition to ${e.phase} ${e.inning}`}
-                                {e.type === 'run' && `Run scored by ${e.phase === EV.TOP ? config.away : config.home}`}
-                                {e.type === 'out' && `${e.value} Out(s) recorded`}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </Card>
-        </div>
+        <svg width={W} height={H} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid var(--border)' }}>
+            <line x1={padding} y1={H/2} x2={W-padding} y2={H/2} stroke="var(--border)" strokeDasharray="4" />
+            <path d={path} fill="none" stroke="var(--red-ink)" strokeWidth="2" />
+            {points.map((p, i) => <circle key={i} cx={getX(p.x)} cy={getY(p.y)} r="3" fill="var(--ink)" />)}
+            <text x={padding} y={H-5} fontSize="8" fill="var(--ink-fade)">Start</text>
+            <text x={W-padding} y={H-5} fontSize="8" textAnchor="end" fill="var(--ink-fade)">End</text>
+            <text x={5} y={15} fontSize="8" fill="var(--red-ink)">Over (+)</text>
+            <text x={5} y={H-15} fontSize="8" fill="var(--accent)">Under (-)</text>
+        </svg>
     );
 }
 
