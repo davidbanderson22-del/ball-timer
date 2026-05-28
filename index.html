@@ -96,7 +96,7 @@ function nowHM() {
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-// Robust sorting: Tie-breaker with ID to guarantee chronological order for same-minute events
+// Robust sorting to prevent tie-breaker interface lockups
 function sortEvents(arr) {
   return [...arr].sort((a, b) => {
     if (a.time !== b.time) return a.time - b.time;
@@ -109,7 +109,7 @@ function getSafeTime(inputTime, allEvents) {
   if (allEvents && allEvents.length > 0) {
       const sorted = sortEvents(allEvents);
       const lastTime = sorted[sorted.length - 1].time;
-      if (t < lastTime) return lastTime; // Clamp backward time travel
+      if (t < lastTime) return lastTime;
   }
   return t;
 }
@@ -159,23 +159,41 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
   const homeHalves = Math.max(1, runsLog.filter(r => r.half === "bot").length);
   const awayRate   = (awayRuns + pw * prior) / (awayHalves + pw);
   const homeRate   = (homeRuns + pw * prior) / (homeHalves + pw);
+  
   const remAway = Math.max(0, totalInnings - Math.ceil(halfDurCount / 2));
   const remHome = Math.max(0, totalInnings - lastCompletedInning);
+  
   const N = 4000;
   let mercy = 0, endTop = 0, endBot = 0, extra = 0;
+  let awayWin = 0, homeWin = 0;
+
   for (let i = 0; i < N; i++) {
     let a = score.away, h = score.home;
     for (let j = 0; j < remAway; j++) a += poissonSample(awayRate);
     for (let j = 0; j < remHome; j++) h += poissonSample(homeRate);
+    
     const diff = Math.abs(a - h);
-    if (mercyAfter && mercyRuns && diff >= mercyRuns && lastCompletedInning >= mercyAfter - 1) mercy++;
-    if (h > a) endTop++; else if (a > h) endBot++; else extra++;
+    
+    if (a > h) awayWin++;
+    else if (h > a) homeWin++;
+
+    if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
+      mercy++;
+    } else if (a === h) {
+      extra++;
+    } else if (h > a) {
+      endTop++; 
+    } else {
+      endBot++; 
+    }
   }
   return {
-    mercy:       clamp(mercy / N, 0, 0.97),
-    endAfterTop: clamp(endTop / N, 0, 0.97),
-    endAfterBot: clamp(endBot / N, 0, 0.97),
-    extra:       clamp(extra / N, 0, 0.97),
+    mercy:       clamp(mercy / N, 0, 1),
+    endTop:      clamp(endTop / N, 0, 1),
+    endBot:      clamp(endBot / N, 0, 1),
+    extra:       clamp(extra / N, 0, 1),
+    awayWin:     clamp(awayWin / N, 0, 1),
+    homeWin:     clamp(homeWin / N, 0, 1),
     awayRate, homeRate,
   };
 }
@@ -758,16 +776,15 @@ function SetupScreen({ onStart, onImport }) {
 function GameTracker({ config, onNewGame, initialState }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, timeLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
 
-  // Unified Timeline Event Stream
+  // Timeline Stream arrays
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
   const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
   const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
   
-  // Legacy support & initial states
   const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
 
-  // Modals & End Game state
+  // Modals & Active configurations
   const [entryTime, setEntryTime] = useState(nowHM());
   const [gameOverPrompt, setGameOverPrompt] = useState(false);
   const [endTimeInput,   setEndTimeInput]   = useState(nowHM());
@@ -781,7 +798,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
 
-  // Derived State
+  // Derived timeline configuration matrices
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
   const sortedPhaseEvents = sortEvents(phaseEvents);
   const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
@@ -811,7 +828,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   const nextPhaseFallback = getNextPhase(phaseEvents);
   const est  = computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog });
 
-  // Snapshot estimate history
+  // History tracking snapshots
   useEffect(() => {
     if (!est?.canEstimate || !events.length) return;
     const lastEv = events[events.length - 1];
@@ -829,7 +846,7 @@ function GameTracker({ config, onNewGame, initialState }) {
     });
   }, [events, est?.estimatedEnd]);
 
-  // Check Game Over
+  // Terminal state evaluation check
   const potOver = isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mercyRuns);
   useEffect(() => { 
     if (potOver && !gameOverPrompt && !showSummary) { 
@@ -946,7 +963,7 @@ function GameTracker({ config, onNewGame, initialState }) {
           </div>
         </div>
 
-        {/* Scoreboard */}
+        {/* Score display board matrix */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "16px 0 10px" }}>
           {[["away", away], ["home", home]].map(([side, name], i) => (
             <div key={side} style={{ textAlign: i === 0 ? "left" : "right" }}>
@@ -958,13 +975,13 @@ function GameTracker({ config, onNewGame, initialState }) {
         </div>
       </div>
 
-      {/* Banners */}
+      {/* Flag Banners */}
       {est?.mercyEligible && <div style={{ background: C.redDim, borderBottom: `2px solid ${C.red}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.red, fontWeight: "bold" }}>⚠ MERCY ELIGIBLE — {score.home > score.away ? home : away} +{runDiff}</div>}
       {inWarmup && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
 
       <div style={{ padding: "16px 16px 0" }}>
 
-        {/* Game Over Prompt */}
+        {/* Game Over Prompt Panel */}
         {gameOverPrompt && (
           <div style={{ background: C.card, border: `2px solid ${C.yellow}`, padding: "16px", marginBottom: "16px" }}>
             <Label>GAME OVER?</Label>
@@ -977,7 +994,7 @@ function GameTracker({ config, onNewGame, initialState }) {
           </div>
         )}
 
-        {/* Active Inning Controls vs Next Phase Controls */}
+        {/* Active Inter-Half Controls vs Logging Matrix */}
         {!gameOverPrompt && (
           inActiveInning ? (
             <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px", position: "relative" }}>
@@ -1031,7 +1048,7 @@ function GameTracker({ config, onNewGame, initialState }) {
           )
         )}
 
-        {/* Estimate card */}
+        {/* Estimate tracking metrics card */}
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
           {!est?.canEstimate ? (
             <div style={{ padding: "8px 0", textAlign: "center" }}>
@@ -1061,12 +1078,36 @@ function GameTracker({ config, onNewGame, initialState }) {
           )}
         </div>
 
-        {/* Linescore */}
+        {/* ── Projected Outcomes Card (Monte Carlo Simulation Results Display) ── */}
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>PROJECTED OUTCOMES (MONTE CARLO)</Label>
+          {!est?.probs ? (
+            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "8px 0" }}>
+              Need at least 2 logged half-innings to simulate outcomes.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <StatBox label={`${away.toUpperCase()} WIN`} value={`${Math.round((est.probs.awayWin || 0) * 100)}%`} color={C.blue} />
+                <StatBox label={`${home.toUpperCase()} WIN`} value={`${Math.round((est.probs.homeWin || 0) * 100)}%`} color={C.accent} />
+              </div>
+              <Divider label="Ending Scenarios" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontFamily: MONO, fontSize: "12px", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px" }}>
+                {mercyAfter && <div>⚡ Mercy Rule: <strong style={{color: C.accent}}>{Math.round(est.probs.mercy * 100)}%</strong></div>}
+                <div>🔝 End Top {totalInnings}: <strong>{Math.round(est.probs.endTop * 100)}%</strong></div>
+                <div>🔚 End Bot {totalInnings}: <strong>{Math.round(est.probs.endBot * 100)}%</strong></div>
+                <div>➕ Extra Innings: <strong style={{color: C.orange}}>{Math.round(est.probs.extra * 100)}%</strong></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Linescore panel layout */}
         <div style={{ marginBottom: "16px" }}>
           <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} />
         </div>
 
-        {/* Game log */}
+        {/* Game log terminal output panel */}
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "12px", marginBottom: "12px" }}>
           <Label>GAME LOG</Label>
           <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px", maxHeight: "160px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
@@ -1075,7 +1116,7 @@ function GameTracker({ config, onNewGame, initialState }) {
           </div>
         </div>
 
-        {/* Manual End Game Button */}
+        {/* Manual Terminal State Closer Trigger */}
         {events.length > 0 && !gameOverPrompt && (
           <div style={{ marginTop: "16px", textAlign: "center" }}>
             <button onClick={() => { setGameOverPrompt(true); setEndTimeInput(nowHM()); }} style={{ background: "none", border: "none", color: C.faint, fontSize: "12px", fontFamily: MONO, cursor: "pointer", textDecoration: "underline", fontWeight: "bold" }}>End game manually</button>
@@ -1094,11 +1135,17 @@ function App() {
   const [key, setKey] = useState(0);
 
   const handleStart = cfg => { setConfig(cfg); setInitState(null); setKey(k => k + 1); setScreen("game"); };
+  const handleImport = data => {
+    setConfig(data.config);
+    setInitState(data);
+    setKey(k => k + 1);
+    setScreen("game");
+  };
 
   if (screen === "game" && config) {
     return <GameTracker key={key} config={config} onNewGame={() => setScreen("setup")} initialState={initState} />;
   }
-  return <SetupScreen onStart={handleStart} onImport={() => {}} />;
+  return <SetupScreen onStart={handleStart} onImport={handleImport} />;
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
