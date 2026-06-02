@@ -66,8 +66,8 @@ function phaseLabel(inning, phase) {
   const m = { start: `Pre-${inning} Warmup`, top: `Top ${inning}`, mid: `Mid-${inning} Warmup`, bot: `Bot ${inning}` };
   return m[phase] ?? "";
 }
-function phaseDesc(phase) {
-  const m = { start: "Between-inning warmup begins", top: "Away steps up to bat", mid: "Mid-inning warmup begins", bot: "Home steps up to bat" };
+function phaseDesc(phase, awayName = "Away", homeName = "Home") {
+  const m = { start: "Between-inning warmup begins", top: `${awayName} steps up to bat`, mid: "Mid-inning warmup begins", bot: `${homeName} steps up to bat` };
   return m[phase] ?? "";
 }
 
@@ -150,7 +150,7 @@ function poissonSample(lambda) {
   return k - 1;
 }
 
-function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount }) {
+function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount, allowTies, tieInningLimit }) {
   if (halfDurCount < 2) return null;
   const prior = 0.8, pw = 2;
   const awayRuns   = runsLog.filter(r => r.team === "away").reduce((s, r) => s + r.runs, 0);
@@ -165,7 +165,7 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
   
   const N = 4000;
   let mercy = 0, endTop = 0, endBot = 0, extra = 0;
-  let awayWin = 0, homeWin = 0;
+  let awayWin = 0, homeWin = 0, tieCount = 0;
 
   for (let i = 0; i < N; i++) {
     let a = score.away, h = score.home;
@@ -174,9 +174,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     
     const diff = Math.abs(a - h);
     
-    if (a > h) awayWin++;
-    else if (h > a) homeWin++;
-
     if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
       mercy++;
     } else if (a === h) {
@@ -186,6 +183,22 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     } else {
       endBot++; 
     }
+
+    // Winner Resolution (including Extra Innings / Ties)
+    let currentInning = Math.max(totalInnings, lastCompletedInning);
+    while (a === h) {
+      if (allowTies && currentInning >= tieInningLimit) {
+        tieCount++;
+        break;
+      }
+      a += poissonSample(awayRate);
+      h += poissonSample(homeRate);
+      currentInning++;
+      if (currentInning > 50) { tieCount++; break; } // safety fallback
+    }
+
+    if (a > h) awayWin++;
+    else if (h > a) homeWin++;
   }
   return {
     mercy:       clamp(mercy / N, 0, 1),
@@ -194,12 +207,13 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     extra:       clamp(extra / N, 0, 1),
     awayWin:     clamp(awayWin / N, 0, 1),
     homeWin:     clamp(homeWin / N, 0, 1),
+    tie:         clamp(tieCount / N, 0, 1),
     awayRate, homeRate,
   };
 }
 
 // ── Core estimate engine ──────────────────────────────────────────────────────
-function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog }) {
+function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit }) {
   if (!phaseEvents.length) return null;
   const sorted = sortEvents(phaseEvents);
   const halfDurs = [], warmupDurs = [];
@@ -238,7 +252,7 @@ function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRu
   }
   if (inExtra) { remHalf += 2; remWarmup += 2; }
   const estimatedEnd = last.time + remHalf * avgHalf + remWarmup * avgWarmup;
-  const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length });
+  const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit });
   return {
     avgHalf, avgWarmup, measuredHalf, measuredWarmup,
     halfDurs, warmupDurs, confidence, canEstimate,
@@ -697,6 +711,8 @@ function SetupScreen({ onStart, onImport }) {
   const [mercyAfter, setMercyAfter] = useState(5);
   const [mercyRuns, setMercyRuns]   = useState(10);
   const [useMercy, setUseMercy]     = useState(true);
+  const [allowTies, setAllowTies]   = useState(false);
+  const [tieInningLimit, setTieInningLimit] = useState(7);
   const [useTimeLimit, setUseTimeLimit] = useState(false);
   const [timeLimit, setTimeLimit]   = useState("120");
   const [startTime, setStartTime]   = useState(nowHM());
@@ -706,6 +722,7 @@ function SetupScreen({ onStart, onImport }) {
     if (league === "custom") return;
     const p = LEAGUES[league];
     setInnings(p.innings);
+    setTieInningLimit(p.innings);
     if (p.mercy) { setMercyRuns(p.mercy); setMercyAfter(p.mercyAfter); setUseMercy(true); } else setUseMercy(false);
   }, [league]);
 
@@ -753,9 +770,15 @@ function SetupScreen({ onStart, onImport }) {
           </div>
           <Toggle on={useMercy} onToggle={() => setUseMercy(v => !v)} label="Mercy Rule Active" />
           {useMercy && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px", marginBottom: "12px" }}>
               <div><Label>AFTER INN</Label><Sel value={mercyAfter} onChange={v => setMercyAfter(Number(v))}>{[3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
               <div><Label>RUN DIFF</Label><Sel value={mercyRuns} onChange={v => setMercyRuns(Number(v))}>{[5,8,10,12,15,20].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            </div>
+          )}
+          <Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" />
+          {allowTies && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginTop: "12px" }}>
+              <div><Label>TIE AFTER INN</Label><Sel value={tieInningLimit} onChange={v => setTieInningLimit(Number(v))}>{[5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             </div>
           )}
         </div>
@@ -763,7 +786,7 @@ function SetupScreen({ onStart, onImport }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <Btn full disabled={!valid} onClick={() => {
             const t = parseTime(startTime) ?? parseTime(nowHM());
-            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
+            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
           }}>START GAME →</Btn>
           <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
         </div>
@@ -774,7 +797,7 @@ function SetupScreen({ onStart, onImport }) {
 
 // ── Game Tracker ──────────────────────────────────────────────────────────────
 function GameTracker({ config, onNewGame, initialState }) {
-  const { away, home, totalInnings, mercyAfter, mercyRuns, timeLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
+  const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, timeLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
 
   // Timeline Stream arrays
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
@@ -826,7 +849,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   }, [baseScore, events]);
 
   const nextPhaseFallback = getNextPhase(phaseEvents);
-  const est  = computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog });
+  const est  = computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit });
 
   // History tracking snapshots
   useEffect(() => {
@@ -929,6 +952,11 @@ function GameTracker({ config, onNewGame, initialState }) {
   const lastCompleted = est?.lastCompletedInning ?? 0;
   const runDiff = Math.abs(score.home - score.away);
 
+  // Guarantee strict percentage sums to exactly 100% for the UI elements
+  const awayWinPctRaw = Math.round((est?.probs?.awayWin || 0) * 100);
+  const tiePctRaw = allowTies ? Math.round((est?.probs?.tie || 0) * 100) : 0;
+  const homeWinPctAdj = Math.max(0, 100 - awayWinPctRaw - tiePctRaw);
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, maxWidth: "440px", margin: "0 auto", paddingBottom: "48px" }}>
       <link rel="stylesheet" href={FONT} />
@@ -967,7 +995,7 @@ function GameTracker({ config, onNewGame, initialState }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "16px 0 10px" }}>
           {[["away", away], ["home", home]].map(([side, name], i) => (
             <div key={side} style={{ textAlign: i === 0 ? "left" : "right" }}>
-              <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, fontWeight: "bold" }}>{side.toUpperCase()}</div>
+              <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, fontWeight: "bold" }}>{name.toUpperCase()}</div>
               <div style={{ fontSize: "64px", fontFamily: DISPLAY, lineHeight: 1, color: score[side] > score[side === "away" ? "home" : "away"] ? C.accent : C.text }}>{score[side]}</div>
             </div>
           ))}
@@ -1037,7 +1065,7 @@ function GameTracker({ config, onNewGame, initialState }) {
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
               <Label>NEXT PHASE TO LOG</Label>
               <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
-              <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase)}</div>
+              <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
               
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
                 <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
@@ -1078,25 +1106,38 @@ function GameTracker({ config, onNewGame, initialState }) {
           )}
         </div>
 
-        {/* ── Projected Outcomes Card (Monte Carlo Simulation Results Display) ── */}
+        {/* ── Predicted Winner (Monte Carlo Simulation Results Display) ── */}
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
-          <Label>PROJECTED OUTCOMES (MONTE CARLO)</Label>
+          <Label>PREDICTED WINNER</Label>
           {!est?.probs ? (
             <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "8px 0" }}>
               Need at least 2 logged half-innings to simulate outcomes.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <StatBox label={`${away.toUpperCase()} WIN`} value={`${Math.round((est.probs.awayWin || 0) * 100)}%`} color={C.blue} />
-                <StatBox label={`${home.toUpperCase()} WIN`} value={`${Math.round((est.probs.homeWin || 0) * 100)}%`} color={C.accent} />
+              <div style={{ display: "grid", gridTemplateColumns: allowTies ? "1fr 1fr 1fr" : "1fr 1fr", gap: "10px" }}>
+                <StatBox label={`${away.toUpperCase()} WIN`} value={`${awayWinPctRaw}%`} color={C.blue} />
+                <StatBox label={`${home.toUpperCase()} WIN`} value={`${homeWinPctAdj}%`} color={C.accent} />
+                {allowTies && <StatBox label="TIE" value={`${tiePctRaw}%`} color={C.muted} />}
               </div>
-              <Divider label="Ending Scenarios" />
+            </div>
+          )}
+        </div>
+
+        {/* ── Outcome Probabilities ── */}
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>OUTCOME PROBABILITIES</Label>
+          {!est?.probs ? (
+            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "8px 0" }}>
+              Need at least 2 logged half-innings to simulate outcomes.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontFamily: MONO, fontSize: "12px", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px" }}>
-                {mercyAfter && <div>⚡ Mercy Rule: <strong style={{color: C.accent}}>{Math.round(est.probs.mercy * 100)}%</strong></div>}
-                <div>🔝 End Top {totalInnings}: <strong>{Math.round(est.probs.endTop * 100)}%</strong></div>
-                <div>🔚 End Bot {totalInnings}: <strong>{Math.round(est.probs.endBot * 100)}%</strong></div>
-                <div>➕ Extra Innings: <strong style={{color: C.orange}}>{Math.round(est.probs.extra * 100)}%</strong></div>
+                {mercyAfter && <div>⚡ Mercy: <strong style={{color: C.accent}}>{Math.round(est.probs.mercy * 100)}%</strong></div>}
+                <div>🔝 Top {totalInnings} End: <strong>{Math.round(est.probs.endTop * 100)}%</strong></div>
+                <div>🔚 Bot {totalInnings} End: <strong>{Math.round(est.probs.endBot * 100)}%</strong></div>
+                <div>➕ Extras: <strong style={{color: C.orange}}>{Math.round(est.probs.extra * 100)}%</strong></div>
               </div>
             </div>
           )}
