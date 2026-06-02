@@ -133,8 +133,16 @@ function isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mer
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
   const diff = Math.abs(score.home - score.away);
 
-  if (mercyAfter && mercyRuns && lastCompleted >= mercyAfter && diff >= mercyRuns) return true;
-  if (mercyAfter && mercyRuns && last.phase === EV.BOT && last.inning >= mercyAfter && diff >= mercyRuns && score.home > score.away) return true;
+  // EQUAL AT-BATS MERCY RULE CHECK
+  if (mercyAfter && mercyRuns && diff >= mercyRuns) {
+    if (score.home > score.away) {
+        if (lastCompleted >= mercyAfter) return true;
+        if (last.phase === EV.BOT && last.inning >= mercyAfter) return true; // Home walk-off mercy
+    } else {
+        if (lastCompleted >= mercyAfter && last.phase === EV.START) return true; // Away wins only when inning completely finishes
+    }
+  }
+
   if (last.inning >= totalInnings && last.phase === EV.MID && score.home > score.away) return true;
   if (lastCompleted >= totalInnings && score.home !== score.away) return true;
   
@@ -150,7 +158,7 @@ function poissonSample(lambda) {
   return k - 1;
 }
 
-function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount, allowTies, tieInningLimit }) {
+function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase }) {
   if (halfDurCount < 2) return null;
   const prior = 0.8, pw = 2;
   const awayRuns   = runsLog.filter(r => r.team === "away").reduce((s, r) => s + r.runs, 0);
@@ -160,20 +168,40 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
   const awayRate   = (awayRuns + pw * prior) / (awayHalves + pw);
   const homeRate   = (homeRuns + pw * prior) / (homeHalves + pw);
   
-  const remAway = Math.max(0, totalInnings - Math.ceil(halfDurCount / 2));
-  const remHome = Math.max(0, totalInnings - lastCompletedInning);
-  
   const N = 4000;
   let mercy = 0, endTop = 0, endBot = 0, extra = 0;
   let awayWin = 0, homeWin = 0, tieCount = 0;
 
+  const baseInning = activeInningNum || (lastPhase ? lastPhase.inning : 1);
+  const isTop = activeHalf === 'top';
+  const isBot = activeHalf === 'bot';
+
   for (let i = 0; i < N; i++) {
     let a = score.away, h = score.home;
-    for (let j = 0; j < remAway; j++) a += poissonSample(awayRate);
-    for (let j = 0; j < remHome; j++) h += poissonSample(homeRate);
+    let currentInn = Math.max(lastCompletedInning + 1, baseInning);
+
+    // 1. Resolve current active inning / partial runs
+    if (isTop) {
+        a += poissonSample(awayRate * ((3 - (currentOuts || 0)) / 3));
+        h += poissonSample(homeRate);
+        currentInn++;
+    } else if (isBot) {
+        h += poissonSample(homeRate * ((3 - (currentOuts || 0)) / 3));
+        currentInn++;
+    } else if (lastPhase && lastPhase.phase === EV.MID) {
+        h += poissonSample(homeRate);
+        currentInn++;
+    }
+
+    // 2. Add remaining guaranteed regulation innings
+    for (let j = currentInn; j <= totalInnings; j++) {
+        a += poissonSample(awayRate);
+        h += poissonSample(homeRate);
+    }
     
     const diff = Math.abs(a - h);
     
+    // 3. Evaluate Outcomes
     if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
       mercy++;
     } else if (a === h) {
@@ -185,16 +213,16 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     }
 
     // Winner Resolution (including Extra Innings / Ties)
-    let currentInning = Math.max(totalInnings, lastCompletedInning);
+    let currentInningResolution = Math.max(totalInnings, lastCompletedInning);
     while (a === h) {
-      if (allowTies && currentInning >= tieInningLimit) {
+      if (allowTies && currentInningResolution >= tieInningLimit) {
         tieCount++;
         break;
       }
       a += poissonSample(awayRate);
       h += poissonSample(homeRate);
-      currentInning++;
-      if (currentInning > 50) { tieCount++; break; } // safety fallback
+      currentInningResolution++;
+      if (currentInningResolution > 50) { tieCount++; break; } // safety fallback
     }
 
     if (a > h) awayWin++;
@@ -213,7 +241,7 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
 }
 
 // ── Core estimate engine ──────────────────────────────────────────────────────
-function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit }) {
+function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase }) {
   if (!phaseEvents.length) return null;
   const sorted = sortEvents(phaseEvents);
   const halfDurs = [], warmupDurs = [];
@@ -236,7 +264,17 @@ function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRu
   const last = sorted[sorted.length - 1];
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
   const runDiff = Math.abs(score.home - score.away);
-  const mercyEligible = !!(mercyAfter && mercyRuns && lastCompleted >= mercyAfter && runDiff >= mercyRuns);
+  
+  let mercyEligible = false;
+  if (mercyAfter && mercyRuns && runDiff >= mercyRuns) {
+      if (score.home > score.away) {
+          if (lastCompleted >= mercyAfter) mercyEligible = true;
+          if (last.phase === EV.BOT && last.inning >= mercyAfter) mercyEligible = true;
+      } else {
+          if (lastCompleted >= mercyAfter && last.phase === EV.START) mercyEligible = true;
+      }
+  }
+  
   const homeLeading = score.home > score.away;
   const botFinalNeeded = !homeLeading;
   const inExtra = lastCompleted >= totalInnings;
@@ -251,14 +289,20 @@ function computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRu
     }
   }
   if (inExtra) { remHalf += 2; remWarmup += 2; }
-  const estimatedEnd = last.time + remHalf * avgHalf + remWarmup * avgWarmup;
-  const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit });
+  
+  const currentlyInWarmup = isWarmup(last.phase);
+  const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : last;
+  const outPace = avgHalf / 3;
+  const activeTimeRem = (!currentlyInWarmup && activeHalf) ? Math.max(0, (3 - (currentOuts || 0)) * outPace) : (currentlyInWarmup ? avgWarmup : 0);
+  
+  const estimatedEnd = latestEvent.time + activeTimeRem + remHalf * avgHalf + remWarmup * avgWarmup;
+  const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
   return {
     avgHalf, avgWarmup, measuredHalf, measuredWarmup,
     halfDurs, warmupDurs, confidence, canEstimate,
     remHalf, remWarmup, estimatedEnd, last,
     mercyEligible, botFinalNeeded, inExtra,
-    lastCompletedInning: lastCompleted, currentlyInWarmup: isWarmup(last.phase),
+    lastCompletedInning: lastCompleted, currentlyInWarmup,
     probs, runDiff,
   };
 }
@@ -381,14 +425,26 @@ function Divider({ label }) {
 }
 
 // ── Linescore ─────────────────────────────────────────────────────────────────
-function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning }) {
-  const cols = Array.from({ length: Math.max(totalInnings, lastCompletedInning) }, (_, i) => i + 1);
+function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning, currentPhase, currentInning }) {
+  const maxCols = Math.max(totalInnings, currentInning || lastCompletedInning || 1);
+  const cols = Array.from({ length: maxCols }, (_, i) => i + 1);
   const getRuns = (team, inning) => {
     const half = team === "away" ? "top" : "bot";
     const entries = runsLog.filter(r => r.team === team && r.inning === inning && r.half === half);
-    const played = team === "away" ? inning <= Math.ceil((lastCompletedInning || 0) + 0.5) : inning <= (lastCompletedInning || 0);
-    if (!entries.length) return played ? "0" : "·";
-    return String(entries.reduce((s, r) => s + r.runs, 0));
+    if (entries.length) return String(entries.reduce((s, r) => s + r.runs, 0));
+
+    let played = false;
+    if (currentPhase !== null && currentPhase !== undefined) {
+        if (inning < (currentInning || 1)) {
+           played = true;
+        } else if (inning === currentInning) {
+           if (team === "away" && (currentPhase === EV.TOP || currentPhase === EV.MID || currentPhase === EV.BOT)) played = true;
+           if (team === "home" && currentPhase === EV.BOT) played = true;
+        }
+    } else {
+        played = team === "away" ? inning <= Math.ceil((lastCompletedInning || 0) + 0.5) : inning <= (lastCompletedInning || 0);
+    }
+    return played ? "0" : "·";
   };
   const cell = val => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "5px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}` });
   return (
@@ -658,7 +714,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
         
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
           <Label>FINAL LINESCORE</Label>
-          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} />
+          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} currentPhase={null} currentInning={lastCompleted} />
         </div>
 
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
@@ -849,7 +905,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   }, [baseScore, events]);
 
   const nextPhaseFallback = getNextPhase(phaseEvents);
-  const est  = computeEstimate({ phaseEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit });
+  const est  = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
 
   // History tracking snapshots
   useEffect(() => {
@@ -1145,7 +1201,7 @@ function GameTracker({ config, onNewGame, initialState }) {
 
         {/* Linescore panel layout */}
         <div style={{ marginBottom: "16px" }}>
-          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} />
+          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} currentPhase={lastPhase?.phase} currentInning={activeInningNum || lastPhase?.inning} />
         </div>
 
         {/* Game log terminal output panel */}
