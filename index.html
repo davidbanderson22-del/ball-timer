@@ -71,27 +71,32 @@ function phaseDesc(phase, awayName = "Away", homeName = "Home") {
   return m[phase] ?? "";
 }
 
-// ── Time & Sorting Utils ──────────────────────────────────────────────────────
+// ── Time & Sorting Utils (Quantized to Seconds) ───────────────────────────────
 function parseTime(str) {
   if (!str) return null;
-  const [h, m] = str.trim().split(":").map(Number);
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
+  const parts = str.trim().split(":").map(Number);
+  let h = 0, m = 0, s = 0;
+  if (parts.length === 3) { [h, m, s] = parts; } 
+  else if (parts.length === 2) { [h, m] = parts; }
+  else return null;
+  if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+  return h * 3600 + m * 60 + s;
 }
-function formatTime(min) {
-  if (min == null || isNaN(min)) return "—";
-  const t = ((Math.round(min)) % 1440 + 1440) % 1440;
-  const h = Math.floor(t / 60), m = t % 60;
-  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+function formatTime(sec) {
+  if (sec == null || isNaN(sec)) return "—";
+  const t = ((Math.round(sec)) % 86400 + 86400) % 86400;
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
-function formatDur(min) {
-  if (min == null || isNaN(min)) return "—";
-  const m = Math.round(min);
-  return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+function formatDur(sec) {
+  if (sec == null || isNaN(sec)) return "—";
+  const t = Math.round(sec);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
 }
-function nowHM() {
+function nowTime() {
   const d = new Date();
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 }
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -105,7 +110,7 @@ function sortEvents(arr) {
 }
 
 function getSafeTime(inputTime, allEvents) {
-  let t = parseTime(inputTime) ?? parseTime(nowHM());
+  let t = parseTime(inputTime) ?? parseTime(nowTime());
   if (allEvents && allEvents.length > 0) {
       const sorted = sortEvents(allEvents);
       const lastTime = sorted[sorted.length - 1].time;
@@ -241,14 +246,14 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
 }
 
 // ── Core estimate engine ──────────────────────────────────────────────────────
-function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase }) {
+function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay }) {
   if (!phaseEvents.length) return null;
   const sorted = sortEvents(phaseEvents);
   const halfDurs = [], warmupDurs = [];
   for (let i = 0; i < sorted.length - 1; i++) {
     const c = sorted[i], n = sorted[i + 1];
     const d = n.time - c.time;
-    if (d < 0 || d > 90) continue;
+    if (d < 0 || d > 5400) continue; // 5400 seconds = 90 mins max threshold
     if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
@@ -256,8 +261,8 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   }
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
-  const avgHalf   = measuredHalf   ?? fallbackHalf;
-  const avgWarmup = measuredWarmup ?? fallbackWarmup;
+  const avgHalf   = measuredHalf   ?? fallbackHalf * 60; // Config fallbacks are minutes, multiply to seconds
+  const avgWarmup = measuredWarmup ?? fallbackWarmup * 60;
   const minS = Math.min(halfDurs.length, warmupDurs.length);
   const confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
   const canEstimate = warmupDurs.length >= 1;
@@ -295,7 +300,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const outPace = avgHalf / 3;
   const activeTimeRem = (!currentlyInWarmup && activeHalf) ? Math.max(0, (3 - (currentOuts || 0)) * outPace) : (currentlyInWarmup ? avgWarmup : 0);
   
-  const estimatedEnd = latestEvent.time + activeTimeRem + remHalf * avgHalf + remWarmup * avgWarmup;
+  const estimatedEnd = latestEvent.time + activeTimeRem + remHalf * avgHalf + remWarmup * avgWarmup + (accumulatedDelay || 0);
   const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
   return {
     avgHalf, avgWarmup, measuredHalf, measuredWarmup,
@@ -310,11 +315,11 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
 // ── Import / Export helpers ───────────────────────────────────────────────────
 const SAVE_VERSION = 2;
 
-function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory) {
+function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState) {
   const data = {
     v: SAVE_VERSION,
     savedAt: new Date().toISOString(),
-    config, events, baseScore, baseRunsLog, gameLog, estimateHistory,
+    config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url  = URL.createObjectURL(blob);
@@ -326,12 +331,12 @@ function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHis
   URL.revokeObjectURL(url);
 }
 
-function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory) {
+function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState) {
   const lines = [
     `GAME: ${config.away} @ ${config.home}`,
     `SAVED: ${new Date().toLocaleString()}`,
     `---`,
-    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory }),
+    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState }),
   ];
   return lines.join("\n");
 }
@@ -357,10 +362,10 @@ function parseImport(text) {
 function Label({ children, style: s }) {
   return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontFamily: MONO, marginBottom: "5px", fontWeight: "bold", ...s }}>{children}</div>;
 }
-function Inp({ value, onChange, placeholder, type = "text", style: s, autoFocus }) {
+function Inp({ value, onChange, placeholder, type = "text", style: s, autoFocus, disabled }) {
   return (
-    <input autoFocus={autoFocus} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", ...s }} />
+    <input disabled={disabled} autoFocus={autoFocus} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: disabled ? C.muted : C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }} />
   );
 }
 function Sel({ value, onChange, children, style: s }) {
@@ -483,7 +488,8 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
       .filter(h => h.estimate != null)
       .map(h => ({
         ...h,
-        error: yMode === "signed" ? Math.round(h.estimate - endTime) : Math.round(Math.abs(h.estimate - endTime)),
+        // Dividing by 60 to display cleanly as +/- minutes rather than 300+ seconds
+        error: yMode === "signed" ? Math.round((h.estimate - endTime) / 60) : Math.round(Math.abs(h.estimate - endTime) / 60),
         xVal:  xMode === "inning" ? h.inning + (h.phase === EV.MID || h.phase === EV.BOT ? 0.5 : 0) : h.wallTime,
       }));
   }, [estimateHistory, endTime, xMode, yMode]);
@@ -664,6 +670,102 @@ function CopyModal({ text, onClose }) {
   );
 }
 
+// ── Late Start Sub-Screen ─────────────────────────────────────────────────────
+function LateStartScreen({ config, onComplete, onCancel }) {
+  const [inning, setInning] = useState(1);
+  const [half, setHalf] = useState("top");
+  const [outs, setOuts] = useState(0);
+  const [runs, setRuns] = useState({});
+
+  const halvesToPlay = useMemo(() => {
+    const res = [];
+    for (let i = 1; i <= inning; i++) {
+      res.push({ inn: i, half: 'top', team: 'away' });
+      if (i < inning || half === 'bot') {
+        res.push({ inn: i, half: 'bot', team: 'home' });
+      }
+    }
+    return res;
+  }, [inning, half]);
+
+  const handleRunsChange = (inn, h, val) => {
+    setRuns(prev => ({ ...prev, [`${inn}-${h}`]: Math.max(0, parseInt(val) || 0) }));
+  };
+
+  const handleSubmit = () => {
+    const baseRunsLog = halvesToPlay.map(h => ({
+      team: h.team,
+      runs: runs[`${h.inn}-${h.half}`] || 0,
+      inning: h.inn,
+      half: h.half
+    }));
+
+    let awayScore = 0, homeScore = 0;
+    baseRunsLog.forEach(r => {
+      if (r.team === 'away') awayScore += r.runs;
+      else homeScore += r.runs;
+    });
+
+    const nowSecs = parseTime(nowTime());
+    const initialEvents = [
+      { id: Date.now(), batchId: Date.now(), type: 'phase', phase: half === 'top' ? EV.TOP : EV.BOT, inning, time: nowSecs }
+    ];
+    if (outs > 0) {
+      initialEvents.push({ id: Date.now() + 1, batchId: Date.now(), type: 'out', val: outs, inning, half, team: half === 'top' ? 'home' : 'away', time: nowSecs });
+    }
+
+    onComplete({
+      baseScore: { away: awayScore, home: homeScore },
+      baseRunsLog,
+      events: initialEvents,
+      gameLog: [{ msg: `Joined late in ${half === 'top' ? 'Top' : 'Bottom'} ${inning} with ${outs} outs.`, batchId: Date.now() }],
+      estimateHistory: []
+    });
+  };
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      <link rel="stylesheet" href={FONT} />
+      <div style={{ padding: "40px 20px 20px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
+        <div style={{ fontSize: "36px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>LATE START SETUP</div>
+      </div>
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+        
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px" }}>
+          <Label>CURRENT GAME STATUS</Label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "8px" }}>
+            <div><Label>INNING</Label><Sel value={inning} onChange={v => setInning(Number(v))}>{Array.from({length: config.totalInnings + 5}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            <div><Label>HALF</Label><Sel value={half} onChange={v => setHalf(v)}><option value="top">Top</option><option value="bot">Bottom</option></Sel></div>
+            <div><Label>OUTS</Label><Sel value={outs} onChange={v => setOuts(Number(v))}><option value={0}>0</option><option value={1}>1</option><option value={2}>2</option></Sel></div>
+          </div>
+        </div>
+
+        {halvesToPlay.length > 0 && (
+          <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+            <Label>RUNS SCORED PREVIOUSLY</Label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "12px" }}>
+              {halvesToPlay.map(h => (
+                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "6px", border: `1px solid ${C.borderBright}` }}>
+                  <div style={{ flex: 1, fontSize: "12px", fontFamily: MONO, fontWeight: "bold" }}>
+                    {h.half === 'top' ? 'Top' : 'Bot'} {h.inn} ({h.team === 'away' ? config.away : config.home})
+                  </div>
+                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "40px", padding: "4px", textAlign: "center", fontFamily: MONO, border: `1px solid ${C.border}`, background: C.card, outline: "none" }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full variant="primary" onClick={handleSubmit}>FINISH SETUP & ENTER GAME →</Btn>
+          <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Summary Screen ────────────────────────────────────────────────────────────
 function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, onNewGame }) {
   const { away, home, totalInnings } = config;
@@ -678,7 +780,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   for (let i = 0; i < sorted.length - 1; i++) {
     const c = sorted[i], n = sorted[i + 1];
     const d = n.time - c.time;
-    if (d < 0 || d > 90) continue;
+    if (d < 0 || d > 5400) continue;
     if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
@@ -691,11 +793,12 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   const combinedRunsLog = [...baseRunsLog, ...events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half }))];
 
   const firstEst = estimateHistory.find(h => h.estimate != null);
-  const firstEstError = firstEst && endTime ? Math.round(firstEst.estimate - endTime) : null;
+  // Divided by 60 to translate raw seconds back to displayable minutes
+  const firstEstError = firstEst && endTime ? Math.round((firstEst.estimate - endTime) / 60) : null;
   const winner = score.home > score.away ? home : score.away > score.home ? away : null;
   
   const [showCopy, setShowCopy] = useState(false);
-  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory);
+  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null);
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
@@ -749,7 +852,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
           <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory)}>⬇ Download JSON</Btn>
+            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null)}>⬇ Download JSON</Btn>
             <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
           </div>
         </div>
@@ -769,9 +872,10 @@ function SetupScreen({ onStart, onImport }) {
   const [useMercy, setUseMercy]     = useState(true);
   const [allowTies, setAllowTies]   = useState(false);
   const [tieInningLimit, setTieInningLimit] = useState(7);
+  const [lateStart, setLateStart]   = useState(false);
   const [useTimeLimit, setUseTimeLimit] = useState(false);
   const [timeLimit, setTimeLimit]   = useState("120");
-  const [startTime, setStartTime]   = useState(nowHM());
+  const [startTime, setStartTime]   = useState(nowTime());
   const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
@@ -819,10 +923,10 @@ function SetupScreen({ onStart, onImport }) {
         </div>
 
         <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px", position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>RULES</div>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>RULES & SETUP</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px", marginTop: "6px" }}>
             <div><Label>INNINGS</Label><Sel value={innings} onChange={v => setInnings(Number(v))}>{[5,6,7,9].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
-            <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM" /></div>
+            <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM:SS" /></div>
           </div>
           <Toggle on={useMercy} onToggle={() => setUseMercy(v => !v)} label="Mercy Rule Active" />
           {useMercy && (
@@ -831,18 +935,19 @@ function SetupScreen({ onStart, onImport }) {
               <div><Label>RUN DIFF</Label><Sel value={mercyRuns} onChange={v => setMercyRuns(Number(v))}>{[5,8,10,12,15,20].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             </div>
           )}
-          <Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" />
+          <div style={{ marginTop: "12px" }}><Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" /></div>
           {allowTies && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginTop: "12px" }}>
               <div><Label>TIE AFTER INN</Label><Sel value={tieInningLimit} onChange={v => setTieInningLimit(Number(v))}>{[5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             </div>
           )}
+          <div style={{ marginTop: "12px" }}><Toggle on={lateStart} onToggle={() => setLateStart(v => !v)} label="Late Start (Join in progress)" /></div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <Btn full disabled={!valid} onClick={() => {
-            const t = parseTime(startTime) ?? parseTime(nowHM());
-            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
+            const t = parseTime(startTime) ?? parseTime(nowTime());
+            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, lateStart, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
           }}>START GAME →</Btn>
           <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
         </div>
@@ -864,11 +969,18 @@ function GameTracker({ config, onNewGame, initialState }) {
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
 
   // Modals & Active configurations
-  const [entryTime, setEntryTime] = useState(nowHM());
+  const [entryTime, setEntryTime] = useState(nowTime());
+  const [isTypingTime, setIsTypingTime] = useState(false);
   const [gameOverPrompt, setGameOverPrompt] = useState(false);
-  const [endTimeInput,   setEndTimeInput]   = useState(nowHM());
+  const [endTimeInput,   setEndTimeInput]   = useState(nowTime());
   const [showSummary,    setShowSummary]    = useState(false);
   const [finalEndTime,   setFinalEndTime]   = useState(null);
+  
+  // Weather Delay States
+  const [delayActive, setDelayActive] = useState(initialState?.weatherDelayState?.active ?? false);
+  const [delayStartTime, setDelayStartTime] = useState(initialState?.weatherDelayState?.startTime ?? null);
+  const [accumulatedDelaySec, setAccumulatedDelaySec] = useState(initialState?.weatherDelayState?.accumulatedSec ?? 0);
+  const [liveDelaySec, setLiveDelaySec] = useState(0);
   
   const [showImport, setShowImport] = useState(false);
   const [showCopy, setShowCopy]     = useState(false);
@@ -876,6 +988,40 @@ function GameTracker({ config, onNewGame, initialState }) {
 
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
+
+  // Live real-time ticker
+  useEffect(() => {
+      if (!isTypingTime) {
+          const id = setInterval(() => setEntryTime(nowTime()), 1000);
+          return () => clearInterval(id);
+      }
+  }, [isTypingTime]);
+
+  // Live weather delay calculator
+  useEffect(() => {
+      if (delayActive && delayStartTime) {
+          const id = setInterval(() => {
+              const cur = parseTime(nowTime());
+              setLiveDelaySec(Math.max(0, cur - delayStartTime));
+          }, 1000);
+          return () => clearInterval(id);
+      } else {
+          setLiveDelaySec(0);
+      }
+  }, [delayActive, delayStartTime]);
+
+  const totalActiveDelay = accumulatedDelaySec + liveDelaySec;
+
+  const handleToggleDelay = () => {
+      if (delayActive) {
+          setAccumulatedDelaySec(p => p + (parseTime(nowTime()) - delayStartTime));
+          setDelayActive(false);
+          setDelayStartTime(null);
+      } else {
+          setDelayActive(true);
+          setDelayStartTime(parseTime(nowTime()));
+      }
+  };
 
   // Derived timeline configuration matrices
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
@@ -905,7 +1051,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   }, [baseScore, events]);
 
   const nextPhaseFallback = getNextPhase(phaseEvents);
-  const est  = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
+  const est  = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay: totalActiveDelay });
 
   // History tracking snapshots
   useEffect(() => {
@@ -930,14 +1076,15 @@ function GameTracker({ config, onNewGame, initialState }) {
   useEffect(() => { 
     if (potOver && !gameOverPrompt && !showSummary) { 
       setGameOverPrompt(true); 
-      setEndTimeInput(nowHM()); 
+      setEndTimeInput(nowTime()); 
     } 
   }, [potOver, showSummary]);
 
   const commitEventBatch = (newEvents, logs = []) => {
       setEvents(p => [...p, ...newEvents]);
-      setGameLog(p => [...p, ...logs.map(msg => ({ msg, ts: nowHM(), batchId: newEvents[0].batchId }))]);
-      setEntryTime(nowHM());
+      setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId: newEvents[0].batchId }))]);
+      setIsTypingTime(false);
+      setEntryTime(nowTime());
   };
 
   const handleLogNextPhase = () => {
@@ -945,7 +1092,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       const batchId = Date.now();
       const next = getNextPhase(phaseEvents);
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
-      const logs = [`📍 ${phaseLabel(next.inning, next.phase)} — ${formatTime(t)}`];
+      const logs = [`📍 ${phaseLabel(next.inning, next.phase)} — Logged at ${formatTime(t)}`];
       commitEventBatch(newEvents, logs);
   };
 
@@ -953,7 +1100,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'run', val, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf }];
-      const logs = [`🏃 +${val} Run for ${battingTeam === 'away' ? away : home} at ${formatTime(t)}`];
+      const logs = [`🏃 +${val} Run for ${battingTeam === 'away' ? away : home}`];
       commitEventBatch(newEvents, logs);
   };
 
@@ -961,7 +1108,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'out', val, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
-      const logs = [`⚾ ${val} Out(s) recorded at ${formatTime(t)}`];
+      const logs = [`⚾ ${val} Out(s) recorded`];
 
       if (currentOuts + val >= 3) {
           const nextPhase = activeHalf === 'top' ? EV.MID : EV.START;
@@ -984,7 +1131,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   const handleEndGame = () => {
     const t = getSafeTime(endTimeInput, events);
     setFinalEndTime(t);
-    setGameLog(p => [...p, { msg: `🏁 Final out logged at ${formatTime(t)}`, ts: nowHM(), batchId: Date.now() }]);
+    setGameLog(p => [...p, { msg: `🏁 Final out logged`, batchId: Date.now() }]);
     setShowSummary(true);
   };
 
@@ -995,10 +1142,14 @@ function GameTracker({ config, onNewGame, initialState }) {
     setBaseRunsLog(data.baseRunsLog ?? []);
     setGameLog(data.gameLog ?? []);
     setEstimateHistory(data.estimateHistory ?? []);
+    setDelayActive(data.weatherDelayState?.active ?? false);
+    setDelayStartTime(data.weatherDelayState?.startTime ?? null);
+    setAccumulatedDelaySec(data.weatherDelayState?.accumulatedSec ?? 0);
   };
   
-  const doExport = () => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory);
-  const doCopyText = () => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory)); setShowCopy(true); };
+  const getDelayExportState = () => ({ active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec });
+  const doExport = () => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState());
+  const doCopyText = () => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState())); setShowCopy(true); };
 
   if (showSummary) {
     return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} onNewGame={onNewGame} />;
@@ -1039,7 +1190,7 @@ function GameTracker({ config, onNewGame, initialState }) {
             </div>
           </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "160px" }}>
-            {events.length > 0 && <Btn small variant="outline" onClick={handleUndo}>↩ Undo</Btn>}
+            {events.length > 0 && <Btn small variant="outline" onClick={handleUndo} disabled={delayActive}>↩ Undo</Btn>}
             <Btn small variant="ghost" onClick={doExport}>⬇</Btn>
             <Btn small variant="ghost" onClick={doCopyText}>📋</Btn>
             <Btn small variant="ghost" onClick={() => setShowImport(true)}>⬆</Btn>
@@ -1061,17 +1212,24 @@ function GameTracker({ config, onNewGame, initialState }) {
 
       {/* Flag Banners */}
       {est?.mercyEligible && <div style={{ background: C.redDim, borderBottom: `2px solid ${C.red}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.red, fontWeight: "bold" }}>⚠ MERCY ELIGIBLE — {score.home > score.away ? home : away} +{runDiff}</div>}
-      {inWarmup && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
+      {inWarmup && !delayActive && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
 
       <div style={{ padding: "16px 16px 0" }}>
 
+        {/* Weather Delay Button Control */}
+        <div style={{ marginBottom: "16px" }}>
+          <Btn full variant={delayActive ? "highlight" : "outline"} onClick={handleToggleDelay}>
+            {delayActive ? `⏸ WEATHER DELAY ACTIVE — ${formatDur(totalActiveDelay)}` : "⛅ WEATHER DELAY TOGGLE"}
+          </Btn>
+        </div>
+
         {/* Game Over Prompt Panel */}
-        {gameOverPrompt && (
+        {gameOverPrompt && !delayActive && (
           <div style={{ background: C.card, border: `2px solid ${C.yellow}`, padding: "16px", marginBottom: "16px" }}>
             <Label>GAME OVER?</Label>
             <div style={{ fontSize: "14px", color: C.text, fontFamily: MONO, marginBottom: "12px" }}>The game condition has been reached. Log end time to finalize.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
-              <div><Label>END TIME</Label><Inp value={endTimeInput} onChange={setEndTimeInput} placeholder="H:MM" /></div>
+              <div><Label>END TIME</Label><Inp value={endTimeInput} onChange={v => { setEndTimeInput(v); setIsTypingTime(true); }} placeholder="H:MM:SS" /></div>
               <Btn onClick={handleEndGame} variant="highlight">END GAME</Btn>
               <Btn onClick={() => setGameOverPrompt(false)} variant="ghost" small>MORE INN</Btn>
             </div>
@@ -1091,7 +1249,7 @@ function GameTracker({ config, onNewGame, initialState }) {
                    <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
                    <div style={{ display: "flex", gap: "6px" }}>
                       {[1,2,3].map(i => (
-                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
+                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent", opacity: delayActive ? 0.3 : 1 }} />
                       ))}
                    </div>
                 </div>
@@ -1100,21 +1258,21 @@ function GameTracker({ config, onNewGame, initialState }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
                  <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
                     <Label>RUN FOR {battingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
-                    <Btn full variant="outline" onClick={() => handleAddRun(1)}>+1 Run</Btn>
+                    <Btn full variant="outline" onClick={() => handleAddRun(1)} disabled={delayActive}>+1 Run</Btn>
                  </div>
                  <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
                     <Label>OUT FOR {fieldingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
                     <div style={{ display: "flex", gap: "6px" }}>
-                      {currentOuts < 3 && <Btn full variant="outline" onClick={() => handleAddOut(1)}>+1</Btn>}
-                      {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)}>+2</Btn>}
-                      {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)}>+3</Btn>}
+                      {currentOuts < 3 && <Btn full variant="outline" onClick={() => handleAddOut(1)} disabled={delayActive}>+1</Btn>}
+                      {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)} disabled={delayActive}>+2</Btn>}
+                      {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)} disabled={delayActive}>+3</Btn>}
                     </div>
                  </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "end" }}>
-                <div><Label>EVENT TIME (H:MM)</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
-                <Btn variant="ghost" onClick={() => setEntryTime(nowHM())}>NOW</Btn>
+                <div><Label>EVENT TIME (H:MM:SS)</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
+                <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
               </div>
             </div>
           ) : (
@@ -1124,9 +1282,9 @@ function GameTracker({ config, onNewGame, initialState }) {
               <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
               
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
-                <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp value={entryTime} onChange={setEntryTime} /></div>
-                <Btn variant="ghost" onClick={() => { const t = nowHM(); setEntryTime(t); handleLogNextPhase(); }}>NOW</Btn>
-                <Btn variant="primary" onClick={handleLogNextPhase}>LOG ↵</Btn>
+                <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
+                <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); const t = nowTime(); setEntryTime(t); }}>LIVE</Btn>
+                <Btn variant="primary" disabled={delayActive} onClick={handleLogNextPhase}>LOG ↵</Btn>
               </div>
             </div>
           )
@@ -1153,10 +1311,10 @@ function GameTracker({ config, onNewGame, initialState }) {
               </div>
               <Divider label="Pace Stats" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px" }}>
-                <StatBox label="½-Inn" value={formatDur(est.avgHalf)}   sub={est.measuredHalf   ? `${est.halfDurs.length}×`   : "default"} dim={inWarmup} />
-                <StatBox label="Warmup" value={formatDur(est.avgWarmup)} sub={est.measuredWarmup ? `${est.warmupDurs.length}×` : "default"} dim={inWarmup} />
-                <StatBox label="½ Left" value={est.remHalf}   dim={inWarmup} />
-                <StatBox label="Wrm Left"   value={est.remWarmup} dim={inWarmup} />
+                <StatBox label="½-Inn" value={formatDur(est.avgHalf)}   sub={est.measuredHalf   ? `${est.halfDurs.length}×`   : "default"} dim={inWarmup || delayActive} />
+                <StatBox label="Warmup" value={formatDur(est.avgWarmup)} sub={est.measuredWarmup ? `${est.warmupDurs.length}×` : "default"} dim={inWarmup || delayActive} />
+                <StatBox label="½ Left" value={est.remHalf}   dim={inWarmup || delayActive} />
+                <StatBox label="Wrm Left"   value={est.remWarmup} dim={inWarmup || delayActive} />
               </div>
             </>
           )}
@@ -1209,14 +1367,14 @@ function GameTracker({ config, onNewGame, initialState }) {
           <Label>GAME LOG</Label>
           <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px", maxHeight: "160px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
             {gameLog.length === 0 ? <span style={{ color: C.faint }}>No events logged yet.</span>
-              : gameLog.map((e, i) => <div key={i} style={{ color: i === gameLog.length - 1 ? C.text : C.muted }}><span style={{ color: C.faint }}>{e.ts} </span>{e.msg}</div>)}
+              : gameLog.map((e, i) => <div key={i} style={{ color: i === gameLog.length - 1 ? C.text : C.muted }}>{e.msg}</div>)}
           </div>
         </div>
 
         {/* Manual Terminal State Closer Trigger */}
-        {events.length > 0 && !gameOverPrompt && (
+        {events.length > 0 && !gameOverPrompt && !delayActive && (
           <div style={{ marginTop: "16px", textAlign: "center" }}>
-            <button onClick={() => { setGameOverPrompt(true); setEndTimeInput(nowHM()); }} style={{ background: "none", border: "none", color: C.faint, fontSize: "12px", fontFamily: MONO, cursor: "pointer", textDecoration: "underline", fontWeight: "bold" }}>End game manually</button>
+            <button onClick={() => { setGameOverPrompt(true); setEndTimeInput(nowTime()); }} style={{ background: "none", border: "none", color: C.faint, fontSize: "12px", fontFamily: MONO, cursor: "pointer", textDecoration: "underline", fontWeight: "bold" }}>End game manually</button>
           </div>
         )}
 
@@ -1231,13 +1389,33 @@ function App() {
   const [initState, setInitState] = useState(null);
   const [key, setKey] = useState(0);
 
-  const handleStart = cfg => { setConfig(cfg); setInitState(null); setKey(k => k + 1); setScreen("game"); };
+  const handleStart = cfg => { 
+      setConfig(cfg); 
+      if (cfg.lateStart) {
+          setScreen("latestart");
+      } else {
+          setInitState(null); 
+          setKey(k => k + 1); 
+          setScreen("game"); 
+      }
+  };
+  
+  const handleLateStartSubmit = data => {
+      setInitState(data);
+      setKey(k => k + 1);
+      setScreen("game");
+  };
+
   const handleImport = data => {
     setConfig(data.config);
     setInitState(data);
     setKey(k => k + 1);
     setScreen("game");
   };
+
+  if (screen === "latestart" && config) {
+      return <LateStartScreen config={config} onComplete={handleLateStartSubmit} onCancel={() => setScreen("setup")} />;
+  }
 
   if (screen === "game" && config) {
     return <GameTracker key={key} config={config} onNewGame={() => setScreen("setup")} initialState={initState} />;
