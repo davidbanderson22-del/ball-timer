@@ -11,6 +11,15 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script>
+        Babel.registerPreset("react-classic", {
+            presets: [
+                ["react", { runtime: "classic" }]
+            ]
+        });
+    </script>
+    
     <style>
         body { 
             margin: 0; 
@@ -28,9 +37,7 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="react,env">
-/** @jsx React.createElement */
-/** @jsxFrag React.Fragment */
+    <script type="text/babel" data-presets="react-classic,env">
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
 // ── Fonts & Colors (Rustic Scorecard Theme) ───────────────────────────────────
