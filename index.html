@@ -13,12 +13,13 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <script>
-        Babel.registerPreset("react-classic", {
-            presets: [
-                ["react", { runtime: "classic" }]
-            ]
-        });
-    </script>
+    // This pre-registers the react preset in the Babel registry
+    Babel.registerPreset("react", Babel.availablePresets["react"]);
+</script>
+
+<script type="text/babel" data-presets="react,env">
+    // Your code here
+</script>
     
     <style>
         body { 
