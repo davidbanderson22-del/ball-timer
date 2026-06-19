@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Game Time Estimator</title>
     
@@ -262,8 +262,11 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   }
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
-  const avgHalf   = measuredHalf   ?? (fallbackHalf * 60) || 600; // Config fallbacks are minutes, multiply to seconds
-  const avgWarmup = measuredWarmup ?? (fallbackWarmup * 60) || 180;
+  
+  // FIXED LINES HERE:
+  const avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600; 
+  const avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
+  
   const minS = Math.min(halfDurs.length, warmupDurs.length);
   const confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
   const canEstimate = warmupDurs.length >= 1;
