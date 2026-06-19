@@ -1,26 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Game Time Estimator</title>
     
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <script>
-    // This pre-registers the react preset in the Babel registry
-    Babel.registerPreset("react", Babel.availablePresets["react"]);
-</script>
-
-<script type="text/babel" data-presets="react,env">
-    // Your code here
-</script>
-    
     <style>
         body { 
             margin: 0; 
@@ -38,7 +28,7 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel" data-presets="react-classic,env">
+    <script type="text/babel">
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
 // ── Fonts & Colors (Rustic Scorecard Theme) ───────────────────────────────────
@@ -272,8 +262,8 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   }
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
-  const avgHalf   = (measuredHalf   ?? (fallbackHalf * 60)) || 600; // Config fallbacks are minutes, multiply to seconds
-  const avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
+  const avgHalf   = measuredHalf   ?? (fallbackHalf * 60) || 600; // Config fallbacks are minutes, multiply to seconds
+  const avgWarmup = measuredWarmup ?? (fallbackWarmup * 60) || 180;
   const minS = Math.min(halfDurs.length, warmupDurs.length);
   const confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
   const canEstimate = warmupDurs.length >= 1;
