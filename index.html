@@ -724,7 +724,7 @@ function LateStartScreen({ config, onComplete, onCancel }) {
       baseScore: { away: awayScore, home: homeScore },
       baseRunsLog,
       events: initialEvents,
-      gameLog: [{ msg: `Joined late in ${half === 'top' ? 'Top' : 'Bottom'} ${inning} with ${outs} outs.`, batchId: Date.now() }],
+      gameLog: [{ msg: `[${formatTime(nowSecs)}] Joined late in ${half === 'top' ? 'Top' : 'Bottom'} ${inning} with ${outs} outs.`, batchId: Date.now() }],
       estimateHistory: []
     });
   };
@@ -1098,7 +1098,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       const batchId = Date.now();
       const next = getNextPhase(phaseEvents);
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
-      const logs = [`📍 ${phaseLabel(next.inning, next.phase)} — Logged at ${formatTime(t)}`];
+      const logs = [`[${formatTime(t)}] 📍 ${phaseLabel(next.inning, next.phase)}`];
       commitEventBatch(newEvents, logs);
   };
 
@@ -1106,7 +1106,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'run', val, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf }];
-      const logs = [`🏃 +${val} Run for ${battingTeam === 'away' ? away : home}`];
+      const logs = [`[${formatTime(t)}] 🏃 +${val} Run for ${battingTeam === 'away' ? away : home}`];
       commitEventBatch(newEvents, logs);
   };
 
@@ -1114,13 +1114,13 @@ function GameTracker({ config, onNewGame, initialState }) {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'out', val, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
-      const logs = [`⚾ ${val} Out(s) recorded`];
+      const logs = [`[${formatTime(t)}] ⚾ ${val} Out(s) recorded`];
 
       if (currentOuts + val >= 3) {
           const nextPhase = activeHalf === 'top' ? EV.MID : EV.START;
           const nextInning = activeHalf === 'top' ? activeInningNum : activeInningNum + 1;
           newEvents.push({ id: batchId + 1, batchId, type: 'phase', phase: nextPhase, inning: nextInning, time: t });
-          logs.push(`🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`);
+          logs.push(`[${formatTime(t)}] 🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`);
       }
       commitEventBatch(newEvents, logs);
   };
@@ -1137,7 +1137,7 @@ function GameTracker({ config, onNewGame, initialState }) {
   const handleEndGame = () => {
     const t = getSafeTime(endTimeInput, events);
     setFinalEndTime(t);
-    setGameLog(p => [...p, { msg: `🏁 Final out logged`, batchId: Date.now() }]);
+    setGameLog(p => [...p, { msg: `[${formatTime(t)}] 🏁 Final out logged`, batchId: Date.now() }]);
     setShowSummary(true);
   };
 
