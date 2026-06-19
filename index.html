@@ -10,7 +10,7 @@
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <style>
         body { 
             margin: 0; 
@@ -29,6 +29,8 @@
     <div id="root"></div>
 
     <script type="text/babel">
+/** @jsx React.createElement */
+/** @jsxFrag React.Fragment */
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
 // ── Fonts & Colors (Rustic Scorecard Theme) ───────────────────────────────────
@@ -263,7 +265,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
   
-  // FIXED LINES HERE:
+  // Previous fix applied here
   const avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600; 
   const avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
   
