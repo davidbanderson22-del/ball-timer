@@ -486,19 +486,44 @@ function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInni
 function AccuracyGraph({ estimateHistory, endTime, config }) {
   const [xMode, setXMode] = useState("inning");
   const [yMode, setYMode] = useState("signed");
+  const [excludeEarly, setExcludeEarly] = useState(false);
   const svgRef = useRef(null);
 
   const points = useMemo(() => {
     if (!endTime || !estimateHistory.length) return [];
-    return estimateHistory
-      .filter(h => h.estimate != null)
-      .map(h => ({
+    let filteredHistory = estimateHistory.filter(h => h.estimate != null);
+    
+    if (excludeEarly) {
+        filteredHistory = filteredHistory.filter(h => h.inning > 1);
+    }
+
+    let phaseCounts = {};
+
+    return filteredHistory.map(h => {
+      let xVal;
+      if (xMode === "inning") {
+          const phaseKey = `${h.inning}-${h.phase}`;
+          phaseCounts[phaseKey] = (phaseCounts[phaseKey] || 0) + 1;
+          
+          const baseMap = { [EV.START]: 0, [EV.TOP]: 0.1, [EV.MID]: 0.5, [EV.BOT]: 0.6 };
+          const maxMap = { [EV.START]: 0.05, [EV.TOP]: 0.45, [EV.MID]: 0.55, [EV.BOT]: 0.95 };
+          const offset = baseMap[h.phase] ?? 0;
+          const maxO = maxMap[h.phase] ?? 0.95;
+          const staggered = offset + ((phaseCounts[phaseKey] - 1) * 0.05);
+          
+          xVal = h.inning + Math.min(staggered, maxO);
+      } else {
+          xVal = h.wallTime;
+      }
+
+      return {
         ...h,
         // Dividing by 60 to display cleanly as +/- minutes rather than 300+ seconds
         error: yMode === "signed" ? Math.round((h.estimate - endTime) / 60) : Math.round(Math.abs(h.estimate - endTime) / 60),
-        xVal:  xMode === "inning" ? h.inning + (h.phase === EV.MID || h.phase === EV.BOT ? 0.5 : 0) : h.wallTime,
-      }));
-  }, [estimateHistory, endTime, xMode, yMode]);
+        xVal
+      };
+    });
+  }, [estimateHistory, endTime, xMode, yMode, excludeEarly]);
 
   if (!points.length) return null;
 
@@ -522,8 +547,10 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
   const yTicks = [];
   const step = Math.ceil(yAbsMax / 3);
   for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) yTicks.push(v);
+  
+  const maxInn = Math.max(config.totalInnings, Math.ceil(xMax || 1));
   const xTicks = xMode === "inning"
-    ? Array.from({ length: config.totalInnings }, (_, i) => i + 1).filter(v => v >= xMin && v <= xMax)
+    ? Array.from({ length: maxInn }, (_, i) => i + 1).filter(v => v >= Math.floor(xMin) && v <= Math.ceil(xMax))
     : points.map(p => p.xVal);
 
   return (
@@ -531,6 +558,9 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
         <Label style={{ marginBottom: 0 }}>ESTIMATE ACCURACY</Label>
         <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>
+            {excludeEarly ? "SHOW ALL" : "HIDE EARLY"}
+          </button>
           {[["signed", "±"], ["absolute", "|e|"]].map(([v, l]) => (
             <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
           ))}
