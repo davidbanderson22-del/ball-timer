@@ -18,11 +18,74 @@
             background-color: #f4f1ea; 
             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
             color: #2c2c2c;
+            user-select: none;
+            -webkit-user-select: none;
         }
         button:active {
             transform: translate(2px, 2px);
             box-shadow: 0px 0px 0px rgba(0,0,0,0) !important;
         }
+        
+        /* Field Diagram Styles */
+        .field-container {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 16px;
+            background: #4a6b4a; /* Grass */
+            border: 2px solid #2c2c2c;
+            overflow: hidden;
+            touch-action: none; /* Prevent scrolling while dragging */
+        }
+        .diamond-dirt {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 160px; height: 160px;
+            background: #b37b59; /* Dirt */
+            transform: translate(-50%, -50%) rotate(45deg);
+            border: 2px solid #e8dfc8;
+        }
+        .base-zone {
+            position: absolute;
+            width: 44px; height: 44px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10;
+        }
+        .base-label {
+            position: absolute;
+            font-size: 10px; color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
+            pointer-events: none;
+            opacity: 0.6;
+            margin-top: -30px;
+        }
+        .runner {
+            width: 28px; height: 28px;
+            background: #eae4d3;
+            border: 2px solid #2c2c2c;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold; font-size: 12px; color: #2c2c2c;
+            cursor: grab;
+            z-index: 20;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        .runner:active { cursor: grabbing; transform: scale(1.1); }
+        
+        /* Specific Base Positions */
+        .pos-score { top: 92%; left: 50%; width: 50px; height: 50px; border-radius: 10px; background: rgba(139, 58, 58, 0.3); border-color: #8b3a3a;}
+        .pos-score::after { content: "SCORE"; position: absolute; font-size: 10px; color: #fff; font-weight: bold; opacity: 0.8; font-family: 'Courier Prime', monospace; }
+        .pos-home  { top: 80%; left: 50%; }
+        .pos-1b    { top: 50%; left: 80%; }
+        .pos-2b    { top: 20%; left: 50%; }
+        .pos-3b    { top: 50%; left: 20%; }
+        .pos-pitcher { top: 50%; left: 50%; border-radius: 50%; width: 50px; height: 50px; background: rgba(179, 123, 89, 0.9); border: 2px solid #e8dfc8;}
     </style>
 </head>
 <body>
@@ -104,7 +167,6 @@ function nowTime() {
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-// Robust sorting to prevent tie-breaker interface lockups
 function sortEvents(arr) {
   return [...arr].sort((a, b) => {
     if (a.time !== b.time) return a.time - b.time;
@@ -122,7 +184,6 @@ function getSafeTime(inputTime, allEvents) {
   return t;
 }
 
-// ── Next phase logic ──────────────────────────────────────────────────────────
 function getNextPhase(phaseEvents) {
   if (!phaseEvents.length) return { inning: 1, phase: EV.START };
   const sorted = sortEvents(phaseEvents);
@@ -141,13 +202,12 @@ function isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mer
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
   const diff = Math.abs(score.home - score.away);
 
-  // EQUAL AT-BATS MERCY RULE CHECK
   if (mercyAfter && mercyRuns && diff >= mercyRuns) {
     if (score.home > score.away) {
         if (lastCompleted >= mercyAfter) return true;
-        if (last.phase === EV.BOT && last.inning >= mercyAfter) return true; // Home walk-off mercy
+        if (last.phase === EV.BOT && last.inning >= mercyAfter) return true; 
     } else {
-        if (lastCompleted >= mercyAfter && last.phase === EV.START) return true; // Away wins only when inning completely finishes
+        if (lastCompleted >= mercyAfter && last.phase === EV.START) return true; 
     }
   }
 
@@ -188,7 +248,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     let a = score.away, h = score.home;
     let currentInn = Math.max(lastCompletedInning + 1, baseInning);
 
-    // 1. Resolve current active inning / partial runs
     if (isTop) {
         a += poissonSample(awayRate * ((3 - (currentOuts || 0)) / 3));
         h += poissonSample(homeRate);
@@ -201,7 +260,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
         currentInn++;
     }
 
-    // 2. Add remaining guaranteed regulation innings
     for (let j = currentInn; j <= totalInnings; j++) {
         a += poissonSample(awayRate);
         h += poissonSample(homeRate);
@@ -209,7 +267,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     
     const diff = Math.abs(a - h);
     
-    // 3. Evaluate Outcomes
     if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
       mercy++;
     } else if (a === h) {
@@ -220,7 +277,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
       endBot++; 
     }
 
-    // Winner Resolution (including Extra Innings / Ties)
     let currentInningResolution = Math.max(totalInnings, lastCompletedInning);
     while (a === h) {
       if (allowTies && currentInningResolution >= tieInningLimit) {
@@ -230,7 +286,7 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
       a += poissonSample(awayRate);
       h += poissonSample(homeRate);
       currentInningResolution++;
-      if (currentInningResolution > 50) { tieCount++; break; } // safety fallback
+      if (currentInningResolution > 50) { tieCount++; break; }
     }
 
     if (a > h) awayWin++;
@@ -256,7 +312,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   for (let i = 0; i < sorted.length - 1; i++) {
     const c = sorted[i], n = sorted[i + 1];
     const d = n.time - c.time;
-    if (d < 0 || d > 5400) continue; // 5400 seconds = 90 mins max threshold
+    if (d < 0 || d > 5400) continue; 
     if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
@@ -265,7 +321,6 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
   
-  // Previous fix applied here
   const avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600; 
   const avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
   
@@ -321,11 +376,11 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
 // ── Import / Export helpers ───────────────────────────────────────────────────
 const SAVE_VERSION = 2;
 
-function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState) {
+function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
   const data = {
     v: SAVE_VERSION,
     savedAt: new Date().toISOString(),
-    config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState
+    config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url  = URL.createObjectURL(blob);
@@ -337,12 +392,12 @@ function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHis
   URL.revokeObjectURL(url);
 }
 
-function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState) {
+function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
   const lines = [
     `GAME: ${config.away} @ ${config.home}`,
     `SAVED: ${new Date().toLocaleString()}`,
     `---`,
-    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState }),
+    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData }),
   ];
   return lines.join("\n");
 }
@@ -518,7 +573,6 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
 
       return {
         ...h,
-        // Dividing by 60 to display cleanly as +/- minutes rather than 300+ seconds
         error: yMode === "signed" ? Math.round((h.estimate - endTime) / 60) : Math.round(Math.abs(h.estimate - endTime) / 60),
         xVal
       };
@@ -706,6 +760,264 @@ function CopyModal({ text, onClose }) {
   );
 }
 
+// ── Roster & Lineup Screen ────────────────────────────────────────────────────
+function RosterScreen({ rosterData, onSave, onCancel, awayName, homeName }) {
+  const [activeTab, setActiveTab] = useState('away');
+  const [roster, setRoster] = useState(rosterData || {
+      away: Array.from({length: 9}).map((_, i) => ({ id: i, name: `Batter ${i+1}`, pos: '' })),
+      home: Array.from({length: 9}).map((_, i) => ({ id: i, name: `Batter ${i+1}`, pos: '' })),
+      pitchers: { away: 'Away Starter', home: 'Home Starter' }
+  });
+
+  const handleLineupChange = (team, index, field, value) => {
+      const newRoster = { ...roster };
+      newRoster[team][index][field] = value;
+      setRoster(newRoster);
+  };
+
+  const handleAddHitter = (team) => {
+      const newRoster = { ...roster };
+      newRoster[team].push({ id: Date.now(), name: `Batter ${newRoster[team].length + 1}`, pos: '' });
+      setRoster(newRoster);
+  };
+
+  const handlePitcherChange = (team, value) => {
+      setRoster(prev => ({ ...prev, pitchers: { ...prev.pitchers, [team]: value } }));
+  };
+
+  const list = roster[activeTab];
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      <div style={{ padding: "20px 20px 10px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1 }}>ROSTER & LINEUP</div>
+      </div>
+      
+      <div style={{ display: "flex", borderBottom: `2px solid ${C.text}`, background: C.card }}>
+          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'away' ? C.text : "transparent", color: activeTab === 'away' ? C.bg : C.text, border: "none" }}>{awayName || "AWAY"}</button>
+          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'home' ? C.text : "transparent", color: activeTab === 'home' ? C.bg : C.text, border: "none" }}>{homeName || "HOME"}</button>
+      </div>
+
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+          
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px" }}>
+            <Label>CURRENT PITCHER</Label>
+            <Inp value={roster.pitchers[activeTab]} onChange={v => handlePitcherChange(activeTab, v)} placeholder="Pitcher Name" />
+        </div>
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+            <Label>BATTING ORDER</Label>
+            {list.map((player, i) => (
+                <div key={player.id} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+                    <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{i+1}.</div>
+                    <div style={{ flex: 1 }}><Inp value={player.name} onChange={v => handleLineupChange(activeTab, i, 'name', v)} placeholder="Player Name" /></div>
+                    <div style={{ width: "60px" }}><Inp value={player.pos} onChange={v => handleLineupChange(activeTab, i, 'pos', v)} placeholder="Pos" /></div>
+                </div>
+            ))}
+            <Btn variant="outline" small full onClick={() => handleAddHitter(activeTab)} style={{ marginTop: "8px" }}>+ Add Hitter</Btn>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full variant="primary" onClick={() => onSave(roster)}>SAVE ROSTERS</Btn>
+          <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pitcher Modal ────────────────────────────────────────────────────────────
+function ChangePitcherModal({ currentPitcher, onSave, onCancel }) {
+    const [name, setName] = useState(currentPitcher);
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>CHANGE PITCHER</div>
+                <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Pitch count will reset for the new pitcher.</div>
+                <Inp value={name} onChange={setName} placeholder="Pitcher Name" autoFocus />
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={() => onSave(name)} disabled={!name.trim()}>SAVE</Btn>
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PitchCountModal({ pitcher, onSave, onSkip }) {
+    const [count, setCount] = useState("");
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>INNING END</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    How many pitches did {pitcher} throw this inning?
+                </div>
+                <Inp value={count} onChange={setCount} placeholder="0" type="number" autoFocus />
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={() => onSave(parseInt(count) || 0)}>LOG PITCHES</Btn>
+                    <Btn full variant="ghost" onClick={onSkip}>SKIP</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Interactive Field Diagram ──────────────────────────────────────────────────
+function FieldDiagram({ activeHalf, currentOuts, bases, setBases, onAddOut, onAddRun, currentPitcher, onChangePitcher }) {
+    const [dragSource, setDragSource] = useState(null);
+    const [touchSource, setTouchSource] = useState(null);
+
+    const handleDragStart = (e, baseId) => {
+        setDragSource(baseId);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', baseId);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetBaseId) => {
+        e.preventDefault();
+        const sourceId = dragSource || e.dataTransfer.getData('text/plain');
+        setDragSource(null);
+        if (!sourceId || sourceId === targetBaseId) return;
+        executeMove(sourceId, targetBaseId);
+    };
+
+    const executeMove = (sourceId, targetBaseId) => {
+        if (targetBaseId === 'score') {
+            onAddRun();
+            setBases(prev => {
+                const next = { ...prev, [sourceId]: null };
+                // If home was emptied (homerun), repopulate immediately if < 3 outs
+                if (sourceId === 'home' && currentOuts < 3) {
+                    next.home = Date.now();
+                }
+                return next;
+            });
+            return;
+        }
+        
+        setBases(prev => {
+            const next = { ...prev };
+            const runnerToMove = next[sourceId];
+            next[sourceId] = null;
+            next[targetBaseId] = runnerToMove;
+            
+            // If home was vacated, bring up new batter
+            if (sourceId === 'home' && currentOuts < 3) {
+                next.home = Date.now();
+            }
+            return next;
+        });
+    };
+
+    const handleRunnerClick = (e, baseId) => {
+        e.stopPropagation();
+        if (touchSource) {
+            // End touch move on a runner (swapping/bumping is complex, just abort)
+            setTouchSource(null);
+            return;
+        }
+        // It's a tap -> OUT
+        onAddOut();
+        setBases(prev => {
+            const next = { ...prev, [baseId]: null };
+            if (baseId === 'home' && currentOuts < 2) { // will be < 3 after this out
+                next.home = Date.now();
+            }
+            return next;
+        });
+    };
+
+    const handleZoneClick = (e, baseId) => {
+        if (touchSource && touchSource !== baseId) {
+            executeMove(touchSource, baseId);
+            setTouchSource(null);
+        }
+    };
+
+    const handleTouchStart = (e, baseId) => {
+        e.stopPropagation();
+        setTouchSource(baseId);
+    };
+
+    const zones = [
+        { id: '2b', label: '2B', cls: 'pos-2b' },
+        { id: '3b', label: '3B', cls: 'pos-3b' },
+        { id: '1b', label: '1B', cls: 'pos-1b' },
+        { id: 'score', label: '', cls: 'pos-score' },
+        { id: 'home', label: 'BATTER', cls: 'pos-home' }
+    ];
+
+    return (
+        <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", fontFamily: MONO, color: C.accent, fontWeight: "bold" }}>
+                    ▶ {activeHalf === 'top' ? 'AWAY' : 'HOME'} BATTING
+                </div>
+                <div>
+                   <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
+                   <div style={{ display: "flex", gap: "6px" }}>
+                      {[1,2,3].map(i => (
+                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
+                      ))}
+                   </div>
+                </div>
+            </div>
+
+            <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px" }}>
+                Drag runner to advance. Tap runner for an OUT.
+            </div>
+
+            <div className="field-container">
+                <div className="diamond-dirt"></div>
+                
+                {/* Pitcher */}
+                <div className="base-zone pos-pitcher" onClick={onChangePitcher} style={{ cursor: "pointer", zIndex: 5 }}>
+                    <div style={{ fontSize: "10px", color: "#fff", fontFamily: MONO, fontWeight: "bold", textAlign: "center", lineHeight: "1.2" }}>
+                        PITCH<br/><span style={{fontSize: "14px"}}>⚾</span>
+                    </div>
+                </div>
+
+                {zones.map(z => (
+                    <div 
+                        key={z.id} 
+                        className={`base-zone ${z.cls}`}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, z.id)}
+                        onClick={(e) => handleZoneClick(e, z.id)}
+                        style={{ background: touchSource ? 'rgba(255,255,255,0.4)' : '' }}
+                    >
+                        {z.label && <div className="base-label">{z.label}</div>}
+                        
+                        {z.id !== 'score' && bases[z.id] && (
+                            <div 
+                                className="runner"
+                                draggable="true"
+                                onDragStart={(e) => handleDragStart(e, z.id)}
+                                onDragEnd={() => setDragSource(null)}
+                                onClick={(e) => handleRunnerClick(e, z.id)}
+                                onTouchStart={(e) => handleTouchStart(e, z.id)}
+                                style={{ transform: touchSource === z.id ? 'scale(1.2)' : '' }}
+                            >
+                                🏃
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
+                <div>PITCHER: <span style={{color: C.blue}}>{currentPitcher}</span></div>
+            </div>
+        </div>
+    );
+}
+
 // ── Late Start Sub-Screen ─────────────────────────────────────────────────────
 function LateStartScreen({ config, onComplete, onCancel }) {
   const [inning, setInning] = useState(1);
@@ -803,7 +1115,7 @@ function LateStartScreen({ config, onComplete, onCancel }) {
 }
 
 // ── Summary Screen ────────────────────────────────────────────────────────────
-function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, onNewGame }) {
+function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, rosterData, pitchData, onNewGame }) {
   const { away, home, totalInnings } = config;
   
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type);
@@ -829,12 +1141,11 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   const combinedRunsLog = [...baseRunsLog, ...events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half }))];
 
   const firstEst = estimateHistory.find(h => h.estimate != null);
-  // Divided by 60 to translate raw seconds back to displayable minutes
   const firstEstError = firstEst && endTime ? Math.round((firstEst.estimate - endTime) / 60) : null;
   const winner = score.home > score.away ? home : score.away > score.home ? away : null;
   
   const [showCopy, setShowCopy] = useState(false);
-  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null);
+  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData);
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
@@ -870,6 +1181,20 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
             <StatBox label="AVG WARMUP" value={formatDur(avg(warmupDurs))} sub={`${warmupDurs.length} measured`} />
           </div>
         </div>
+        
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+            <Label>PITCH COUNTS</Label>
+            <div style={{ display: "flex", gap: "12px" }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "12px", fontFamily: MONO, fontWeight: "bold", borderBottom: `1px dashed ${C.text}`, marginBottom: "6px" }}>{away}</div>
+                    {Object.entries(pitchData?.away || {}).map(([p, c]) => <div key={p} style={{ fontSize: "12px", fontFamily: MONO, display: "flex", justifyContent: "space-between" }}><span>{p}</span><span>{c}</span></div>)}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "12px", fontFamily: MONO, fontWeight: "bold", borderBottom: `1px dashed ${C.text}`, marginBottom: "6px" }}>{home}</div>
+                    {Object.entries(pitchData?.home || {}).map(([p, c]) => <div key={p} style={{ fontSize: "12px", fontFamily: MONO, display: "flex", justifyContent: "space-between" }}><span>{p}</span><span>{c}</span></div>)}
+                </div>
+            </div>
+        </div>
 
         {firstEstError !== null && (
           <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
@@ -888,7 +1213,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
           <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null)}>⬇ Download JSON</Btn>
+            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData)}>⬇ Download JSON</Btn>
             <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
           </div>
         </div>
@@ -898,7 +1223,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
 }
 
 // ── Setup Screen ──────────────────────────────────────────────────────────────
-function SetupScreen({ onStart, onImport }) {
+function SetupScreen({ onStart, onImport, onOpenRoster }) {
   const [league, setLeague]         = useState("hs");
   const [away, setAway]             = useState("");
   const [home, setHome]             = useState("");
@@ -936,7 +1261,8 @@ function SetupScreen({ onStart, onImport }) {
           onExportFirst={() => {}}
         />
       )}
-      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center", position: "relative" }}>
+        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>ℹ️</button>
         <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
         <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
       </div>
@@ -993,10 +1319,9 @@ function SetupScreen({ onStart, onImport }) {
 }
 
 // ── Game Tracker ──────────────────────────────────────────────────────────────
-function GameTracker({ config, onNewGame, initialState }) {
+function GameTracker({ config, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, timeLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
 
-  // Timeline Stream arrays
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
   const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
   const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
@@ -1004,7 +1329,6 @@ function GameTracker({ config, onNewGame, initialState }) {
   const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
 
-  // Modals & Active configurations
   const [entryTime, setEntryTime] = useState(nowTime());
   const [isTypingTime, setIsTypingTime] = useState(false);
   const [gameOverPrompt, setGameOverPrompt] = useState(false);
@@ -1012,7 +1336,6 @@ function GameTracker({ config, onNewGame, initialState }) {
   const [showSummary,    setShowSummary]    = useState(false);
   const [finalEndTime,   setFinalEndTime]   = useState(null);
   
-  // Weather Delay States
   const [delayActive, setDelayActive] = useState(initialState?.weatherDelayState?.active ?? false);
   const [delayStartTime, setDelayStartTime] = useState(initialState?.weatherDelayState?.startTime ?? null);
   const [accumulatedDelaySec, setAccumulatedDelaySec] = useState(initialState?.weatherDelayState?.accumulatedSec ?? 0);
@@ -1021,11 +1344,16 @@ function GameTracker({ config, onNewGame, initialState }) {
   const [showImport, setShowImport] = useState(false);
   const [showCopy, setShowCopy]     = useState(false);
   const [copyText, setCopyText]     = useState("");
+  
+  // Field Data
+  const [bases, setBases] = useState({ home: Date.now(), '1b': null, '2b': null, '3b': null });
+  const [showPitcherModal, setShowPitcherModal] = useState(false);
+  const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
+  const [pitchData, setPitchData] = useState(initialState?.pitchData ?? { away: { [rosterData?.pitchers?.away || 'Away Starter']: 0 }, home: { [rosterData?.pitchers?.home || 'Home Starter']: 0 } });
 
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
 
-  // Live real-time ticker
   useEffect(() => {
       if (!isTypingTime) {
           const id = setInterval(() => setEntryTime(nowTime()), 1000);
@@ -1033,7 +1361,6 @@ function GameTracker({ config, onNewGame, initialState }) {
       }
   }, [isTypingTime]);
 
-  // Live weather delay calculator
   useEffect(() => {
       if (delayActive && delayStartTime) {
           const id = setInterval(() => {
@@ -1059,7 +1386,6 @@ function GameTracker({ config, onNewGame, initialState }) {
       }
   };
 
-  // Derived timeline configuration matrices
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
   const sortedPhaseEvents = sortEvents(phaseEvents);
   const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
@@ -1089,7 +1415,6 @@ function GameTracker({ config, onNewGame, initialState }) {
   const nextPhaseFallback = getNextPhase(phaseEvents);
   const est  = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay: totalActiveDelay });
 
-  // History tracking snapshots
   useEffect(() => {
     if (!est?.canEstimate || !events.length) return;
     const lastEv = events[events.length - 1];
@@ -1107,7 +1432,6 @@ function GameTracker({ config, onNewGame, initialState }) {
     });
   }, [events, est?.estimatedEnd]);
 
-  // Terminal state evaluation check
   const potOver = isGamePotentiallyOver(phaseEvents, score, totalInnings, mercyAfter, mercyRuns);
   useEffect(() => { 
     if (potOver && !gameOverPrompt && !showSummary) { 
@@ -1130,9 +1454,10 @@ function GameTracker({ config, onNewGame, initialState }) {
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
       const logs = [`[${formatTime(t)}] 📍 ${phaseLabel(next.inning, next.phase)}`];
       commitEventBatch(newEvents, logs);
+      setBases({ home: Date.now(), '1b': null, '2b': null, '3b': null }); // reset bases for new inning
   };
 
-  const handleAddRun = (val) => {
+  const handleAddRun = (val = 1) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'run', val, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf }];
@@ -1140,19 +1465,56 @@ function GameTracker({ config, onNewGame, initialState }) {
       commitEventBatch(newEvents, logs);
   };
 
-  const handleAddOut = (val) => {
+  const handleAddOut = (val = 1) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const newEvents = [{ id: batchId, batchId, type: 'out', val, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
       const logs = [`[${formatTime(t)}] ⚾ ${val} Out(s) recorded`];
 
       if (currentOuts + val >= 3) {
-          const nextPhase = activeHalf === 'top' ? EV.MID : EV.START;
-          const nextInning = activeHalf === 'top' ? activeInningNum : activeInningNum + 1;
-          newEvents.push({ id: batchId + 1, batchId, type: 'phase', phase: nextPhase, inning: nextInning, time: t });
-          logs.push(`[${formatTime(t)}] 🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`);
+          setPendingPitchCountPrompt(true);
       }
       commitEventBatch(newEvents, logs);
+  };
+  
+  const finishInningAfterPitchCount = (pitches) => {
+      setPendingPitchCountPrompt(false);
+      
+      const t = getSafeTime(entryTime, events);
+      const batchId = Date.now();
+      
+      const nextPhase = activeHalf === 'top' ? EV.MID : EV.START;
+      const nextInning = activeHalf === 'top' ? activeInningNum : activeInningNum + 1;
+      
+      const newEvents = [{ id: batchId, batchId, type: 'phase', phase: nextPhase, inning: nextInning, time: t }];
+      const logs = [`[${formatTime(t)}] 🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`];
+      
+      if (pitches > 0) {
+          const currentPitcher = rosterData.pitchers[fieldingTeam];
+          setPitchData(prev => ({
+             ...prev,
+             [fieldingTeam]: {
+                 ...prev[fieldingTeam],
+                 [currentPitcher]: (prev[fieldingTeam]?.[currentPitcher] || 0) + pitches
+             }
+          }));
+          logs.push(`[${formatTime(t)}] ⚾ ${pitches} pitches logged for ${currentPitcher}`);
+      }
+
+      commitEventBatch(newEvents, logs);
+      setBases({ home: Date.now(), '1b': null, '2b': null, '3b': null });
+  };
+
+  const handleChangePitcher = (newName) => {
+      setRosterData(prev => ({
+          ...prev,
+          pitchers: { ...prev.pitchers, [fieldingTeam]: newName }
+      }));
+      setPitchData(prev => ({
+          ...prev,
+          [fieldingTeam]: { ...prev[fieldingTeam], [newName]: prev[fieldingTeam]?.[newName] || 0 }
+      }));
+      setShowPitcherModal(false);
   };
 
   const handleUndo = () => {
@@ -1162,6 +1524,7 @@ function GameTracker({ config, onNewGame, initialState }) {
       setGameLog(p => p.filter(l => l.batchId !== lastBatchId));
       setEstimateHistory(p => p.filter(h => h.batchId !== lastBatchId));
       setGameOverPrompt(false);
+      setPendingPitchCountPrompt(false);
   };
 
   const handleEndGame = () => {
@@ -1181,24 +1544,26 @@ function GameTracker({ config, onNewGame, initialState }) {
     setDelayActive(data.weatherDelayState?.active ?? false);
     setDelayStartTime(data.weatherDelayState?.startTime ?? null);
     setAccumulatedDelaySec(data.weatherDelayState?.accumulatedSec ?? 0);
+    if (data.rosterData) setRosterData(data.rosterData);
   };
   
   const getDelayExportState = () => ({ active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec });
-  const doExport = () => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState());
-  const doCopyText = () => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState())); setShowCopy(true); };
+  const doExport = () => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState(), rosterData);
+  const doCopyText = () => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, getDelayExportState(), rosterData)); setShowCopy(true); };
 
   if (showSummary) {
-    return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} onNewGame={onNewGame} />;
+    return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} pitchData={pitchData} rosterData={rosterData} onNewGame={onNewGame} />;
   }
 
   const inWarmup = est?.currentlyInWarmup ?? false;
   const lastCompleted = est?.lastCompletedInning ?? 0;
   const runDiff = Math.abs(score.home - score.away);
 
-  // Guarantee strict percentage sums to exactly 100% for the UI elements
   const awayWinPctRaw = Math.round((est?.probs?.awayWin || 0) * 100);
   const tiePctRaw = allowTies ? Math.round((est?.probs?.tie || 0) * 100) : 0;
   const homeWinPctAdj = Math.max(0, 100 - awayWinPctRaw - tiePctRaw);
+  
+  const currentPitcherName = inActiveInning ? rosterData?.pitchers?.[fieldingTeam] : "";
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, maxWidth: "440px", margin: "0 auto", paddingBottom: "48px" }}>
@@ -1213,10 +1578,17 @@ function GameTracker({ config, onNewGame, initialState }) {
           onExportFirst={doExport}
         />
       )}
+      {showPitcherModal && (
+          <ChangePitcherModal currentPitcher={currentPitcherName} onSave={handleChangePitcher} onCancel={() => setShowPitcherModal(false)} />
+      )}
+      {pendingPitchCountPrompt && (
+          <PitchCountModal pitcher={currentPitcherName} onSave={finishInningAfterPitchCount} onSkip={() => finishInningAfterPitchCount(0)} />
+      )}
 
       {/* ── Header ── */}
-      <div style={{ background: C.card, borderBottom: `2px solid ${C.text}`, padding: "16px 16px 12px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ background: C.card, borderBottom: `2px solid ${C.text}`, padding: "16px 16px 12px", position: "relative" }}>
+        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", left: "16px", background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>ℹ️</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingLeft: "32px" }}>
           <div>
             <div style={{ fontSize: "10px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>
               {totalInnings} INN · {mercyAfter ? `M${mercyRuns}/${mercyAfter}` : "NO MERCY"}
@@ -1275,42 +1647,16 @@ function GameTracker({ config, onNewGame, initialState }) {
         {/* Active Inter-Half Controls vs Logging Matrix */}
         {!gameOverPrompt && (
           inActiveInning ? (
-            <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px", position: "relative" }}>
-               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div>
-                  <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.text, lineHeight: 1 }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</div>
-                  <div style={{ fontSize: "12px", fontFamily: MONO, color: C.accent, marginTop: "4px", fontWeight: "bold" }}>▶ {battingTeam === 'away' ? away : home} BATTING</div>
-                </div>
-                <div>
-                   <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
-                   <div style={{ display: "flex", gap: "6px" }}>
-                      {[1,2,3].map(i => (
-                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent", opacity: delayActive ? 0.3 : 1 }} />
-                      ))}
-                   </div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-                 <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
-                    <Label>RUN FOR {battingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
-                    <Btn full variant="outline" onClick={() => handleAddRun(1)} disabled={delayActive}>+1 Run</Btn>
-                 </div>
-                 <div style={{ border: `1px dashed ${C.borderBright}`, padding: "12px", textAlign: "center", background: C.bg }}>
-                    <Label>OUT FOR {fieldingTeam === 'away' ? away.toUpperCase() : home.toUpperCase()}</Label>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      {currentOuts < 3 && <Btn full variant="outline" onClick={() => handleAddOut(1)} disabled={delayActive}>+1</Btn>}
-                      {currentOuts < 2 && <Btn full variant="outline" onClick={() => handleAddOut(2)} disabled={delayActive}>+2</Btn>}
-                      {currentOuts < 1 && <Btn full variant="outline" onClick={() => handleAddOut(3)} disabled={delayActive}>+3</Btn>}
-                    </div>
-                 </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "end" }}>
-                <div><Label>EVENT TIME (H:MM:SS)</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
-                <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
-              </div>
-            </div>
+            <FieldDiagram 
+                activeHalf={activeHalf} 
+                currentOuts={currentOuts} 
+                bases={bases} 
+                setBases={setBases} 
+                onAddOut={() => handleAddOut(1)} 
+                onAddRun={() => handleAddRun(1)} 
+                currentPitcher={currentPitcherName}
+                onChangePitcher={() => setShowPitcherModal(true)}
+            />
           ) : (
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
               <Label>NEXT PHASE TO LOG</Label>
@@ -1424,6 +1770,12 @@ function App() {
   const [config,  setConfig]  = useState(null);
   const [initState, setInitState] = useState(null);
   const [key, setKey] = useState(0);
+  
+  const [rosterData, setRosterData] = useState({
+      away: Array.from({length: 9}).map((_, i) => ({ id: i, name: `Batter ${i+1}`, pos: '' })),
+      home: Array.from({length: 9}).map((_, i) => ({ id: i, name: `Batter ${i+1}`, pos: '' })),
+      pitchers: { away: 'Away Starter', home: 'Home Starter' }
+  });
 
   const handleStart = cfg => { 
       setConfig(cfg); 
@@ -1445,18 +1797,29 @@ function App() {
   const handleImport = data => {
     setConfig(data.config);
     setInitState(data);
+    if (data.rosterData) setRosterData(data.rosterData);
     setKey(k => k + 1);
     setScreen("game");
   };
+
+  if (screen === "roster") {
+      return <RosterScreen 
+                rosterData={rosterData} 
+                awayName={config?.away}
+                homeName={config?.home}
+                onSave={r => { setRosterData(r); setScreen(config ? "game" : "setup"); }} 
+                onCancel={() => setScreen(config ? "game" : "setup")} 
+             />;
+  }
 
   if (screen === "latestart" && config) {
       return <LateStartScreen config={config} onComplete={handleLateStartSubmit} onCancel={() => setScreen("setup")} />;
   }
 
   if (screen === "game" && config) {
-    return <GameTracker key={key} config={config} onNewGame={() => setScreen("setup")} initialState={initState} />;
+    return <GameTracker key={key} config={config} onNewGame={() => { setConfig(null); setScreen("setup"); }} initialState={initState} rosterData={rosterData} setRosterData={setRosterData} onOpenRoster={() => setScreen("roster")} />;
   }
-  return <SetupScreen onStart={handleStart} onImport={handleImport} />;
+  return <SetupScreen onStart={handleStart} onImport={handleImport} onOpenRoster={() => setScreen("roster")} />;
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
