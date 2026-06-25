@@ -33,47 +33,99 @@
             max-width: 360px;
             aspect-ratio: 1 / 1;
             margin: 0 auto 16px;
-            background: #4a6b4a; /* Grass */
+            background: #3c5e3c; /* Realistic Dark Grass */
             border: 2px solid #2c2c2c;
-            overflow: visible;
+            overflow: hidden; /* Clips foul lines gracefully */
             touch-action: none; /* Prevent scrolling while interacting */
-            border-radius: 4px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.15);
         }
-        .diamond-dirt {
+
+        /* Field Visual Elements */
+        .foul-line-left, .foul-line-right {
             position: absolute;
-            bottom: 10%; left: 50%;
-            width: 60%; height: 60%;
-            background: #b37b59; /* Dirt */
-            transform: translate(-50%, 50%) rotate(45deg);
-            border: 2px solid #e8dfc8;
+            bottom: 12%; left: 50%;
+            width: 2px; height: 120%;
+            background: rgba(255,255,255,0.6);
+            transform-origin: bottom center;
+            pointer-events: none;
+        }
+        .foul-line-left { transform: rotate(-45deg); }
+        .foul-line-right { transform: rotate(45deg); }
+
+        .infield-dirt {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 75%; aspect-ratio: 1;
+            background: #b37b59; 
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .infield-grass {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 33%; aspect-ratio: 1;
+            background: #3c5e3c; 
+            transform: translate(-50%, -50%) rotate(45deg);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .pitcher-mound {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 15%; aspect-ratio: 1;
+            background: #a06a4b;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .pitcher-plate {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 8px; height: 4px;
+            background: white;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .base-visual {
+            position: absolute;
+            width: 14px; height: 14px;
+            background: white;
+            transform: translate(-50%, -50%) rotate(45deg);
+            pointer-events: none;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .base-visual.home {
+            width: 16px; height: 16px;
+            /* Creates a perfect home plate shape pointing downwards to the catcher */
+            clip-path: polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%); 
+            transform: translate(-50%, -50%);
         }
         
-        /* Base drop zones */
+        /* Base drop zones - Invisible functionality */
         .base-zone {
             position: absolute;
-            width: 48px; height: 48px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px dashed rgba(255, 255, 255, 0.4);
+            width: 50px; height: 50px;
             border-radius: 50%;
             transform: translate(-50%, -50%);
             display: flex; align-items: center; justify-content: center;
             z-index: 10;
         }
-        .base-label {
-            position: absolute;
-            font-size: 10px; color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
-            pointer-events: none; opacity: 0.6; margin-top: -36px;
-        }
         
         /* The draggable runners */
         .runner {
-            width: 32px; height: 32px;
+            width: 30px; height: 30px;
             background: #eae4d3;
             border: 2px solid #2c2c2c;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Courier Prime', monospace;
-            font-weight: bold; font-size: 14px; color: #2c2c2c;
+            font-weight: bold; font-size: 13px; color: #2c2c2c;
             cursor: grab;
             z-index: 20;
             box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
@@ -81,12 +133,12 @@
         }
         
         /* Base coordinates mapping */
-        .pos-home  { bottom: 5%; left: 50%; width: 56px; height: 56px; }
-        .pos-1b    { bottom: 35%; left: 80%; }
-        .pos-2b    { bottom: 65%; left: 50%; }
-        .pos-3b    { bottom: 35%; left: 20%; }
-        .pos-score { bottom: -5%; left: 50%; width: 80px; height: 30px; border-radius: 4px; background: rgba(139, 58, 58, 0.3); border-color: #8b3a3a; transform: translate(-50%, 0); }
-        .pos-score::after { content: "DRAG TO SCORE"; position: absolute; font-size: 9px; color: #fff; font-weight: bold; opacity: 0.8; font-family: 'Courier Prime', monospace; }
+        .pos-home  { top: 88%; left: 50%; width: 64px; height: 64px; }
+        .pos-1b    { top: 65%; left: 73%; }
+        .pos-2b    { top: 42%; left: 50%; }
+        .pos-3b    { top: 65%; left: 27%; }
+        .pos-score { top: 97%; left: 50%; width: 100px; height: 26px; border-radius: 4px; background: rgba(139, 58, 58, 0.4); border: 1px dashed #8b3a3a; transform: translate(-50%, 0); }
+        .pos-score::after { content: "DRAG TO SCORE"; position: absolute; font-size: 9px; color: #fff; font-weight: bold; opacity: 0.9; font-family: 'Courier Prime', monospace; pointer-events: none; }
 
         /* Defensive players floating on the field */
         .def-player {
@@ -95,7 +147,7 @@
             text-align: center;
             pointer-events: none;
             z-index: 5;
-            opacity: 0.8;
+            opacity: 0.9;
         }
         .def-player .dot {
             width: 8px; height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
@@ -103,17 +155,16 @@
         }
         .def-player .name {
             font-size: 9px; color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
-            background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 2px;
+            background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 2px;
             white-space: nowrap;
         }
         
         /* Interactive Pitcher */
         .pos-pitcher { 
-            position: absolute; bottom: 45%; left: 50%; transform: translate(-50%, -50%);
-            border-radius: 50%; width: 44px; height: 44px; 
-            background: rgba(179, 123, 89, 0.95); border: 2px solid #e8dfc8;
+            position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%);
+            border-radius: 50%; width: 50px; height: 50px; 
             display: flex; align-items: center; justify-content: center; flex-direction: column;
-            cursor: pointer; z-index: 15; box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 15; 
             pointer-events: auto;
         }
     </style>
@@ -492,7 +543,7 @@ function ConfChip({ confidence }) {
   if (!confidence) return null;
   const map = { low: { label: "Low", color: C.red, bg: C.redDim }, fair: { label: "Fair", color: C.yellow, bg: C.yellowDim }, good: { label: "Good", color: C.blue, bg: C.blueDim }, strong: { label: "Strong", color: C.green, bg: C.greenDim } };
   const { label, color, bg } = map[confidence];
-  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO }}>{label}</span>;
+  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO };>{label}</span>;
 }
 function StatBox({ label, value, sub, color, dim }) {
   return (
@@ -782,11 +833,11 @@ function CopyModal({ text, onClose }) {
 }
 
 // ── Roster & Lineup Screen ────────────────────────────────────────────────────
-function PlayerSubModal({ player, isPitcher, onSave, onCancel }) {
+function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
     const [name, setName] = useState(player.name);
     const [no, setNo] = useState(player.no);
     const [pos, setPos] = useState(player.pos);
-    const [pitches, setPitches] = useState("");
+    const [pitches, setPitches] = useState(String(currentTotal || ""));
 
     return (
         <div style={overlayStyle}>
@@ -806,8 +857,8 @@ function PlayerSubModal({ player, isPitcher, onSave, onCancel }) {
 
                 {isPitcher && (
                     <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
-                        <Label>PITCHES THROWN BY OUTGOING PITCHER ({player.name})</Label>
-                        <Inp value={pitches} onChange={setPitches} placeholder="0" type="number" />
+                        <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({player.name})</Label>
+                        <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
                     </div>
                 )}
 
@@ -919,18 +970,18 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
   );
 }
 
-function PitchCountModal({ pitcher, onSave, onSkip }) {
-    const [count, setCount] = useState("");
+function PitchCountModal({ pitcher, currentTotal, onSave, onSkip }) {
+    const [count, setCount] = useState(String(currentTotal || ""));
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>INNING END</div>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>INNING END / PITCH COUNT</div>
                 <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
-                    How many pitches did {pitcher?.name || "the pitcher"} throw this inning?
+                    What is {pitcher?.name || "the pitcher"}'s TOTAL game pitch count right now?
                 </div>
-                <Inp value={count} onChange={setCount} placeholder="0" type="number" autoFocus />
+                <Inp value={count} onChange={setCount} placeholder="Total count..." type="number" autoFocus />
                 <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                    <Btn full variant="primary" onClick={() => onSave(parseInt(count) || 0)}>LOG PITCHES</Btn>
+                    <Btn full variant="primary" onClick={() => onSave(parseInt(count) || 0)}>LOG TOTAL PITCHES</Btn>
                     <Btn full variant="ghost" onClick={onSkip}>SKIP</Btn>
                 </div>
             </div>
@@ -986,23 +1037,23 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
     };
 
     const zones = [
-        { id: '2b', label: '2B', cls: 'pos-2b' },
-        { id: '3b', label: '3B', cls: 'pos-3b' },
-        { id: '1b', label: '1B', cls: 'pos-1b' },
+        { id: '2b', label: '', cls: 'pos-2b' },
+        { id: '3b', label: '', cls: 'pos-3b' },
+        { id: '1b', label: '', cls: 'pos-1b' },
         { id: 'score', label: '', cls: 'pos-score' },
-        { id: 'home', label: 'BATTER', cls: 'pos-home' }
+        { id: 'home', label: '', cls: 'pos-home' }
     ];
 
     const defCoords = {
-        'C': { top: '92%', left: '50%' },
-        'P': { top: '55%', left: '50%' },
-        '1B': { top: '65%', left: '85%' },
-        '2B': { top: '45%', left: '70%' },
-        'SS': { top: '45%', left: '30%' },
-        '3B': { top: '65%', left: '15%' },
-        'LF': { top: '25%', left: '15%' },
-        'CF': { top: '15%', left: '50%' },
-        'RF': { top: '25%', left: '85%' }
+        'C': { top: '96%', left: '50%' },
+        'P': { top: '56%', left: '50%' },
+        '1B': { top: '61%', left: '79%' },
+        '2B': { top: '47%', left: '62%' },
+        'SS': { top: '47%', left: '38%' },
+        '3B': { top: '61%', left: '21%' },
+        'LF': { top: '28%', left: '20%' },
+        'CF': { top: '18%', left: '50%' },
+        'RF': { top: '28%', left: '80%' }
     };
 
     const activePitcher = fieldingRoster.find(p => p.pos === 'P');
@@ -1028,7 +1079,17 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
             </div>
 
             <div className="field-container">
-                <div className="diamond-dirt"></div>
+                <div className="foul-line-left"></div>
+                <div className="foul-line-right"></div>
+                <div className="infield-dirt"></div>
+                <div className="infield-grass"></div>
+                <div className="pitcher-mound"></div>
+                <div className="pitcher-plate"></div>
+                
+                <div className="base-visual home" style={{top: '88%', left: '50%'}}></div>
+                <div className="base-visual" style={{top: '65%', left: '73%'}}></div>
+                <div className="base-visual" style={{top: '42%', left: '50%'}}></div>
+                <div className="base-visual" style={{top: '65%', left: '27%'}}></div>
                 
                 {fieldingRoster.map(p => {
                     const coords = defCoords[p.pos];
@@ -1045,7 +1106,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                     className="base-zone pos-pitcher" 
                     onClick={() => onChangePitcher(activePitcher)}
                 >
-                    <div style={{ fontSize: "16px" }}>⚾</div>
                 </div>
 
                 {zones.map(z => {
@@ -1057,8 +1117,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                             className={`base-zone ${z.cls}`}
                             data-base-id={z.id}
                         >
-                            {z.label && <div className="base-label">{z.label}</div>}
-                            
                             {runner && (
                                 <>
                                     <div 
@@ -1601,8 +1659,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       if (pitches >= 0) {
           const pitcher = rosterData[fieldingTeam].find(p => p.pos === 'P');
           const pName = pitcher?.name || 'Pitcher';
-          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + pitches }}));
-          logs.push(`[${formatTime(t)}] ⚾ ${pitches} pitches logged for ${pName}`);
+          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: pitches }}));
+          logs.push(`[${formatTime(t)}] ⚾ ${pName} pitch count updated to ${pitches}`);
       }
       commitEventBatch(newEvents, logs);
       setBases({ home: null, '1b': null, '2b': null, '3b': null });
@@ -1612,9 +1670,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const t = getSafeTime(nowTime(), events);
       const logs = [`[${formatTime(t)}] 🔄 Sub: ${newP.name} (#${newP.no}) replaces ${oldP.name} at ${newP.pos}`];
       if (oldP.pos === 'P' || newP.pos === 'P') {
-          if (pitches > 0) {
-              logs.push(`[${formatTime(t)}] ⚾ ${oldP.name} threw ${pitches} pitches.`);
-              setPitchData(prev => ({ ...prev, [team]: { ...prev[team], [oldP.name]: (prev[team]?.[oldP.name] || 0) + pitches }}));
+          if (pitches >= 0) {
+              logs.push(`[${formatTime(t)}] ⚾ ${oldP.name} threw ${pitches} total pitches.`);
+              setPitchData(prev => ({ ...prev, [team]: { ...prev[team], [oldP.name]: pitches }}));
           }
       }
       commitEventBatch([], logs);
@@ -1641,6 +1699,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setPendingPitchCountPrompt(false);
   };
 
+  const currentPitcher = rosterData[fieldingTeam]?.find(p => p.pos === 'P');
+  const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
+
   if (showSummary) {
     return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} rosterData={rosterData} pitchData={pitchData} onNewGame={onNewGame} />;
   }
@@ -1662,6 +1723,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           <PlayerSubModal 
             player={activePitcherSubModal.player} 
             isPitcher={true}
+            currentTotal={pitchData[activePitcherSubModal.team]?.[activePitcherSubModal.player.name] || 0}
             onSave={(newPlayer, pitches) => {
                 const newRoster = { ...rosterData };
                 const idx = newRoster[activePitcherSubModal.team].findIndex(p => p.id === activePitcherSubModal.player.id);
@@ -1692,7 +1754,12 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       )}
 
       {pendingPitchCountPrompt && (
-          <PitchCountModal pitcher={rosterData[fieldingTeam].find(p => p.pos === 'P')} onSave={finishInningAfterPitchCount} onSkip={() => finishInningAfterPitchCount(0)} />
+          <PitchCountModal 
+              pitcher={currentPitcher} 
+              currentTotal={currentPitches}
+              onSave={finishInningAfterPitchCount} 
+              onSkip={() => finishInningAfterPitchCount(-1)} 
+          />
       )}
 
       {/* ── Header ── */}
