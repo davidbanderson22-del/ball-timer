@@ -834,9 +834,9 @@ function CopyModal({ text, onClose }) {
 
 // ── Roster & Lineup Screen ────────────────────────────────────────────────────
 function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
-    const [name, setName] = useState(player.name);
-    const [no, setNo] = useState(player.no);
-    const [pos, setPos] = useState(player.pos);
+    const [name, setName] = useState(player?.name || "");
+    const [no, setNo] = useState(player?.no || "");
+    const [pos, setPos] = useState(player?.pos || "");
     const [pitches, setPitches] = useState(String(currentTotal || ""));
 
     return (
@@ -844,7 +844,7 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>SUBSTITUTION</div>
                 <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
-                    Replacing: {player.name} {player.no ? `(#${player.no})` : ''} - {player.pos}
+                    Replacing: {player?.name || 'Unknown'} {player?.no ? `(#${player.no})` : ''} - {player?.pos || ''}
                 </div>
                 
                 <Label>NEW PLAYER NAME</Label>
@@ -872,13 +872,60 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
 
                 {isPitcher && (
                     <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
-                        <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({player.name})</Label>
+                        <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({player?.name || 'Pitcher'})</Label>
                         <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
                     </div>
                 )}
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                    <Btn full variant="primary" onClick={() => onSave({ ...player, name, no, pos }, parseInt(pitches) || 0)} disabled={!name.trim()}>CONFIRM SUB</Btn>
+                    <Btn full variant="primary" onClick={() => onSave({ ...(player || {}), name, no, pos }, parseInt(pitches) || 0)} disabled={!name.trim()}>CONFIRM SUB</Btn>
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersMap, currentPitchTotal, onSave, onCancel }) {
+    const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
+    const [pitches, setPitches] = useState(String(currentPitchTotal || ""));
+
+    const availablePlayers = rosterPool.filter(p => {
+         // Exclude players assigned to OTHER defensive positions
+         const isAssigned = Object.entries(activeFieldersMap).some(([pPos, assigned]) => pPos !== pos && assigned?.id === p.id);
+         return !isAssigned;
+    });
+
+    const handleConfirm = () => {
+         const newPlayer = rosterPool.find(p => p.id === selectedId);
+         if (newPlayer) {
+             onSave({ ...newPlayer, pos }, parseInt(pitches) || 0);
+         }
+    };
+
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>ASSIGN {pos}</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    {currentPlayer ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently assigned to ${pos}`}
+                </div>
+                
+                <Label>SELECT FROM FULL ROSTER</Label>
+                <Sel value={selectedId} onChange={setSelectedId}>
+                    <option value="" disabled hidden>Select Player...</option>
+                    {availablePlayers.map(p => <option key={p.id} value={p.id}>{p.name} #{p.no}</option>)}
+                </Sel>
+
+                {pos === 'P' && currentPlayer && (
+                    <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
+                        <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({currentPlayer.name})</Label>
+                        <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
+                    </div>
+                )}
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId}>CONFIRM</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
             </div>
@@ -888,19 +935,52 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
 
 function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, onLogSub }) {
   const [activeTab, setActiveTab] = useState('away');
-  const [roster, setRoster] = useState(rosterData);
-  const [mode, setMode] = useState('edit'); // 'edit' = fix typos, 'sub' = substitutions
-  const [activeSub, setActiveSub] = useState(null); // { team, index, player }
+  const [roster, setRoster] = useState(() => JSON.parse(JSON.stringify(rosterData)));
+  const [mode, setMode] = useState('edit'); // 'edit' = setup, 'sub' = substitutions
+  const [activeSub, setActiveSub] = useState(null);
+
+  const handlePoolChange = (team, index, field, value) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team][index][field] = value;
+      const poolId = newRoster.pool[team][index].id;
+      // Sync Lineup
+      newRoster[team].forEach(p => { if (p.id === poolId) p[field] = value; });
+      // Sync Fielders
+      Object.values(newRoster.fielders[team]).forEach(p => { if (p && p.id === poolId) p[field] = value; });
+      setRoster(newRoster);
+  };
+
+  const handleAddPoolPlayer = (team) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team].push({ id: `p_${Date.now()}`, name: `Player ${newRoster.pool[team].length + 1}`, no: '', pos: '' });
+      setRoster(newRoster);
+  };
+
+  const handleLineupSelect = (team, index, poolId) => {
+      const poolPlayer = roster.pool[team].find(p => p.id === poolId);
+      if (!poolPlayer) return;
+      const newRoster = { ...roster };
+      const oldPos = newRoster[team][index].pos;
+      newRoster[team][index] = { ...poolPlayer, pos: oldPos };
+      
+      if (oldPos && newRoster.fielders[team][oldPos]?.id === newRoster[team][index].id) {
+          newRoster.fielders[team][oldPos] = { ...poolPlayer, pos: oldPos };
+      }
+      setRoster(newRoster);
+  };
 
   const handleLineupChange = (team, index, field, value) => {
       const newRoster = { ...roster };
       newRoster[team][index][field] = value;
+      if (field === 'pos') {
+          newRoster.fielders[team][value] = newRoster[team][index];
+      }
       setRoster(newRoster);
   };
 
   const handleAddHitter = (team) => {
       const newRoster = { ...roster };
-      newRoster[team].push({ id: Date.now(), name: `Batter ${newRoster[team].length + 1}`, no: '', pos: '' });
+      newRoster[team].push({ id: `h_${Date.now()}`, name: `Batter ${newRoster[team].length + 1}`, no: '', pos: '' });
       setRoster(newRoster);
   };
   
@@ -912,6 +992,12 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
       const oldPlayer = activeSub.player;
       const newRoster = { ...roster };
       newRoster[activeSub.team][activeSub.index] = newPlayer;
+      
+      // Update pool if it's a completely typed new player
+      if (!newRoster.pool[activeSub.team].find(p => p.id === newPlayer.id)) {
+          newPlayer.id = `p_${Date.now()}`;
+          newRoster.pool[activeSub.team].push(newPlayer);
+      }
       setRoster(newRoster);
       if (onLogSub) {
           onLogSub(oldPlayer, newPlayer, pitchesThrown, activeSub.team);
@@ -920,6 +1006,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
   };
 
   const list = roster[activeTab];
+  const poolList = roster.pool?.[activeTab] || [];
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
@@ -947,34 +1034,49 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
         <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
                 <Label>ENTRY MODE</Label>
-                <div style={{ fontSize: "11px", fontFamily: MONO, color: C.muted }}>{mode === 'edit' ? 'Fixing Typos (No Logs)' : 'Substitutions (Logged)'}</div>
+                <div style={{ fontSize: "11px", fontFamily: MONO, color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Substitutions (Logged)'}</div>
             </div>
             <Toggle on={mode === 'sub'} onToggle={() => setMode(mode === 'edit' ? 'sub' : 'edit')} label={mode === 'sub' ? '🔄 SUB' : '✎ EDIT'} />
         </div>
 
+        {mode === 'edit' && (
+             <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+                 <Label>FULL TEAM ROSTER</Label>
+                 <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Add all players here to easily select them for Lineups and Field Assignments.</div>
+                 <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "12px", paddingRight: "4px" }}>
+                     {poolList.map((p, i) => (
+                         <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+                             <Inp value={p.name} onChange={v => handlePoolChange(activeTab, i, 'name', v)} placeholder="Name" />
+                             <div style={{ width: "80px" }}>
+                                 <Inp value={p.no} onChange={v => handlePoolChange(activeTab, i, 'no', v)} placeholder="No." />
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+                 <Btn variant="outline" small full onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Roster Player</Btn>
+             </div>
+        )}
+
         <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
             <Label>BATTING ORDER</Label>
             {list.map((player, i) => (
-                <div key={player.id} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
+                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                     <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{i+1}.</div>
                     {mode === 'edit' ? (
                         <>
-                            <div style={{ flex: 2 }}><Inp value={player.name} onChange={v => handleLineupChange(activeTab, i, 'name', v)} placeholder="Name" /></div>
-                            <div style={{ flex: 1 }}><Inp value={player.no} onChange={v => handleLineupChange(activeTab, i, 'no', v)} placeholder="No." /></div>
+                            <div style={{ flex: 2 }}>
+                                <Sel value={player.id || ""} onChange={v => handleLineupSelect(activeTab, i, v)}>
+                                    <option value="" disabled hidden>Select Player</option>
+                                    {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name}</option>)}
+                                </Sel>
+                            </div>
                             <div style={{ flex: 1 }}>
-                                <Sel value={player.pos} onChange={v => handleLineupChange(activeTab, i, 'pos', v)}>
+                                <Sel value={player.pos || ""} onChange={v => handleLineupChange(activeTab, i, 'pos', v)}>
                                     <option value="" disabled hidden>Pos</option>
-                                    <option value="P">P</option>
-                                    <option value="C">C</option>
-                                    <option value="1B">1B</option>
-                                    <option value="2B">2B</option>
-                                    <option value="3B">3B</option>
-                                    <option value="SS">SS</option>
-                                    <option value="LF">LF</option>
-                                    <option value="CF">CF</option>
-                                    <option value="RF">RF</option>
-                                    <option value="DH">DH</option>
-                                    <option value="EH">EH</option>
+                                    <option value="P">P</option><option value="C">C</option><option value="1B">1B</option>
+                                    <option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option>
+                                    <option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option>
+                                    <option value="DH">DH</option><option value="EH">EH</option>
                                 </Sel>
                             </div>
                         </>
@@ -1020,7 +1122,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecuteMove, onAddOut, onChangePitcher, onPinchRun }) {
+function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFieldersMap, onExecuteMove, onAddOut, onChangeFielder, onPinchRun }) {
     const [draggedRunner, setDraggedRunner] = useState(null);
 
     const handlePointerDown = (e, baseId) => {
@@ -1076,7 +1178,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
 
     const defCoords = {
         'C': { top: '96%', left: '50%' },
-        'P': { top: '56%', left: '50%' },
+        'P': { top: '65%', left: '50%' },
         '1B': { top: '61%', left: '79%' },
         '2B': { top: '47%', left: '62%' },
         'SS': { top: '47%', left: '38%' },
@@ -1086,7 +1188,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
         'RF': { top: '28%', left: '80%' }
     };
 
-    const activePitcher = fieldingRoster.find(p => p.pos === 'P');
+    const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
 
     return (
         <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
@@ -1104,8 +1206,8 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                 </div>
             </div>
 
-            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold" }}>
-                DRAG runner to advance. TAP runner for an OUT.
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
+                DRAG runner to advance. TAP runner for an OUT. <br/>TAP a defensive position to sub/assign.
             </div>
 
             <div className="field-container">
@@ -1121,22 +1223,23 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                 <div className="base-visual" style={{top: '42%', left: '50%'}}></div>
                 <div className="base-visual" style={{top: '65%', left: '27%'}}></div>
                 
-                {fieldingRoster.map(p => {
-                    const coords = defCoords[p.pos];
-                    if (!coords) return null;
+                {Object.keys(defCoords).map(pos => {
+                    const coords = defCoords[pos];
+                    const p = activeFieldersMap?.[pos] || fieldingRoster.find(x => x.pos === pos);
                     return (
-                        <div key={p.id} className="def-player" style={coords}>
-                            <div className="dot" />
-                            <div className="name">{p.no ? `#${p.no} ` : ''}{p.name}</div>
+                        <div 
+                            key={pos} 
+                            className="def-player" 
+                            style={{...coords, pointerEvents: 'auto', cursor: 'pointer', zIndex: pos === 'P' ? 15 : 5}}
+                            onClick={(e) => { e.stopPropagation(); onChangeFielder(pos, p); }}
+                        >
+                            <div className="dot" style={!p ? {background: 'rgba(255,255,255,0.4)', boxShadow: 'none'} : {}} />
+                            <div className="name" style={!p ? {background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.6)'} : {}}>
+                                {p ? `${p.no ? `#${p.no} ` : ''}${p.name}` : pos}
+                            </div>
                         </div>
                     );
                 })}
-
-                <div 
-                    className="base-zone pos-pitcher" 
-                    onClick={() => onChangePitcher(activePitcher)}
-                >
-                </div>
 
                 {zones.map(z => {
                     const runner = bases[z.id];
@@ -1185,7 +1288,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
             </div>
             
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
-                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unknown'}</span></div>
+                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span></div>
                 <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
             </div>
         </div>
@@ -1519,13 +1622,13 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   // Roster / Field logic
   const [lineupIdx, setLineupIdx] = useState({ away: 0, home: 0 });
   const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
-  const [activePitcherSubModal, setActivePitcherSubModal] = useState(null);
+  const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [pinchRunnerModal, setPinchRunnerModal] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
   const defaultPitchers = {
-      away: rosterData?.away.find(p => p.pos === 'P')?.name || 'Away Pitcher',
-      home: rosterData?.home.find(p => p.pos === 'P')?.name || 'Home Pitcher'
+      away: rosterData?.fielders?.away?.['P']?.name || rosterData?.away.find(p => p.pos === 'P')?.name || 'Away Pitcher',
+      home: rosterData?.fielders?.home?.['P']?.name || rosterData?.home.find(p => p.pos === 'P')?.name || 'Home Pitcher'
   };
   const [pitchData, setPitchData] = useState(initialState?.pitchData ?? { away: { [defaultPitchers.away]: 0 }, home: { [defaultPitchers.home]: 0 } });
 
@@ -1565,6 +1668,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInningNum && e.half === activeHalf);
       currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
   }
+
+  // Safe Fielder map lookup
+  const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
 
   // Base state spawn logic: spawn batter with lineupIndex tagged so subs target the right spot
   useEffect(() => {
@@ -1687,8 +1793,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const logs = [`[${formatTime(t)}] 🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`];
       
       if (pitches >= 0) {
-          const pitcher = rosterData[fieldingTeam].find(p => p.pos === 'P');
-          const pName = pitcher?.name || 'Pitcher';
+          const pName = currentPitcher?.name || 'Pitcher';
           setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: pitches }}));
           logs.push(`[${formatTime(t)}] ⚾ ${pName} pitch count updated to ${pitches}`);
       }
@@ -1698,9 +1803,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
   const handleSubLog = (oldP, newP, pitches, team) => {
       const t = getSafeTime(nowTime(), events);
-      const logs = [`[${formatTime(t)}] 🔄 Sub: ${newP.name} (#${newP.no}) replaces ${oldP.name} at ${newP.pos}`];
-      if (oldP.pos === 'P' || newP.pos === 'P') {
-          if (pitches >= 0) {
+      const oldName = oldP?.name || 'Unassigned';
+      const logs = [`[${formatTime(t)}] 🔄 Sub: ${newP.name} (#${newP.no}) replaces ${oldName} at ${newP.pos}`];
+      if (oldP?.pos === 'P' || newP.pos === 'P') {
+          if (pitches >= 0 && oldP) {
               logs.push(`[${formatTime(t)}] ⚾ ${oldP.name} threw ${pitches} total pitches.`);
               setPitchData(prev => ({ ...prev, [team]: { ...prev[team], [oldP.name]: pitches }}));
           }
@@ -1729,7 +1835,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setPendingPitchCountPrompt(false);
   };
 
-  const currentPitcher = rosterData[fieldingTeam]?.find(p => p.pos === 'P');
+  const currentPitcher = activeFieldersMap['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
   const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
 
   if (showSummary) {
@@ -1748,21 +1854,39 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
         />
       )}
       
-      {/* Pitcher Substitution Modal */}
-      {activePitcherSubModal && (
-          <PlayerSubModal 
-            player={activePitcherSubModal.player} 
-            isPitcher={true}
-            currentTotal={pitchData[activePitcherSubModal.team]?.[activePitcherSubModal.player.name] || 0}
-            onSave={(newPlayer, pitches) => {
-                const newRoster = { ...rosterData };
-                const idx = newRoster[activePitcherSubModal.team].findIndex(p => p.id === activePitcherSubModal.player.id);
-                newRoster[activePitcherSubModal.team][idx] = newPlayer;
-                setRosterData(newRoster);
-                handleSubLog(activePitcherSubModal.player, newPlayer, pitches, activePitcherSubModal.team);
-                setActivePitcherSubModal(null);
-            }} 
-            onCancel={() => setActivePitcherSubModal(null)} 
+      {/* Defensive Sub Modal - Applies to ANY clicked fielding position */}
+      {activeFielderSubModal && (
+          <FielderSubModal 
+              team={activeFielderSubModal.team}
+              pos={activeFielderSubModal.pos}
+              currentPlayer={activeFielderSubModal.player}
+              rosterPool={rosterData.pool?.[activeFielderSubModal.team] || []}
+              activeFieldersMap={activeFieldersMap}
+              currentPitchTotal={activeFielderSubModal.pos === 'P' && activeFielderSubModal.player ? pitchData[activeFielderSubModal.team]?.[activeFielderSubModal.player.name] : 0}
+              onSave={(newPlayer, pitches) => {
+                  const newRoster = { ...rosterData };
+                  if (!newRoster.fielders) newRoster.fielders = { away: {}, home: {} };
+                  
+                  if (activeFielderSubModal.pos === 'P' && activeFielderSubModal.player) {
+                      handleSubLog(activeFielderSubModal.player, newPlayer, pitches, activeFielderSubModal.team);
+                  } else if (activeFielderSubModal.player && activeFielderSubModal.player.id !== newPlayer.id) {
+                      handleSubLog(activeFielderSubModal.player, newPlayer, -1, activeFielderSubModal.team);
+                  } else if (!activeFielderSubModal.player) {
+                      handleSubLog(null, newPlayer, -1, activeFielderSubModal.team);
+                  }
+
+                  newRoster.fielders[activeFielderSubModal.team][activeFielderSubModal.pos] = newPlayer;
+                  
+                  // Keep Lineup in sync if they were in the lineup
+                  const lineupIdx = newRoster[activeFielderSubModal.team].findIndex(p => p.id === (activeFielderSubModal.player?.id));
+                  if (lineupIdx !== -1) {
+                      newRoster[activeFielderSubModal.team][lineupIdx] = { ...newPlayer, pos: activeFielderSubModal.pos };
+                  }
+
+                  setRosterData(newRoster);
+                  setActiveFielderSubModal(null);
+              }}
+              onCancel={() => setActiveFielderSubModal(null)}
           />
       )}
 
@@ -1854,9 +1978,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 currentOuts={currentOuts} 
                 bases={bases} 
                 fieldingRoster={rosterData[fieldingTeam]}
+                activeFieldersMap={activeFieldersMap}
                 onExecuteMove={executeMove} 
                 onAddOut={handleFieldOut}
-                onChangePitcher={(pitcherPlayer) => setActivePitcherSubModal({ team: fieldingTeam, player: pitcherPlayer })}
+                onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
                 onPinchRun={(baseId, runner) => setPinchRunnerModal({ baseId, runner })}
             />
           ) : (
@@ -1962,9 +2087,20 @@ function App() {
   const [initState, setInitState] = useState(null);
   const [key, setKey] = useState(0);
   
-  const [rosterData, setRosterData] = useState({
-      away: Array.from({length: 9}).map((_, i) => ({ id: `a${i}`, name: `Away ${i+1}`, no: `${i+1}`, pos: i===0?'P':i===1?'C':i===2?'1B':i===3?'2B':i===4?'3B':i===5?'SS':i===6?'LF':i===7?'CF':'RF' })),
-      home: Array.from({length: 9}).map((_, i) => ({ id: `h${i}`, name: `Home ${i+1}`, no: `${i+1}`, pos: i===0?'P':i===1?'C':i===2?'1B':i===3?'2B':i===4?'3B':i===5?'SS':i===6?'LF':i===7?'CF':'RF' }))
+  // Safe Initialization with Pool and Fielders maps
+  const [rosterData, setRosterData] = useState(() => {
+      const awayLineup = Array.from({length: 9}).map((_, i) => ({ id: `a${i}`, name: `Away ${i+1}`, no: `${i+1}`, pos: i===0?'P':i===1?'C':i===2?'1B':i===3?'2B':i===4?'3B':i===5?'SS':i===6?'LF':i===7?'CF':'RF' }));
+      const homeLineup = Array.from({length: 9}).map((_, i) => ({ id: `h${i}`, name: `Home ${i+1}`, no: `${i+1}`, pos: i===0?'P':i===1?'C':i===2?'1B':i===3?'2B':i===4?'3B':i===5?'SS':i===6?'LF':i===7?'CF':'RF' }));
+      
+      return {
+          away: awayLineup,
+          home: homeLineup,
+          pool: { away: [...awayLineup], home: [...homeLineup] },
+          fielders: {
+              away: awayLineup.reduce((acc, p) => { acc[p.pos] = p; return acc; }, {}),
+              home: homeLineup.reduce((acc, p) => { acc[p.pos] = p; return acc; }, {})
+          }
+      };
   });
 
   const handleStart = cfg => { 
@@ -1987,7 +2123,18 @@ function App() {
   const handleImport = data => {
     setConfig(data.config);
     setInitState(data);
-    if (data.rosterData) setRosterData(data.rosterData);
+    if (data.rosterData) {
+        const rd = { ...data.rosterData };
+        // Migration patch for old save files
+        if (!rd.pool) rd.pool = { away: [...(rd.away || [])], home: [...(rd.home || [])] };
+        if (!rd.fielders) {
+            rd.fielders = {
+                away: (rd.away || []).reduce((acc, p) => { if(p.pos) acc[p.pos] = p; return acc; }, {}),
+                home: (rd.home || []).reduce((acc, p) => { if(p.pos) acc[p.pos] = p; return acc; }, {})
+            };
+        }
+        setRosterData(rd);
+    }
     setKey(k => k + 1);
     setScreen("game");
   };
@@ -2013,7 +2160,7 @@ function App() {
                     homeName={config?.home}
                     onSaveRoster={setRosterData} 
                     onClose={() => setShowRoster(false)}
-                    onLogSub={null} // GameTracker handles subs initiated inside it natively via FieldDiagram
+                    onLogSub={null} 
                 />
             </div>
         )}
