@@ -1056,7 +1056,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -1708,9 +1708,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
   const commitEventBatch = (newEvents, logs = [], snapshot = null) => {
       const snap = snapshot || { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
-      newEvents[0].snapshot = snap;
-      setEvents(p => [...p, ...newEvents]);
-      setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId: newEvents[0].batchId }))]);
+      const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
+      if (newEvents.length > 0) {
+          newEvents[0].snapshot = snap;
+          setEvents(p => [...p, ...newEvents]);
+      }
+      if (logs.length > 0) {
+          setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId }))]);
+      }
       setIsTypingTime(false);
       setEntryTime(nowTime());
   };
