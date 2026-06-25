@@ -855,8 +855,8 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
                     <div style={{ flex: 1 }}><Label>POSITION</Label>
                         <Sel value={pos} onChange={setPos}>
                             <option value="" disabled hidden>Pos</option>
-                            <option value="P">P (Pitcher)</option>
-                            <option value="C">C (Catcher)</option>
+                            <option value="P">P</option>
+                            <option value="C">C</option>
                             <option value="1B">1B</option>
                             <option value="2B">2B</option>
                             <option value="3B">3B</option>
@@ -864,8 +864,8 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
                             <option value="LF">LF</option>
                             <option value="CF">CF</option>
                             <option value="RF">RF</option>
-                            <option value="DH">DH (designated hitter)</option>
-                            <option value="EH">EH (extra hitter)</option>
+                            <option value="DH">DH</option>
+                            <option value="EH">EH</option>
                         </Sel>
                     </div>
                 </div>
@@ -964,8 +964,8 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
                             <div style={{ flex: 1 }}>
                                 <Sel value={player.pos} onChange={v => handleLineupChange(activeTab, i, 'pos', v)}>
                                     <option value="" disabled hidden>Pos</option>
-                                    <option value="P">P (Pitcher)</option>
-                                    <option value="C">C (Catcher)</option>
+                                    <option value="P">P</option>
+                                    <option value="C">C</option>
                                     <option value="1B">1B</option>
                                     <option value="2B">2B</option>
                                     <option value="3B">3B</option>
@@ -973,8 +973,8 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
                                     <option value="LF">LF</option>
                                     <option value="CF">CF</option>
                                     <option value="RF">RF</option>
-                                    <option value="DH">DH (designated hitter)</option>
-                                    <option value="EH">EH (extra hitter)</option>
+                                    <option value="DH">DH</option>
+                                    <option value="EH">EH</option>
                                 </Sel>
                             </div>
                         </>
