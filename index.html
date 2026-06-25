@@ -543,7 +543,7 @@ function ConfChip({ confidence }) {
   if (!confidence) return null;
   const map = { low: { label: "Low", color: C.red, bg: C.redDim }, fair: { label: "Fair", color: C.yellow, bg: C.yellowDim }, good: { label: "Good", color: C.blue, bg: C.blueDim }, strong: { label: "Strong", color: C.green, bg: C.greenDim } };
   const { label, color, bg } = map[confidence];
-  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO };>{label}</span>;
+  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO }}>{label}</span>;
 }
 function StatBox({ label, value, sub, color, dim }) {
   return (
