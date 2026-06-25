@@ -35,7 +35,7 @@
             margin: 0 auto 16px;
             background: #4a6b4a; /* Grass */
             border: 2px solid #2c2c2c;
-            overflow: hidden;
+            overflow: visible;
             touch-action: none; /* Prevent scrolling while interacting */
             border-radius: 4px;
         }
@@ -86,14 +86,14 @@
         .pos-2b    { bottom: 65%; left: 50%; }
         .pos-3b    { bottom: 35%; left: 20%; }
         .pos-score { bottom: -5%; left: 50%; width: 80px; height: 30px; border-radius: 4px; background: rgba(139, 58, 58, 0.3); border-color: #8b3a3a; transform: translate(-50%, 0); }
-        .pos-score::after { content: "DRAG HERE TO SCORE"; position: absolute; font-size: 9px; color: #fff; font-weight: bold; opacity: 0.8; font-family: 'Courier Prime', monospace; }
+        .pos-score::after { content: "DRAG TO SCORE"; position: absolute; font-size: 9px; color: #fff; font-weight: bold; opacity: 0.8; font-family: 'Courier Prime', monospace; }
 
         /* Defensive players floating on the field */
         .def-player {
             position: absolute;
             transform: translate(-50%, -50%);
             text-align: center;
-            pointer-events: none; /* Let clicks pass through to base zones if needed */
+            pointer-events: none;
             z-index: 5;
             opacity: 0.8;
         }
@@ -844,17 +844,12 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
   
   const completeSub = (newPlayer, pitchesThrown) => {
       const oldPlayer = activeSub.player;
-      
-      // Update local roster copy
       const newRoster = { ...roster };
       newRoster[activeSub.team][activeSub.index] = newPlayer;
       setRoster(newRoster);
-      
-      // Fire logging callback
       if (onLogSub) {
           onLogSub(oldPlayer, newPlayer, pitchesThrown, activeSub.team);
       }
-      
       setActiveSub(null);
   };
 
@@ -944,8 +939,8 @@ function PitchCountModal({ pitcher, onSave, onSkip }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecuteMove, onAddOut, onChangePitcher }) {
-    const [draggedRunner, setDraggedRunner] = useState(null); // { id, startX, startY, curX, curY, time, startBase }
+function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecuteMove, onAddOut, onChangePitcher, onPinchRun }) {
+    const [draggedRunner, setDraggedRunner] = useState(null);
 
     const handlePointerDown = (e, baseId) => {
         e.stopPropagation();
@@ -972,7 +967,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
         
         const isTap = dt < 500 && Math.abs(dx) < 15 && Math.abs(dy) < 15;
 
-        // Hide floating element temporarily to find what's underneath
         const floatingEl = document.getElementById('floating-runner');
         if (floatingEl) floatingEl.style.display = 'none';
         
@@ -999,7 +993,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
         { id: 'home', label: 'BATTER', cls: 'pos-home' }
     ];
 
-    // Coordinate mapping for defense (approximate % on the 1:1 field container)
     const defCoords = {
         'C': { top: '92%', left: '50%' },
         'P': { top: '55%', left: '50%' },
@@ -1037,7 +1030,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
             <div className="field-container">
                 <div className="diamond-dirt"></div>
                 
-                {/* Render defense players based on roster */}
                 {fieldingRoster.map(p => {
                     const coords = defCoords[p.pos];
                     if (!coords) return null;
@@ -1049,7 +1041,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                     );
                 })}
 
-                {/* Pitcher specific interactive icon over the defense label */}
                 <div 
                     className="base-zone pos-pitcher" 
                     onClick={() => onChangePitcher(activePitcher)}
@@ -1057,7 +1048,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                     <div style={{ fontSize: "16px" }}>⚾</div>
                 </div>
 
-                {/* Base Drop Zones and Runners */}
                 {zones.map(z => {
                     const runner = bases[z.id];
                     const isDraggingThis = draggedRunner?.startBase === z.id;
@@ -1070,22 +1060,31 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
                             {z.label && <div className="base-label">{z.label}</div>}
                             
                             {runner && (
-                                <div 
-                                    className="runner"
-                                    onPointerDown={(e) => handlePointerDown(e, z.id)}
-                                    onPointerMove={handlePointerMove}
-                                    onPointerUp={handlePointerUp}
-                                    onPointerCancel={handlePointerUp}
-                                    style={{ opacity: isDraggingThis ? 0.3 : 1 }}
-                                >
-                                    {runner.no || '🏃'}
-                                </div>
+                                <>
+                                    <div 
+                                        className="runner"
+                                        onPointerDown={(e) => handlePointerDown(e, z.id)}
+                                        onPointerMove={handlePointerMove}
+                                        onPointerUp={handlePointerUp}
+                                        onPointerCancel={handlePointerUp}
+                                        style={{ opacity: isDraggingThis ? 0.3 : 1 }}
+                                    >
+                                        {runner.no || '🏃'}
+                                    </div>
+                                    {z.id !== 'home' && z.id !== 'score' && (
+                                        <div 
+                                            onClick={(e) => { e.stopPropagation(); onPinchRun(z.id, runner); }}
+                                            style={{ position: 'absolute', top: '-8px', right: '-12px', background: C.accent, color: C.bg, fontSize: '9px', fontWeight: 'bold', fontFamily: MONO, padding: '2px 4px', borderRadius: '4px', cursor: 'pointer', zIndex: 30 }}
+                                        >
+                                            SUB
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     );
                 })}
                 
-                {/* Floating active dragged runner */}
                 {draggedRunner && (
                     <div 
                         id="floating-runner"
@@ -1103,6 +1102,101 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, onExecut
             </div>
         </div>
     );
+}
+
+// ── Setup Screen ──────────────────────────────────────────────────────────────
+function SetupScreen({ onStart, onImport, onOpenRoster }) {
+  const [league, setLeague]         = useState("hs");
+  const [away, setAway]             = useState("");
+  const [home, setHome]             = useState("");
+  const [innings, setInnings]       = useState(7);
+  const [mercyAfter, setMercyAfter] = useState(5);
+  const [mercyRuns, setMercyRuns]   = useState(10);
+  const [useMercy, setUseMercy]     = useState(true);
+  const [allowTies, setAllowTies]   = useState(false);
+  const [tieInningLimit, setTieInningLimit] = useState(7);
+  const [lateStart, setLateStart]   = useState(false);
+  const [useTimeLimit, setUseTimeLimit] = useState(false);
+  const [timeLimit, setTimeLimit]   = useState("120");
+  const [startTime, setStartTime]   = useState(nowTime());
+  const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    if (league === "custom") return;
+    const p = LEAGUES[league];
+    setInnings(p.innings);
+    setTieInningLimit(p.innings);
+    if (p.mercy) { setMercyRuns(p.mercy); setMercyAfter(p.mercyAfter); setUseMercy(true); } else setUseMercy(false);
+  }, [league]);
+
+  const preset = LEAGUES[league];
+  const valid  = away.trim() && home.trim();
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      {showImport && (
+        <ImportModal
+          hasActiveGame={false}
+          onImport={data => { setShowImport(false); onImport(data); }}
+          onCancel={() => setShowImport(false)}
+          onExportFirst={() => {}}
+        />
+      )}
+      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center", position: "relative" }}>
+        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>ℹ️</button>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
+        <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
+      </div>
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+        
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>LEAGUE / LEVEL</div>
+          <Sel value={league} onChange={setLeague} style={{ marginTop: "6px" }}>
+            {Object.entries(LEAGUES).map(([k, l]) => <option key={k} value={k}>{l.label}</option>)}
+          </Sel>
+          {league !== "custom" && <div style={{ marginTop: "10px", fontSize: "11px", color: C.muted, fontFamily: MONO }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
+        </div>
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>TEAMS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "6px" }}>
+            <div><Label>AWAY</Label><Inp value={away} onChange={setAway} placeholder="Visitors" /></div>
+            <div><Label>HOME</Label><Inp value={home} onChange={setHome} placeholder="Home" /></div>
+          </div>
+        </div>
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>RULES & SETUP</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px", marginTop: "6px" }}>
+            <div><Label>INNINGS</Label><Sel value={innings} onChange={v => setInnings(Number(v))}>{[5,6,7,9].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM:SS" /></div>
+          </div>
+          <Toggle on={useMercy} onToggle={() => setUseMercy(v => !v)} label="Mercy Rule Active" />
+          {useMercy && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px", marginBottom: "12px" }}>
+              <div><Label>AFTER INN</Label><Sel value={mercyAfter} onChange={v => setMercyAfter(Number(v))}>{[3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+              <div><Label>RUN DIFF</Label><Sel value={mercyRuns} onChange={v => setMercyRuns(Number(v))}>{[5,8,10,12,15,20].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            </div>
+          )}
+          <div style={{ marginTop: "12px" }}><Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" /></div>
+          {allowTies && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginTop: "12px" }}>
+              <div><Label>TIE AFTER INN</Label><Sel value={tieInningLimit} onChange={v => setTieInningLimit(Number(v))}>{[5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            </div>
+          )}
+          <div style={{ marginTop: "12px" }}><Toggle on={lateStart} onToggle={() => setLateStart(v => !v)} label="Late Start (Join in progress)" /></div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full disabled={!valid} onClick={() => {
+            const t = parseTime(startTime) ?? parseTime(nowTime());
+            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, lateStart, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
+          }}>START GAME →</Btn>
+          <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Late Start Sub-Screen ─────────────────────────────────────────────────────
@@ -1337,7 +1431,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   // Roster / Field logic
   const [lineupIdx, setLineupIdx] = useState({ away: 0, home: 0 });
   const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
-  const [activePitcherSubModal, setActivePitcherSubModal] = useState(null); // stores { team, player }
+  const [activePitcherSubModal, setActivePitcherSubModal] = useState(null);
+  const [pinchRunnerModal, setPinchRunnerModal] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
   const defaultPitchers = {
@@ -1383,13 +1478,23 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
   }
 
-  // Base state spawn logic: spawn batter if home is empty
+  // Base state spawn logic: spawn batter with lineupIndex tagged so subs target the right spot
   useEffect(() => {
       if (inActiveInning && !bases.home && currentOuts < 3) {
           const batter = rosterData[battingTeam][lineupIdx[battingTeam]];
-          setBases(prev => ({ ...prev, home: batter }));
+          setBases(prev => ({ ...prev, home: { ...batter, lineupIndex: lineupIdx[battingTeam] } }));
       }
   }, [inActiveInning, activeHalf, bases.home, currentOuts, lineupIdx, battingTeam, rosterData]);
+
+  // Keep home batter in sync if they are Pinch Hit for via the Roster Screen
+  useEffect(() => {
+      if (inActiveInning && bases.home) {
+          const currentBatterInLineup = rosterData[battingTeam][lineupIdx[battingTeam]];
+          if (bases.home.id !== currentBatterInLineup.id || bases.home.name !== currentBatterInLineup.name) {
+              setBases(prev => ({ ...prev, home: { ...currentBatterInLineup, lineupIndex: lineupIdx[battingTeam] } }));
+          }
+      }
+  }, [rosterData, battingTeam, lineupIdx, inActiveInning]);
 
   const advanceBatter = useCallback(() => {
       if (!battingTeam) return;
@@ -1540,6 +1645,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           onExportFirst={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}
         />
       )}
+      
+      {/* Pitcher Substitution Modal */}
       {activePitcherSubModal && (
           <PlayerSubModal 
             player={activePitcherSubModal.player} 
@@ -1555,6 +1662,24 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
             onCancel={() => setActivePitcherSubModal(null)} 
           />
       )}
+
+      {/* Pinch Runner Substitution Modal */}
+      {pinchRunnerModal && (
+          <PlayerSubModal 
+            player={pinchRunnerModal.runner} 
+            isPitcher={false}
+            onSave={(newPlayer) => {
+                const newRoster = { ...rosterData };
+                newRoster[battingTeam][pinchRunnerModal.runner.lineupIndex] = newPlayer;
+                setRosterData(newRoster);
+                setBases(prev => ({ ...prev, [pinchRunnerModal.baseId]: { ...newPlayer, lineupIndex: pinchRunnerModal.runner.lineupIndex } }));
+                handleSubLog(pinchRunnerModal.runner, newPlayer, 0, battingTeam);
+                setPinchRunnerModal(null);
+            }} 
+            onCancel={() => setPinchRunnerModal(null)} 
+          />
+      )}
+
       {pendingPitchCountPrompt && (
           <PitchCountModal pitcher={rosterData[fieldingTeam].find(p => p.pos === 'P')} onSave={finishInningAfterPitchCount} onSkip={() => finishInningAfterPitchCount(0)} />
       )}
@@ -1624,6 +1749,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 onExecuteMove={executeMove} 
                 onAddOut={handleFieldOut}
                 onChangePitcher={(pitcherPlayer) => setActivePitcherSubModal({ team: fieldingTeam, player: pitcherPlayer })}
+                onPinchRun={(baseId, runner) => setPinchRunnerModal({ baseId, runner })}
             />
           ) : (
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
