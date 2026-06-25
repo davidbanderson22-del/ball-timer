@@ -1620,6 +1620,17 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       commitEventBatch([], logs);
   };
 
+  const handleToggleDelay = () => {
+      if (delayActive) {
+          setDelayActive(false);
+          setAccumulatedDelaySec(prev => prev + liveDelaySec);
+          setDelayStartTime(null);
+      } else {
+          setDelayActive(true);
+          setDelayStartTime(parseTime(nowTime()));
+      }
+  };
+
   const handleUndo = () => {
       if (!events.length) return;
       const lastBatchId = events[events.length - 1].batchId || events[events.length - 1].id;
