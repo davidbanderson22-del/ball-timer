@@ -852,7 +852,22 @@ function PlayerSubModal({ player, isPitcher, currentTotal, onSave, onCancel }) {
                 
                 <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                     <div style={{ flex: 1 }}><Label>NUMBER</Label><Inp value={no} onChange={setNo} placeholder="No." /></div>
-                    <div style={{ flex: 1 }}><Label>POSITION</Label><Inp value={pos} onChange={setPos} placeholder="Pos" /></div>
+                    <div style={{ flex: 1 }}><Label>POSITION</Label>
+                        <Sel value={pos} onChange={setPos}>
+                            <option value="" disabled hidden>Pos</option>
+                            <option value="P">P (Pitcher)</option>
+                            <option value="C">C (Catcher)</option>
+                            <option value="1B">1B</option>
+                            <option value="2B">2B</option>
+                            <option value="3B">3B</option>
+                            <option value="SS">SS</option>
+                            <option value="LF">LF</option>
+                            <option value="CF">CF</option>
+                            <option value="RF">RF</option>
+                            <option value="DH">DH (designated hitter)</option>
+                            <option value="EH">EH (extra hitter)</option>
+                        </Sel>
+                    </div>
                 </div>
 
                 {isPitcher && (
@@ -946,7 +961,22 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName, o
                         <>
                             <div style={{ flex: 2 }}><Inp value={player.name} onChange={v => handleLineupChange(activeTab, i, 'name', v)} placeholder="Name" /></div>
                             <div style={{ flex: 1 }}><Inp value={player.no} onChange={v => handleLineupChange(activeTab, i, 'no', v)} placeholder="No." /></div>
-                            <div style={{ flex: 1 }}><Inp value={player.pos} onChange={v => handleLineupChange(activeTab, i, 'pos', v)} placeholder="Pos" /></div>
+                            <div style={{ flex: 1 }}>
+                                <Sel value={player.pos} onChange={v => handleLineupChange(activeTab, i, 'pos', v)}>
+                                    <option value="" disabled hidden>Pos</option>
+                                    <option value="P">P (Pitcher)</option>
+                                    <option value="C">C (Catcher)</option>
+                                    <option value="1B">1B</option>
+                                    <option value="2B">2B</option>
+                                    <option value="3B">3B</option>
+                                    <option value="SS">SS</option>
+                                    <option value="LF">LF</option>
+                                    <option value="CF">CF</option>
+                                    <option value="RF">RF</option>
+                                    <option value="DH">DH (designated hitter)</option>
+                                    <option value="EH">EH (extra hitter)</option>
+                                </Sel>
+                            </div>
                         </>
                     ) : (
                         <>
