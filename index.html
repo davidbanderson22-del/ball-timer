@@ -832,13 +832,70 @@ function CopyModal({ text, onClose }) {
   );
 }
 
+function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onClose }) {
+    const [mode, setMode] = useState('main');
+    const isBatter = baseId === 'home';
+
+    const outOptions = isBatter
+        ? [{l:'K', v:1}, {l:'GO', v:1}, {l:'FO', v:1}, {l:'DP', v:2}, {l:'TP', v:3}, {l:'Other', v:1}]
+        : [{l:'Force', v:1}, {l:'Tag', v:1}, {l:'CS', v:1}, {l:'Pickoff', v:1}, {l:'Double off', v:2}, {l:'Other', v:1}];
+
+    const advanceOptions = isBatter
+        ? [{l:'Single', v:'1b'}, {l:'Double', v:'2b'}, {l:'Triple', v:'3b'}, {l:'HR', v:'score'}]
+        : (baseId === '1b' ? [{l:'2B', v:'2b'}, {l:'3B', v:'3b'}, {l:'Score', v:'score'}]
+          : baseId === '2b' ? [{l:'3B', v:'3b'}, {l:'Score', v:'score'}]
+          : [{l:'Score', v:'score'}]);
+
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>
+                    {isBatter ? "BATTER ACTION" : "RUNNER ACTION"}
+                </div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    {runner?.name || 'Player'}
+                </div>
+                {mode === 'main' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
+                        <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
+                        <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
+                        <Btn full variant="ghost" onClick={onClose}>CANCEL</Btn>
+                    </div>
+                )}
+                {mode === 'out' && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        {outOptions.map(o => (
+                            <Btn key={o.l} full variant="outline" onClick={() => onOut(o.l, o.v)}>{o.l}</Btn>
+                        ))}
+                        <div style={{ gridColumn: "span 2" }}>
+                            <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                        </div>
+                    </div>
+                )}
+                {mode === 'advance' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {advanceOptions.map(o => (
+                            <Btn key={o.l} full variant="outline" onClick={() => onAdvance(o.l, o.v)}>{o.l}</Btn>
+                        ))}
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
 // ── Roster & Lineup Screen ────────────────────────────────────────────────────
 function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersMap, currentPitchTotal, onSave, onCancel }) {
     const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
     const [pitches, setPitches] = useState(String(currentPitchTotal || ""));
 
     const handleConfirm = () => {
-         const newPlayer = rosterPool.find(p => p.id === selectedId);
+         let newPlayer = rosterPool.find(p => p.id === selectedId);
+         if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+             newPlayer = currentPlayer;
+         }
          if (newPlayer) {
              onSave({ ...newPlayer, pos }, parseInt(pitches) || 0);
          }
@@ -869,7 +926,7 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
                 )}
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId}>CONFIRM</Btn>
+                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
             </div>
@@ -881,7 +938,10 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
     const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
     
     const handleConfirm = () => {
-        const newPlayer = rosterPool.find(p => p.id === selectedId);
+        let newPlayer = rosterPool.find(p => p.id === selectedId);
+        if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+            newPlayer = currentPlayer;
+        }
         if (newPlayer) onSave(newPlayer);
     };
 
@@ -902,7 +962,7 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
                 </Sel>
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId}>CONFIRM</Btn>
+                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
             </div>
@@ -1096,7 +1156,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFieldersMap, onExecuteMove, onAddOut, onChangeFielder, onPinchRun }) {
+function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFieldersMap, onExecuteMove, onOpenActionMenu, onChangeFielder }) {
     const [draggedRunner, setDraggedRunner] = useState(null);
 
     const handlePointerDown = (e, baseId) => {
@@ -1134,7 +1194,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
         const targetBase = el?.closest('.base-zone')?.dataset?.baseId;
 
         if (isTap) {
-            onAddOut(draggedRunner.startBase);
+            onOpenActionMenu(draggedRunner.startBase);
         } else if (targetBase && targetBase !== draggedRunner.startBase) {
             onExecuteMove(draggedRunner.startBase, targetBase);
         }
@@ -1181,7 +1241,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
             </div>
 
             <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
-                DRAG runner to advance. TAP runner for an OUT. <br/>TAP a defensive position to sub/assign.
+                DRAG runner to advance. TAP runner for Actions. <br/>TAP a defensive position to sub/assign.
             </div>
 
             <div className="field-container">
@@ -1225,26 +1285,16 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
                             data-base-id={z.id}
                         >
                             {runner && (
-                                <>
-                                    <div 
-                                        className="runner"
-                                        onPointerDown={(e) => handlePointerDown(e, z.id)}
-                                        onPointerMove={handlePointerMove}
-                                        onPointerUp={handlePointerUp}
-                                        onPointerCancel={handlePointerUp}
-                                        style={{ opacity: isDraggingThis ? 0.3 : 1 }}
-                                    >
-                                        {runner.no || '🏃'}
-                                    </div>
-                                    {z.id !== 'score' && (
-                                        <div 
-                                            onClick={(e) => { e.stopPropagation(); onPinchRun(z.id, runner); }}
-                                            style={{ position: 'absolute', top: '-8px', right: '-12px', background: C.accent, color: C.bg, fontSize: '9px', fontWeight: 'bold', fontFamily: MONO, padding: '2px 4px', borderRadius: '4px', cursor: 'pointer', zIndex: 30 }}
-                                        >
-                                            SUB
-                                        </div>
-                                    )}
-                                </>
+                                <div 
+                                    className="runner"
+                                    onPointerDown={(e) => handlePointerDown(e, z.id)}
+                                    onPointerMove={handlePointerMove}
+                                    onPointerUp={handlePointerUp}
+                                    onPointerCancel={handlePointerUp}
+                                    style={{ opacity: isDraggingThis ? 0.3 : 1 }}
+                                >
+                                    {runner.no || '🏃'}
+                                </div>
                             )}
                         </div>
                     );
@@ -1598,6 +1648,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
   const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
+  const [actionMenuState, setActionMenuState] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
   const defaultPitchers = {
@@ -1642,6 +1693,15 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInningNum && e.half === activeHalf);
       currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
   }
+
+  // Pitch prompt logic decoupled from manual triggers, handles undo robustness automatically
+  useEffect(() => {
+      if (inActiveInning && currentOuts >= 3 && !showSummary && !gameOverPrompt) {
+          setPendingPitchCountPrompt(true);
+      } else {
+          setPendingPitchCountPrompt(false);
+      }
+  }, [inActiveInning, currentOuts, showSummary, gameOverPrompt]);
 
   // Safe Fielder map lookup
   const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
@@ -1709,6 +1769,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const commitEventBatch = (newEvents, logs = [], snapshot = null) => {
       const snap = snapshot || { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
       const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
+      
       if (newEvents.length > 0) {
           newEvents[0].snapshot = snap;
           setEvents(p => [...p, ...newEvents]);
@@ -1730,37 +1791,88 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setBases({ home: null, '1b': null, '2b': null, '3b': null }); 
   };
 
-  const executeMove = (sourceId, targetId) => {
-      if (targetId === 'score') {
-          const t = getSafeTime(entryTime, events);
-          const batchId = Date.now();
-          commitEventBatch([{ id: batchId, batchId, type: 'run', val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf }],
-                           [`[${formatTime(t)}] 🏃 Run scored by ${bases[sourceId]?.name || 'Runner'}`]);
-          setBases(prev => ({ ...prev, [sourceId]: null }));
-          if (sourceId === 'home') advanceBatter();
-          return;
+  const BASE_VAL = { home: 0, '1b': 1, '2b': 2, '3b': 3, score: 4 };
+  const VAL_BASE = { 0: 'home', 1: '1b', 2: '2b', 3: '3b', 4: 'score' };
+
+  const executeAdvance = (sourceId, targetId, actionLabel = null) => {
+      const sVal = BASE_VAL[sourceId];
+      const tVal = BASE_VAL[targetId];
+      if (tVal <= sVal) return; // Prevent backwards moving
+
+      const N = tVal - sVal;
+      let newBases = { ...bases };
+      let runsScored = 0;
+      let advanceLogs = [];
+
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      const batchId = Date.now();
+
+      const processRunner = (bId, bVal) => {
+          if (!bases[bId]) return;
+          let shouldAdvance = false;
+          
+          if (sVal === 0) {
+              shouldAdvance = true; // Batter advancing forces everyone to advance N bases
+          } else {
+              if (bVal > sVal && bVal <= tVal) shouldAdvance = true; // Forced pushes
+              if (bId === sourceId) shouldAdvance = true; // The runner themselves
+          }
+
+          if (shouldAdvance) {
+              const destVal = Math.min(4, bVal + N);
+              const destId = VAL_BASE[destVal];
+              
+              if (newBases[bId] && newBases[bId].id === bases[bId].id) {
+                   newBases[bId] = null;
+              }
+              
+              if (destVal === 4) {
+                  runsScored++;
+                  advanceLogs.push(`[${formatTime(entryTime)}] 🏃 ${bases[bId].name || 'Runner'} scored!`);
+              } else {
+                  newBases[destId] = bases[bId];
+              }
+          }
+      };
+
+      processRunner('3b', 3);
+      processRunner('2b', 2);
+      processRunner('1b', 1);
+      processRunner('home', 0);
+
+      setBases(newBases);
+      if (sourceId === 'home') advanceBatter();
+
+      let newEvents = [];
+      if (runsScored > 0) {
+          newEvents.push({ id: batchId, batchId, type: 'run', val: runsScored, time: entryTime, team: battingTeam, inning: activeInningNum, half: activeHalf });
+      } else {
+          newEvents.push({ id: batchId, batchId, type: 'advance', val: 0, time: entryTime, inning: activeInningNum, half: activeHalf });
       }
       
-      setBases(prev => {
-          const runner = prev[sourceId];
-          return { ...prev, [sourceId]: null, [targetId]: runner };
-      });
-      if (sourceId === 'home') advanceBatter();
+      const logPrefix = actionLabel ? `${actionLabel} - ` : '';
+      if (sourceId === 'home' && tVal === 4) {
+          advanceLogs.unshift(`[${formatTime(entryTime)}] ⚾ ${logPrefix}${bases[sourceId]?.name || 'Batter'} hit a Home Run!`);
+      } else {
+          advanceLogs.unshift(`[${formatTime(entryTime)}] 🏃 ${logPrefix}${bases[sourceId]?.name || 'Runner'} advanced to ${targetId.toUpperCase()}`);
+      }
+
+      commitEventBatch(newEvents, advanceLogs, snap);
   };
 
-  const handleFieldOut = (baseId) => {
+  const handleActionOut = (baseId, label, count) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const newEvents = [{ id: batchId, batchId, type: 'out', val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
-      const logs = [`[${formatTime(t)}] ⚾ Out recorded on ${bases[baseId]?.name || 'Runner'}`];
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      
+      const newEvents = [{ id: batchId, batchId, type: 'out', val: count, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf }];
+      const logs = [`[${formatTime(t)}] ⚾ Out (${label}) recorded on ${bases[baseId]?.name || 'Player'}`];
 
       setBases(prev => ({ ...prev, [baseId]: null }));
       if (baseId === 'home') advanceBatter();
 
-      if (currentOuts + 1 >= 3) {
-          setPendingPitchCountPrompt(true);
-      }
-      commitEventBatch(newEvents, logs);
+      commitEventBatch(newEvents, logs, snap);
+      setActionMenuState(null);
   };
 
   const finishInningAfterPitchCount = (pitches) => {
@@ -1820,7 +1932,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setGameLog(p => p.filter(l => l.batchId !== lastBatchId));
       setEstimateHistory(p => p.filter(h => h.batchId !== lastBatchId));
       setGameOverPrompt(false);
-      setPendingPitchCountPrompt(false);
   };
 
   const currentPitcher = activeFieldersMap['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
@@ -1918,6 +2029,24 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           />
       )}
 
+      {/* Runner / Batter Interactive Action Menu */}
+      {actionMenuState && (
+          <ActionMenuModal
+              baseId={actionMenuState}
+              runner={bases[actionMenuState]}
+              onClose={() => setActionMenuState(null)}
+              onOut={(label, count) => handleActionOut(actionMenuState, label, count)}
+              onAdvance={(label, targetBase) => {
+                  executeAdvance(actionMenuState, targetBase, label);
+                  setActionMenuState(null);
+              }}
+              onSub={() => {
+                  setOffensiveSubModal({ baseId: actionMenuState, runner: bases[actionMenuState] });
+                  setActionMenuState(null);
+              }}
+          />
+      )}
+
       {pendingPitchCountPrompt && (
           <PitchCountModal 
               pitcher={currentPitcher} 
@@ -1990,10 +2119,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 bases={bases} 
                 fieldingRoster={rosterData[fieldingTeam]}
                 activeFieldersMap={activeFieldersMap}
-                onExecuteMove={executeMove} 
-                onAddOut={handleFieldOut}
+                onExecuteMove={executeAdvance} 
+                onOpenActionMenu={setActionMenuState}
                 onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
-                onPinchRun={(baseId, runner) => setOffensiveSubModal({ baseId, runner })}
             />
           ) : (
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
