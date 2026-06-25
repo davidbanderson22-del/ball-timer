@@ -126,7 +126,7 @@
             display: flex; align-items: center; justify-content: center;
             font-family: 'Courier Prime', monospace;
             font-weight: bold; font-size: 13px; color: #2c2c2c;
-            cursor: grab;
+            cursor: pointer;
             z-index: 20;
             box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
             touch-action: none; /* Critical for mobile pointer events */
@@ -137,8 +137,6 @@
         .pos-1b    { top: 65%; left: 73%; }
         .pos-2b    { top: 42%; left: 50%; }
         .pos-3b    { top: 65%; left: 27%; }
-        .pos-score { top: 97%; left: 50%; width: 100px; height: 26px; border-radius: 4px; background: rgba(139, 58, 58, 0.4); border: 1px dashed #8b3a3a; transform: translate(-50%, 0); }
-        .pos-score::after { content: "DRAG TO SCORE"; position: absolute; font-size: 9px; color: #fff; font-weight: bold; opacity: 0.9; font-family: 'Courier Prime', monospace; pointer-events: none; }
 
         /* Defensive players floating on the field */
         .def-player {
@@ -1156,57 +1154,11 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFieldersMap, onExecuteMove, onOpenActionMenu, onChangeFielder }) {
-    const [draggedRunner, setDraggedRunner] = useState(null);
-
-    const handlePointerDown = (e, baseId) => {
-        e.stopPropagation();
-        e.target.setPointerCapture(e.pointerId);
-        setDraggedRunner({ 
-            id: bases[baseId]?.id, 
-            startX: e.clientX, startY: e.clientY, 
-            curX: e.clientX, curY: e.clientY, 
-            time: Date.now(), 
-            startBase: baseId 
-        });
-    };
-
-    const handlePointerMove = (e) => {
-        if (!draggedRunner) return;
-        setDraggedRunner(prev => ({ ...prev, curX: e.clientX, curY: e.clientY }));
-    };
-
-    const handlePointerUp = (e) => {
-        if (!draggedRunner) return;
-        const dt = Date.now() - draggedRunner.time;
-        const dx = e.clientX - draggedRunner.startX;
-        const dy = e.clientY - draggedRunner.startY;
-        
-        const isTap = dt < 500 && Math.abs(dx) < 15 && Math.abs(dy) < 15;
-
-        const floatingEl = document.getElementById('floating-runner');
-        if (floatingEl) floatingEl.style.display = 'none';
-        
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        
-        if (floatingEl) floatingEl.style.display = 'flex';
-
-        const targetBase = el?.closest('.base-zone')?.dataset?.baseId;
-
-        if (isTap) {
-            onOpenActionMenu(draggedRunner.startBase);
-        } else if (targetBase && targetBase !== draggedRunner.startBase) {
-            onExecuteMove(draggedRunner.startBase, targetBase);
-        }
-        
-        setDraggedRunner(null);
-    };
-
+function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFieldersMap, onOpenActionMenu, onChangeFielder }) {
     const zones = [
         { id: '2b', label: '', cls: 'pos-2b' },
         { id: '3b', label: '', cls: 'pos-3b' },
         { id: '1b', label: '', cls: 'pos-1b' },
-        { id: 'score', label: '', cls: 'pos-score' },
         { id: 'home', label: '', cls: 'pos-home' }
     ];
 
@@ -1241,7 +1193,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
             </div>
 
             <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
-                DRAG runner to advance. TAP runner for Actions. <br/>TAP a defensive position to sub/assign.
+                TAP runner or batter for Actions. <br/>TAP a defensive position to sub/assign.
             </div>
 
             <div className="field-container">
@@ -1277,7 +1229,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
 
                 {zones.map(z => {
                     const runner = bases[z.id];
-                    const isDraggingThis = draggedRunner?.startBase === z.id;
                     return (
                         <div 
                             key={z.id} 
@@ -1287,11 +1238,7 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
                             {runner && (
                                 <div 
                                     className="runner"
-                                    onPointerDown={(e) => handlePointerDown(e, z.id)}
-                                    onPointerMove={handlePointerMove}
-                                    onPointerUp={handlePointerUp}
-                                    onPointerCancel={handlePointerUp}
-                                    style={{ opacity: isDraggingThis ? 0.3 : 1 }}
+                                    onClick={(e) => { e.stopPropagation(); onOpenActionMenu(z.id); }}
                                 >
                                     {runner.no || '🏃'}
                                 </div>
@@ -1299,16 +1246,6 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
                         </div>
                     );
                 })}
-                
-                {draggedRunner && (
-                    <div 
-                        id="floating-runner"
-                        className="runner" 
-                        style={{ position: 'fixed', left: draggedRunner.curX, top: draggedRunner.curY, transform: 'translate(-50%, -50%) scale(1.2)', zIndex: 9999, pointerEvents: 'none' }}
-                    >
-                        {bases[draggedRunner.startBase]?.no || '🏃'}
-                    </div>
-                )}
             </div>
             
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
@@ -1797,67 +1734,106 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const executeAdvance = (sourceId, targetId, actionLabel = null) => {
       const sVal = BASE_VAL[sourceId];
       const tVal = BASE_VAL[targetId];
-      if (tVal <= sVal) return; // Prevent backwards moving
+      if (tVal <= sVal) return; 
 
-      const N = tVal - sVal;
+      const batchId = Date.now();
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
       let newBases = { ...bases };
       let runsScored = 0;
       let advanceLogs = [];
 
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
-      const batchId = Date.now();
+      if (sourceId === 'home') {
+          const has1B = !!bases['1b'];
+          const has2B = !!bases['2b'];
+          const has3B = !!bases['3b'];
+          const batter = bases['home'];
 
-      const processRunner = (bId, bVal) => {
-          if (!bases[bId]) return;
-          let shouldAdvance = false;
-          
-          if (sVal === 0) {
-              shouldAdvance = true; // Batter advancing forces everyone to advance N bases
+          if (targetId === 'score') { // HR
+              runsScored = (has1B ? 1 : 0) + (has2B ? 1 : 0) + (has3B ? 1 : 0) + 1;
+              newBases = { home: null, '1b': null, '2b': null, '3b': null };
+              advanceLogs.push(`[${formatTime(entryTime)}] ⚾ ${batter?.name || 'Batter'} hit a Home Run!`);
+          } else if (targetId === '3b') { // Triple
+              runsScored = (has1B ? 1 : 0) + (has2B ? 1 : 0) + (has3B ? 1 : 0);
+              newBases = { home: null, '1b': null, '2b': null, '3b': batter };
+              advanceLogs.push(`[${formatTime(entryTime)}] ⚾ ${batter?.name || 'Batter'} hit a Triple!`);
+          } else if (targetId === '2b') { // Double
+              advanceLogs.push(`[${formatTime(entryTime)}] ⚾ ${batter?.name || 'Batter'} hit a Double!`);
+              newBases = { home: null, '1b': null, '2b': batter, '3b': null };
+              if (has1B && !has2B && !has3B) { newBases['3b'] = bases['1b']; }
+              else if (!has1B && has2B && !has3B) { newBases['3b'] = bases['2b']; }
+              else if (!has1B && !has2B && has3B) { newBases['3b'] = bases['3b']; }
+              else if (has1B && has2B && !has3B) { newBases['3b'] = bases['1b']; runsScored += 1; }
+              else if (!has1B && has2B && has3B) { newBases['3b'] = bases['2b']; runsScored += 1; }
+              else if (has1B && !has2B && has3B) { newBases['3b'] = bases['1b']; runsScored += 1; }
+              else if (has1B && has2B && has3B) { newBases['3b'] = bases['1b']; runsScored += 2; }
+          } else if (targetId === '1b') { // Single
+              advanceLogs.push(`[${formatTime(entryTime)}] ⚾ ${batter?.name || 'Batter'} hit a Single!`);
+              newBases = { home: null, '1b': batter, '2b': null, '3b': null };
+              if (has1B && !has2B && !has3B) { newBases['2b'] = bases['1b']; }
+              else if (!has1B && has2B && !has3B) { newBases['2b'] = bases['2b']; }
+              else if (!has1B && !has2B && has3B) { newBases['3b'] = bases['3b']; }
+              else if (has1B && has2B && !has3B) { newBases['2b'] = bases['1b']; newBases['3b'] = bases['2b']; }
+              else if (!has1B && has2B && has3B) { newBases['2b'] = bases['2b']; newBases['3b'] = bases['3b']; }
+              else if (has1B && !has2B && has3B) { newBases['2b'] = bases['1b']; newBases['3b'] = bases['3b']; }
+              else if (has1B && has2B && has3B) { newBases['2b'] = bases['1b']; newBases['3b'] = bases['2b']; runsScored += 1; }
+          }
+          setBases(newBases);
+          advanceBatter();
+
+          let newEvents = [];
+          if (runsScored > 0) {
+              newEvents.push({ id: batchId, batchId, type: 'run', val: runsScored, time: entryTime, team: battingTeam, inning: activeInningNum, half: activeHalf });
           } else {
-              if (bVal > sVal && bVal <= tVal) shouldAdvance = true; // Forced pushes
-              if (bId === sourceId) shouldAdvance = true; // The runner themselves
+              newEvents.push({ id: batchId, batchId, type: 'advance', val: 0, time: entryTime, inning: activeInningNum, half: activeHalf });
+          }
+          commitEventBatch(newEvents, advanceLogs, snap);
+      } else {
+          // MANUAL RUNNER ADVANCE
+          const N = tVal - sVal;
+          let displacements = { 1: 0, 2: 0, 3: 0 };
+          displacements[sVal] = N;
+
+          for (let i = sVal + 1; i <= 3; i++) {
+              if (bases[VAL_BASE[i]]) {
+                  let maxPosBehind = 0;
+                  for (let j = sVal; j < i; j++) {
+                      if (bases[VAL_BASE[j]]) {
+                          maxPosBehind = Math.max(maxPosBehind, j + displacements[j]);
+                      }
+                  }
+                  if (maxPosBehind >= i) {
+                      displacements[i] = N;
+                  }
+              }
           }
 
-          if (shouldAdvance) {
-              const destVal = Math.min(4, bVal + N);
-              const destId = VAL_BASE[destVal];
-              
-              if (newBases[bId] && newBases[bId].id === bases[bId].id) {
-                   newBases[bId] = null;
-              }
-              
-              if (destVal === 4) {
-                  runsScored++;
-                  advanceLogs.push(`[${formatTime(entryTime)}] 🏃 ${bases[bId].name || 'Runner'} scored!`);
-              } else {
-                  newBases[destId] = bases[bId];
+          let finalBases = { home: bases.home, '1b': null, '2b': null, '3b': null };
+          for (let i = 1; i <= 3; i++) {
+              const bId = VAL_BASE[i];
+              if (bases[bId]) {
+                  const d = displacements[i] || 0;
+                  const finalPos = i + d;
+                  if (finalPos >= 4) {
+                      runsScored++;
+                      advanceLogs.push(`[${formatTime(entryTime)}] 🏃 ${bases[bId].name || 'Runner'} scored!`);
+                  } else {
+                      finalBases[VAL_BASE[finalPos]] = bases[bId];
+                      if (d > 0) {
+                          advanceLogs.push(`[${formatTime(entryTime)}] 🏃 ${actionLabel ? actionLabel + ' - ' : ''}${bases[bId].name || 'Runner'} advanced to ${VAL_BASE[finalPos].toUpperCase()}`);
+                      }
+                  }
               }
           }
-      };
-
-      processRunner('3b', 3);
-      processRunner('2b', 2);
-      processRunner('1b', 1);
-      processRunner('home', 0);
-
-      setBases(newBases);
-      if (sourceId === 'home') advanceBatter();
-
-      let newEvents = [];
-      if (runsScored > 0) {
-          newEvents.push({ id: batchId, batchId, type: 'run', val: runsScored, time: entryTime, team: battingTeam, inning: activeInningNum, half: activeHalf });
-      } else {
-          newEvents.push({ id: batchId, batchId, type: 'advance', val: 0, time: entryTime, inning: activeInningNum, half: activeHalf });
+          
+          setBases(finalBases);
+          let newEvents = [];
+          if (runsScored > 0) {
+              newEvents.push({ id: batchId, batchId, type: 'run', val: runsScored, time: entryTime, team: battingTeam, inning: activeInningNum, half: activeHalf });
+          } else {
+              newEvents.push({ id: batchId, batchId, type: 'advance', val: 0, time: entryTime, inning: activeInningNum, half: activeHalf });
+          }
+          commitEventBatch(newEvents, advanceLogs, snap);
       }
-      
-      const logPrefix = actionLabel ? `${actionLabel} - ` : '';
-      if (sourceId === 'home' && tVal === 4) {
-          advanceLogs.unshift(`[${formatTime(entryTime)}] ⚾ ${logPrefix}${bases[sourceId]?.name || 'Batter'} hit a Home Run!`);
-      } else {
-          advanceLogs.unshift(`[${formatTime(entryTime)}] 🏃 ${logPrefix}${bases[sourceId]?.name || 'Runner'} advanced to ${targetId.toUpperCase()}`);
-      }
-
-      commitEventBatch(newEvents, advanceLogs, snap);
   };
 
   const handleActionOut = (baseId, label, count) => {
