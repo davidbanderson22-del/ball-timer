@@ -286,8 +286,11 @@ function isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, 
     }
   }
 
-  if (last.inning >= effTotalInnings && last.phase === EV.MID && score.home > score.away) return true;
-  if (lastCompleted >= effTotalInnings && score.home !== score.away) return true;
+  if (last.inning >= effTotalInnings) {
+      if (last.phase === EV.MID && score.home > score.away) return true; 
+      if (last.phase === EV.BOT && score.home > score.away) return true; 
+      if (last.phase === EV.START && score.home !== score.away) return true;
+  }
   
   return false;
 }
@@ -434,7 +437,8 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const outPace = (avgHalf || 0) / 3;
   const activeTimeRem = (!currentlyInWarmup && activeHalf) ? Math.max(0, (3 - (currentOuts || 0)) * outPace) : (currentlyInWarmup ? (avgWarmup || 0) : 0);
   
-  const estimatedEnd = latestEvent.time + activeTimeRem + remHalf * avgHalf + remWarmup * avgWarmup + (accumulatedDelay || 0);
+  const estimatedEnd = Number((latestEvent?.time || 0) + (activeTimeRem || 0) + (remHalf * (avgHalf || 0)) + (remWarmup * (avgWarmup || 0)) + (accumulatedDelay || 0)) || 0;
+  
   const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
   return {
     avgHalf, avgWarmup, measuredHalf, measuredWarmup,
@@ -649,12 +653,13 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
     });
   }, [estimateHistory, endTime, xMode, yMode, excludeEarly]);
 
-  if (!points.length) return null;
+  const validPoints = points.filter(p => !isNaN(p.xVal) && !isNaN(p.error));
+  if (validPoints.length === 0) return null;
 
   const W = 320, H = 180, PL = 44, PR = 12, PT = 16, PB = 28;
   const IW = W - PL - PR, IH = H - PT - PB;
-  const xs = points.map(p => p.xVal);
-  const ys = points.map(p => p.error);
+  const xs = validPoints.map(p => p.xVal);
+  const ys = validPoints.map(p => p.error);
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   const yAbsMax = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 5);
   const yMin = yMode === "signed" ? -yAbsMax : 0;
@@ -666,7 +671,7 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
   });
 
   const zeroY = PT + (1 - (0 - yMin) / (yMax - yMin || 1)) * IH;
-  const pathD = points.map((p, i) => { const { x, y } = toSVG(p.xVal, p.error); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ");
+  const pathD = validPoints.map((p, i) => { const { x, y } = toSVG(p.xVal, p.error); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ");
 
   const yTicks = [];
   const step = Math.ceil(yAbsMax / 3);
@@ -675,7 +680,7 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
   const maxInn = Math.max(config.totalInnings, Math.ceil(xMax || 1));
   const xTicks = xMode === "inning"
     ? Array.from({ length: maxInn }, (_, i) => i + 1).filter(v => v >= Math.floor(xMin) && v <= Math.ceil(xMax))
-    : points.map(p => p.xVal);
+    : validPoints.map(p => p.xVal);
 
   return (
     <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "14px", marginBottom: "16px" }}>
@@ -710,14 +715,14 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
           {xMode === "inning" ? xTicks.map(v => {
             const { x } = toSVG(v, 0);
             return <text key={v} x={x} y={H - 6} textAnchor="middle" fontSize="10" fill={C.text} fontFamily={MONO} fontWeight="bold">{v}</text>;
-          }) : points.map((p, i) => {
-            if (i % Math.max(1, Math.floor(points.length / 5)) !== 0) return null;
+          }) : validPoints.map((p, i) => {
+            if (i % Math.max(1, Math.floor(validPoints.length / 5)) !== 0) return null;
             const { x } = toSVG(p.xVal, 0);
             return <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="9" fill={C.muted} fontFamily={MONO}>{formatTime(p.wallTime)}</text>;
           })}
-          {points.length > 1 && <path d={`${pathD} L${toSVG(points[points.length - 1].xVal, yMin).x},${toSVG(points[points.length - 1].xVal, yMin).y} L${toSVG(points[0].xVal, yMin).x},${toSVG(points[0].xVal, yMin).y} Z`} fill={C.accentDim} opacity="0.4" />}
-          {points.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
-          {points.map((p, i) => {
+          {validPoints.length > 1 && <path d={`${pathD} L${toSVG(validPoints[validPoints.length - 1].xVal, yMin).x},${toSVG(validPoints[validPoints.length - 1].xVal, yMin).y} L${toSVG(validPoints[0].xVal, yMin).x},${toSVG(validPoints[0].xVal, yMin).y} Z`} fill={C.accentDim} opacity="0.4" />}
+          {validPoints.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
+          {validPoints.map((p, i) => {
             const { x, y } = toSVG(p.xVal, p.error);
             const col = yMode === "signed"
               ? (p.error > 0 ? C.yellow : p.error < 0 ? C.blue : C.green)
@@ -830,7 +835,7 @@ function CopyModal({ text, onClose }) {
   );
 }
 
-function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onClose }) {
+function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onCourtesy, onClose }) {
     const [mode, setMode] = useState('main');
     const isBatter = baseId === 'home';
 
@@ -858,6 +863,9 @@ function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onClose }) {
                         <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
                         <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
+                        {!isBatter && onCourtesy && (
+                            <Btn full variant="highlight" onClick={onCourtesy}>COURTESY RUNNER</Btn>
+                        )}
                         <Btn full variant="ghost" onClick={onClose}>CANCEL</Btn>
                     </div>
                 )}
@@ -1114,7 +1122,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -1699,8 +1707,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   useEffect(() => { 
     if (isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns) && !gameOverPrompt && !showSummary) { 
       setGameOverPrompt(true); setEndTimeInput(nowTime()); 
-    } 
-  }, [phaseEvents, score, showSummary, effTotalInnings]);
+    } else if (!isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns) && gameOverPrompt) {
+      setGameOverPrompt(false);
+    }
+  }, [phaseEvents, score, showSummary, effTotalInnings, gameOverPrompt]);
 
   const commitEventBatch = (newEvents, logs = [], snapshot = null) => {
       const snap = snapshot || { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
@@ -1874,6 +1884,25 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setActionMenuState(null);
   };
 
+  const handleCourtesyRun = (baseId) => {
+      const runner = bases[baseId];
+      const prevLineupIdx = (lineupIdx[battingTeam] + 8) % 9;
+      const courtesyPlayer = rosterData[battingTeam][prevLineupIdx];
+      
+      const t = getSafeTime(entryTime, events);
+      const batchId = Date.now();
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      
+      setBases(prev => ({
+          ...prev,
+          [baseId]: { ...courtesyPlayer, lineupIndex: runner.lineupIndex, isCourtesy: true }
+      }));
+      
+      const logs = [`[${formatTime(t)}] 🏃 Courtesy Runner: ${courtesyPlayer?.name || 'Player'} runs for ${runner?.name || 'Unassigned'}`];
+      commitEventBatch([{ id: batchId, batchId, type: 'sub', time: t }], logs, snap);
+      setActionMenuState(null);
+  };
+
   const finishInningAfterPitchCount = (pitches) => {
       setPendingPitchCountPrompt(false);
       const t = getSafeTime(entryTime, events);
@@ -2010,20 +2039,28 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
             team={battingTeam}
             baseId={offensiveSubModal.baseId}
             currentPlayer={offensiveSubModal.runner} 
-            rosterPool={rosterData.pool?.[battingTeam] || []}
+            rosterPool={rosterData.pool?.[battingTeam]?.filter(p => {
+                const lockedIdx = rosterData.lineupLocks?.[battingTeam]?.[p.id];
+                return lockedIdx === undefined || lockedIdx === offensiveSubModal.runner.lineupIndex;
+            }) || []}
             onSave={(newPlayer) => {
                 const newRoster = { ...rosterData };
-                
                 const targetLineupIndex = offensiveSubModal.runner.lineupIndex;
+                
+                if (!newRoster.lineupLocks) newRoster.lineupLocks = { away: {}, home: {} };
+                if (!newRoster.lineupLocks[battingTeam]) newRoster.lineupLocks[battingTeam] = {};
+                newRoster.lineupLocks[battingTeam][newPlayer.id] = targetLineupIndex;
+                
                 newRoster[battingTeam][targetLineupIndex] = newPlayer;
                 setRosterData(newRoster);
                 
                 setBases(prev => ({ ...prev, [offensiveSubModal.baseId]: { ...newPlayer, lineupIndex: targetLineupIndex } }));
                 
                 const t = getSafeTime(nowTime(), events);
+                const batchId = Date.now();
                 const role = offensiveSubModal.baseId === 'home' ? 'Pinch Hitter' : 'Pinch Runner';
                 const logs = [`[${formatTime(t)}] 🔄 ${role}: ${newPlayer.name || 'Player'} replaces ${offensiveSubModal.runner.name || 'Unassigned'}`];
-                commitEventBatch([], logs);
+                commitEventBatch([{ id: batchId, batchId, type: 'sub', time: t }], logs);
                 
                 setOffensiveSubModal(null);
             }} 
@@ -2046,6 +2083,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   setOffensiveSubModal({ baseId: actionMenuState, runner: bases[actionMenuState] });
                   setActionMenuState(null);
               }}
+              onCourtesy={() => handleCourtesyRun(actionMenuState)}
           />
       )}
 
@@ -2126,11 +2164,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                     onOpenActionMenu={setActionMenuState}
                     onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
                 />
-                {currentOuts >= 3 && !pendingPitchCountPrompt && (
-                    <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", border: `2px solid ${C.text}`, borderRadius: "8px" }}>
-                        <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
-                    </div>
-                )}
             </div>
           ) : (
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
@@ -2244,7 +2277,8 @@ function App() {
           away: awayLineup,
           home: homeLineup,
           pool: { away: [], home: [] },
-          fielders: { away: {}, home: {} }
+          fielders: { away: {}, home: {} },
+          lineupLocks: { away: {}, home: {} }
       };
   });
 
@@ -2277,6 +2311,11 @@ function App() {
                 away: (rd.away || []).reduce((acc, p) => { if(p.pos) acc[p.pos] = p; return acc; }, {}),
                 home: (rd.home || []).reduce((acc, p) => { if(p.pos) acc[p.pos] = p; return acc; }, {})
             };
+        }
+        if (!rd.lineupLocks) {
+            rd.lineupLocks = { away: {}, home: {} };
+            (rd.away || []).forEach((p, i) => { if (p.id) rd.lineupLocks.away[p.id] = i; });
+            (rd.home || []).forEach((p, i) => { if (p.id) rd.lineupLocks.home[p.id] = i; });
         }
         setRosterData(rd);
     }
