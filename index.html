@@ -835,8 +835,10 @@ function CopyModal({ text, onClose }) {
   );
 }
 
-function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onCourtesy, onClose }) {
+function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
     const [mode, setMode] = useState('main');
+    const [editName, setEditName] = useState('');
+    const [editNo, setEditNo] = useState('');
     const isBatter = baseId === 'home';
 
     const outOptions = isBatter
@@ -863,6 +865,7 @@ function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onCourtesy, 
                         <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
                         <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
+                        <Btn full variant="outline" onClick={() => { setEditName(runner?.name || ''); setEditNo(runner?.no || ''); setMode('edit_info'); }}>EDIT INFO</Btn>
                         {!isBatter && onCourtesy && (
                             <Btn full variant="highlight" onClick={onCourtesy}>COURTESY RUNNER</Btn>
                         )}
@@ -884,6 +887,16 @@ function ActionMenuModal({ baseId, runner, onOut, onAdvance, onSub, onCourtesy, 
                         {advanceOptions.map(o => (
                             <Btn key={o.l} full variant="outline" onClick={() => onAdvance(o.l, o.v)}>{o.l}</Btn>
                         ))}
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                )}
+                {mode === 'edit_info' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <Label>PLAYER NAME</Label>
+                        <Inp value={editName} onChange={setEditName} placeholder="Name" />
+                        <Label>JERSEY NUMBER</Label>
+                        <Inp value={editNo} onChange={setEditNo} placeholder="Number" />
+                        <Btn full variant="primary" onClick={() => onEditInfo({ name: editName, no: editNo })}>SAVE INFO</Btn>
                         <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
                     </div>
                 )}
@@ -980,6 +993,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
   const [activeTab, setActiveTab] = useState('away');
   const [roster, setRoster] = useState(() => JSON.parse(JSON.stringify(rosterData)));
   const [mode, setMode] = useState('edit');
+  const fileInputRef = useRef(null);
 
   const handlePoolChange = (team, index, field, value) => {
       const newRoster = { ...roster };
@@ -1022,6 +1036,9 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
 
   const handleDefensiveChange = (team, pos, val) => {
       const newRoster = { ...roster };
+      newRoster.fielders = { ...newRoster.fielders };
+      newRoster.fielders[team] = { ...newRoster.fielders[team] };
+      
       if (val === "clear") {
           newRoster.fielders[team][pos] = null;
       } else {
@@ -1035,6 +1052,50 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       const newRoster = { ...roster };
       newRoster[team].push({ id: `h_${Date.now()}`, name: '', no: '', pos: '' });
       setRoster(newRoster);
+  };
+
+  const handleSortPool = (team, by) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team].sort((a, b) => {
+          if (by === 'no') {
+              return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
+          } else {
+              const getLastName = name => (name || '').trim().split(' ').pop().toLowerCase();
+              return getLastName(a.name).localeCompare(getLastName(b.name));
+          }
+      });
+      setRoster(newRoster);
+  };
+
+  const handleFileImport = (e, team) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+          const lines = ev.target.result.split('\n');
+          const newRoster = { ...roster };
+          lines.forEach((line, i) => {
+              if (!line.trim()) return;
+              let name = line.trim();
+              let no = '';
+              const parts = line.split(/[,]+| - /);
+              if (parts.length > 1) {
+                  name = parts[0].trim();
+                  no = parts[1].trim();
+              } else {
+                  const spaceParts = line.split(' ');
+                  const lastWord = spaceParts[spaceParts.length - 1];
+                  if (!isNaN(parseInt(lastWord))) {
+                      no = lastWord;
+                      name = spaceParts.slice(0, -1).join(' ').trim();
+                  }
+              }
+              newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
+          });
+          setRoster(newRoster);
+      };
+      reader.readAsText(file);
+      e.target.value = null; // reset input
   };
 
   const list = roster[activeTab];
@@ -1064,7 +1125,14 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
         {mode === 'edit' && (
              <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
                  <Label>FULL TEAM ROSTER</Label>
-                 <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Add all players here to easily select them for Lineups and Field Assignments.</div>
+                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO }}>Add all players here to easily select them.</div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'name')}>A-Z ↓</Btn>
+                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'no')}>1-9 ↓</Btn>
+                    </div>
+                 </div>
+                 
                  <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "12px", paddingRight: "4px" }}>
                      {poolList.map((p, i) => (
                          <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
@@ -1075,7 +1143,11 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                          </div>
                      ))}
                  </div>
-                 <Btn variant="outline" small full onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Roster Player</Btn>
+                 <div style={{ display: "flex", gap: "6px" }}>
+                     <Btn variant="outline" small full onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Player</Btn>
+                     <Btn variant="outline" small full onClick={() => fileInputRef.current.click()}>+ Import .txt</Btn>
+                     <input type="file" ref={fileInputRef} accept=".txt" style={{ display: "none" }} onChange={e => handleFileImport(e, activeTab)} />
+                 </div>
              </div>
         )}
 
@@ -1122,7 +1194,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -2084,6 +2156,22 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   setActionMenuState(null);
               }}
               onCourtesy={() => handleCourtesyRun(actionMenuState)}
+              onEditInfo={(info) => {
+                  const runner = bases[actionMenuState];
+                  if (!runner) return;
+                  const updated = { ...runner, ...info };
+                  setBases(p => ({ ...p, [actionMenuState]: updated }));
+                  
+                  const newRoster = { ...rosterData };
+                  const poolIdx = newRoster.pool[battingTeam].findIndex(p => p.id === runner.id);
+                  if (poolIdx > -1) newRoster.pool[battingTeam][poolIdx] = { ...newRoster.pool[battingTeam][poolIdx], ...info };
+                  
+                  const lineupIdx = newRoster[battingTeam].findIndex(p => p.id === runner.id);
+                  if (lineupIdx > -1) newRoster[battingTeam][lineupIdx] = { ...newRoster[battingTeam][lineupIdx], ...info };
+                  
+                  setRosterData(newRoster);
+                  setActionMenuState(null);
+              }}
           />
       )}
 
@@ -2164,6 +2252,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                     onOpenActionMenu={setActionMenuState}
                     onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
                 />
+                {currentOuts >= 3 && !pendingPitchCountPrompt && (
+                    <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", border: `2px solid ${C.text}`, borderRadius: "8px" }}>
+                        <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
+                    </div>
+                )}
             </div>
           ) : (
             <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
