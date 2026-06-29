@@ -932,10 +932,11 @@ function CopyModal({ text, onClose }) {
   );
 }
 
-function ActionMenuModal({ baseId, bases, runner, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
+function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
     const [mode, setMode] = useState('main');
-    const [editName, setEditName] = useState(runner?.name || '');
-    const [editNo, setEditNo] = useState(runner?.no || '');
+    const [editSelectedId, setEditSelectedId] = useState(runner?.id || "");
+    const [editName, setEditName] = useState("");
+    const [editNo, setEditNo] = useState("");
     const [selectedOuts, setSelectedOuts] = useState([]);
     const [targetOuts, setTargetOuts] = useState(1);
     const [selectedLabel, setSelectedLabel] = useState('');
@@ -978,7 +979,7 @@ function ActionMenuModal({ baseId, bases, runner, onOut, onAdvance, onSub, onCou
                         <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
                         <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
-                        <Btn full variant="outline" onClick={() => { setEditName(runner?.name || ''); setEditNo(runner?.no || ''); setMode('edit_info'); }}>EDIT INFO</Btn>
+                        <Btn full variant="outline" onClick={() => { setEditSelectedId(runner?.id || ''); setEditName(''); setEditNo(''); setMode('edit_info'); }}>EDIT INFO</Btn>
                         {!isBatter && onCourtesy && (
                             <Btn full variant="highlight" onClick={onCourtesy}>COURTESY RUNNER</Btn>
                         )}
@@ -1024,9 +1025,26 @@ function ActionMenuModal({ baseId, bases, runner, onOut, onAdvance, onSub, onCou
                 )}
                 {mode === 'edit_info' && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        <div><Label>PLAYER NAME</Label><Inp value={editName} onChange={setEditName} placeholder="Name" /></div>
-                        <div><Label>JERSEY NUMBER</Label><Inp value={editNo} onChange={setEditNo} placeholder="Number" /></div>
-                        <Btn full variant="primary" onClick={() => onEditInfo({ name: editName, no: editNo })}>SAVE INFO</Btn>
+                        <Label>SELECT OR ADD PLAYER</Label>
+                        <Sel value={editSelectedId} onChange={setEditSelectedId}>
+                            <option value="" disabled hidden>Select Player...</option>
+                            {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                            <option value="add_new">+ Add New Player</option>
+                        </Sel>
+                        {editSelectedId === 'add_new' && (
+                            <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                                <Inp value={editName} onChange={setEditName} placeholder="Name" />
+                                <div style={{ width: "80px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
+                            </div>
+                        )}
+                        <Btn full variant="primary" onClick={() => {
+                            if (editSelectedId === 'add_new') {
+                                onEditInfo({ id: `p_${Date.now()}`, name: editName, no: editNo });
+                            } else {
+                                const existing = rosterPool.find(p => p.id === editSelectedId);
+                                if (existing) onEditInfo(existing);
+                            }
+                        }}>SAVE INFO</Btn>
                         <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
                     </div>
                 )}
@@ -1039,11 +1057,18 @@ function ActionMenuModal({ baseId, bases, runner, onOut, onAdvance, onSub, onCou
 function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersMap, currentPitchTotal, onSave, onCancel }) {
     const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
     const [pitches, setPitches] = useState(String(currentPitchTotal || ""));
+    const [newName, setNewName] = useState("");
+    const [newNo, setNewNo] = useState("");
 
     const handleConfirm = () => {
-         let newPlayer = rosterPool.find(p => p.id === selectedId);
-         if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
-             newPlayer = currentPlayer;
+         let newPlayer;
+         if (selectedId === 'add_new') {
+             newPlayer = { id: `p_${Date.now()}`, name: newName, no: newNo, pos: pos };
+         } else {
+             newPlayer = rosterPool.find(p => p.id === selectedId);
+             if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+                 newPlayer = currentPlayer;
+             }
          }
          if (newPlayer) {
              onSave({ ...newPlayer, pos }, parseInt(pitches) || 0);
@@ -1065,9 +1090,17 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
                         const existingPos = Object.entries(activeFieldersMap).find(([pPos, assigned]) => assigned?.id === p.id && pPos !== pos)?.[0];
                         return <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player`} {existingPos ? `(Move from ${existingPos})` : ''}</option>;
                     })}
+                    <option value="add_new">+ Add New Player</option>
                 </Sel>
 
-                {pos === 'P' && currentPlayer?.name && (
+                {selectedId === 'add_new' && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <Inp value={newName} onChange={setNewName} placeholder="Name" />
+                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
+                    </div>
+                )}
+
+                {pos === 'P' && currentPlayer?.name && selectedId !== 'add_new' && (
                     <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
                         <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({currentPlayer.name})</Label>
                         <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
@@ -1085,11 +1118,18 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
 
 function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, onCancel }) {
     const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
+    const [newName, setNewName] = useState("");
+    const [newNo, setNewNo] = useState("");
     
     const handleConfirm = () => {
-        let newPlayer = rosterPool.find(p => p.id === selectedId);
-        if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
-            newPlayer = currentPlayer;
+        let newPlayer;
+        if (selectedId === 'add_new') {
+            newPlayer = { id: `p_${Date.now()}`, name: newName, no: newNo, pos: '' };
+        } else {
+            newPlayer = rosterPool.find(p => p.id === selectedId);
+            if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+                newPlayer = currentPlayer;
+            }
         }
         if (newPlayer) onSave(newPlayer);
     };
@@ -1108,7 +1148,15 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
                 <Sel value={selectedId} onChange={setSelectedId}>
                     <option value="" disabled hidden>Select Player...</option>
                     {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                    <option value="add_new">+ Add New Player</option>
                 </Sel>
+
+                {selectedId === 'add_new' && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <Inp value={newName} onChange={setNewName} placeholder="Name" />
+                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
+                    </div>
+                )}
 
                 <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
                     <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
@@ -1203,13 +1251,15 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
           newRoster.fielders[team][pos] = null;
       } else {
           const poolPlayer = newRoster.pool[team].find(p => p.id === val);
-          newRoster.fielders[team][pos] = { ...poolPlayer, pos };
-          
-          const pIdx = newRoster.pool[team].findIndex(p => p.id === val);
-          if (pIdx > -1) newRoster.pool[team][pIdx].pos = pos;
-          
-          const lIdx = newRoster[team].findIndex(p => p.id === val);
-          if (lIdx > -1) newRoster[team][lIdx].pos = pos;
+          if (poolPlayer) {
+              newRoster.fielders[team][pos] = { ...poolPlayer, pos };
+              
+              const pIdx = newRoster.pool[team].findIndex(p => p.id === val);
+              if (pIdx > -1) newRoster.pool[team][pIdx].pos = pos;
+              
+              const lIdx = newRoster[team].findIndex(p => p.id === val);
+              if (lIdx > -1) newRoster[team][lIdx].pos = pos;
+          }
       }
       setRoster(newRoster);
   };
@@ -1360,7 +1410,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -1961,7 +2011,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   }, [phaseEvents, score, showSummary, effTotalInnings, gameOverPrompt]);
 
   const commitEventBatch = (newEvents, logs = [], snapshot = null) => {
-      const snap = snapshot || { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      const snap = snapshot || { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
       const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
       
       if (newEvents.length > 0) {
@@ -2022,7 +2072,17 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
+      
+      let pitchAdded = 0;
+      if (sourceId === 'home' && targetId !== 'walk' && targetId !== 'hbp') {
+          pitchAdded = 1;
+      }
+      if (pitchAdded > 0 && currentPitcher) {
+          const pName = currentPitcher.name;
+          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + 1 } }));
+      }
+      
       let newBases = { ...bases };
       let runsScored = 0;
       let advanceLogs = [];
@@ -2147,7 +2207,16 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const handleActionOut = (baseId, label, count, selectedBaseIds = [baseId]) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
+      
+      let pitchAdded = 0;
+      if (selectedBaseIds.includes('home')) {
+          pitchAdded = 1;
+      }
+      if (pitchAdded > 0 && currentPitcher) {
+          const pName = currentPitcher.name;
+          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + 1 } }));
+      }
       
       let newBases = { ...bases };
       const logs = [];
@@ -2179,7 +2248,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx } };
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
       
       setBases(prev => ({
           ...prev,
@@ -2210,6 +2279,21 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setBases({ home: null, '1b': null, '2b': null, '3b': null });
   };
 
+  const handleSubLog = (oldP, newP, pitches, team) => {
+      const t = getSafeTime(nowTime(), events);
+      const batchId = Date.now();
+      const oldName = oldP?.name || 'Unassigned';
+      const logs = [`[${formatTime(t)}] 🔄 Sub: ${newP.name} (#${newP.no}) replaces ${oldName} at ${newP.pos}`];
+      if (oldP?.pos === 'P' || newP.pos === 'P') {
+          if (pitches >= 0 && oldP) {
+              logs.push(`[${formatTime(t)}] ⚾ ${oldP.name} threw ${pitches} total pitches.`);
+              setPitchData(prev => ({ ...prev, [team]: { ...prev[team], [oldP.name]: pitches }}));
+          }
+      }
+      const newEvents = [{ id: batchId, batchId, type: 'sub', time: t }];
+      commitEventBatch(newEvents, logs);
+  };
+
   const handleToggleDelay = () => {
       if (delayActive) {
           setDelayActive(false);
@@ -2227,8 +2311,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       
       const firstEventInBatch = events.find(e => (e.batchId || e.id) === lastBatchId);
       if (firstEventInBatch && firstEventInBatch.snapshot) {
-          setBases(firstEventInBatch.snapshot.bases);
-          setLineupIdx(firstEventInBatch.snapshot.lineupIdx);
+          if (firstEventInBatch.snapshot.bases) setBases(firstEventInBatch.snapshot.bases);
+          if (firstEventInBatch.snapshot.lineupIdx) setLineupIdx(firstEventInBatch.snapshot.lineupIdx);
+          if (firstEventInBatch.snapshot.pitchData) setPitchData(firstEventInBatch.snapshot.pitchData);
+          if (firstEventInBatch.snapshot.atBatCount) setAtBatCount(firstEventInBatch.snapshot.atBatCount);
       }
 
       setEvents(p => p.filter(e => (e.batchId || e.id) !== lastBatchId));
@@ -2283,7 +2369,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   }
 
                   const poolIdx = newRoster.pool[activeFielderSubModal.team].findIndex(p => p.id === newPlayer.id);
-                  if (poolIdx > -1) newRoster.pool[activeFielderSubModal.team][poolIdx] = { ...newRoster.pool[activeFielderSubModal.team][poolIdx], pos: activeFielderSubModal.pos };
+                  if (poolIdx === -1) {
+                      newRoster.pool[activeFielderSubModal.team].push({ ...newPlayer, pos: activeFielderSubModal.pos });
+                  } else {
+                      newRoster.pool[activeFielderSubModal.team][poolIdx] = { ...newRoster.pool[activeFielderSubModal.team][poolIdx], pos: activeFielderSubModal.pos };
+                  }
 
                   const lineupIdx = newRoster[activeFielderSubModal.team].findIndex(p => p.id === newPlayer.id);
                   if (lineupIdx > -1) {
@@ -2321,6 +2411,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 if (!newRoster.lineupLocks) newRoster.lineupLocks = { away: {}, home: {} };
                 if (!newRoster.lineupLocks[battingTeam]) newRoster.lineupLocks[battingTeam] = {};
                 newRoster.lineupLocks[battingTeam][newPlayer.id] = targetLineupIndex;
+
+                if (!newRoster.pool[battingTeam].find(p => p.id === newPlayer.id)) {
+                    newRoster.pool[battingTeam].push({ ...newPlayer, pos: '' });
+                }
                 
                 newRoster[battingTeam][targetLineupIndex] = newPlayer;
                 setRosterData(newRoster);
@@ -2345,6 +2439,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               baseId={actionMenuState}
               bases={bases}
               runner={bases[actionMenuState]}
+              rosterPool={rosterData.pool?.[battingTeam] || []}
               onClose={() => setActionMenuState(null)}
               onOut={(label, count, selectedIds) => handleActionOut(actionMenuState, label, count, selectedIds)}
               onAdvance={(label, targetBase, isError) => {
@@ -2363,11 +2458,24 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   setBases(p => ({ ...p, [actionMenuState]: updated }));
                   
                   const newRoster = { ...rosterData };
-                  const poolIdx = newRoster.pool[battingTeam].findIndex(p => p.id === runner.id);
-                  if (poolIdx > -1) newRoster.pool[battingTeam][poolIdx] = { ...newRoster.pool[battingTeam][poolIdx], ...info };
+                  if (!newRoster.pool[battingTeam].find(p => p.id === updated.id)) {
+                      newRoster.pool[battingTeam].push({ ...updated, pos: '' });
+                  } else {
+                      const poolIdx = newRoster.pool[battingTeam].findIndex(p => p.id === updated.id);
+                      if (poolIdx > -1) newRoster.pool[battingTeam][poolIdx] = { ...newRoster.pool[battingTeam][poolIdx], ...info };
+                  }
                   
-                  const lineupIdx = newRoster[battingTeam].findIndex(p => p.id === runner.id);
-                  if (lineupIdx > -1) newRoster[battingTeam][lineupIdx] = { ...newRoster[battingTeam][lineupIdx], ...info };
+                  const lineupIdx = newRoster[battingTeam].findIndex(p => p.lineupIndex === runner.lineupIndex);
+                  if (lineupIdx > -1) {
+                      newRoster[battingTeam][lineupIdx] = { ...updated, pos: newRoster[battingTeam][lineupIdx].pos };
+                      if (newRoster.lineupLocks && newRoster.lineupLocks[battingTeam]) {
+                          const lockVal = newRoster.lineupLocks[battingTeam][runner.id];
+                          if (lockVal !== undefined) {
+                              delete newRoster.lineupLocks[battingTeam][runner.id];
+                              newRoster.lineupLocks[battingTeam][updated.id] = lockVal;
+                          }
+                      }
+                  }
                   
                   setRosterData(newRoster);
                   setActionMenuState(null);
@@ -2454,12 +2562,12 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                     onOpenActionMenu={setActionMenuState}
                     onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
                 />
-                {!actionMenuState && !pendingPitchCountPrompt && (
+                {!actionMenuState && !pendingPitchCountPrompt && currentOuts < 3 && (
                     <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
                          <Btn full small variant="outline" onClick={() => logPitch('ball')}>Ball ({atBatCount.b})</Btn>
                          <Btn full small variant="outline" onClick={() => logPitch('strike')}>Strike ({atBatCount.s})</Btn>
                          <Btn full small variant="outline" onClick={() => logPitch('foul')}>Foul</Btn>
-                         <Btn full small variant="outline" onClick={() => logPitch('inplay')}>In Play</Btn>
+                         <Btn full small variant="outline" onClick={() => logPitch('hbp')}>HBP</Btn>
                     </div>
                 )}
                 {currentOuts >= 3 && !pendingPitchCountPrompt && (
