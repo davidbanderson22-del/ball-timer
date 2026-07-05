@@ -935,8 +935,8 @@ function CopyModal({ text, onClose }) {
 function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
     const [mode, setMode] = useState('main');
     const [editSelectedId, setEditSelectedId] = useState(runner?.id || "");
-    const [editName, setEditName] = useState("");
-    const [editNo, setEditNo] = useState("");
+    const [editName, setEditName] = useState(runner?.name || "");
+    const [editNo, setEditNo] = useState(runner?.no || "");
     const [selectedOuts, setSelectedOuts] = useState([]);
     const [targetOuts, setTargetOuts] = useState(1);
     const [selectedLabel, setSelectedLabel] = useState('');
@@ -979,7 +979,7 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
                         <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
                         <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
-                        <Btn full variant="outline" onClick={() => { setEditSelectedId(runner?.id || ''); setEditName(''); setEditNo(''); setMode('edit_info'); }}>EDIT INFO</Btn>
+                        <Btn full variant="outline" onClick={() => { setMode('edit_info'); }}>EDIT INFO</Btn>
                         {!isBatter && onCourtesy && (
                             <Btn full variant="highlight" onClick={onCourtesy}>COURTESY RUNNER</Btn>
                         )}
@@ -1026,7 +1026,19 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
                 {mode === 'edit_info' && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         <Label>SELECT OR ADD PLAYER</Label>
-                        <Sel value={editSelectedId} onChange={setEditSelectedId}>
+                        <Sel value={editSelectedId} onChange={v => {
+                            setEditSelectedId(v);
+                            if (v === 'add_new') {
+                                setEditName('');
+                                setEditNo('');
+                            } else {
+                                const existing = rosterPool.find(p => p.id === v);
+                                if (existing) {
+                                    setEditName(existing.name || '');
+                                    setEditNo(existing.no || '');
+                                }
+                            }
+                        }}>
                             <option value="" disabled hidden>Select Player...</option>
                             {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
                             <option value="add_new">+ Add New Player</option>
@@ -1042,7 +1054,7 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
                                 onEditInfo({ id: `p_${Date.now()}`, name: editName, no: editNo });
                             } else {
                                 const existing = rosterPool.find(p => p.id === editSelectedId);
-                                if (existing) onEditInfo(existing);
+                                if (existing) onEditInfo({ ...existing, name: editName, no: editNo });
                             }
                         }}>SAVE INFO</Btn>
                         <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
@@ -1332,6 +1344,19 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       processRosterText(val, team);
       setShowImportTextarea(false);
   };
+  
+  const swapLineup = (team, i, j) => {
+      if (j < 0 || j >= roster[team].length) return;
+      const newRoster = { ...roster };
+      const temp = newRoster[team][i];
+      newRoster[team][i] = newRoster[team][j];
+      newRoster[team][j] = temp;
+      
+      if (newRoster.lineupIdx?.[team] === i) newRoster.lineupIdx[team] = j;
+      else if (newRoster.lineupIdx?.[team] === j) newRoster.lineupIdx[team] = i;
+      
+      setRoster(newRoster);
+  };
 
   const list = roster[activeTab];
   const poolList = roster.pool?.[activeTab] || [];
@@ -1372,7 +1397,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <textarea 
                         ref={importTextareaRef}
                         onChange={(e) => handlePastedRoster(e, activeTab)}
-                        placeholder="Paste list from Notes/GameChanger here..." 
+                        placeholder="Paste list from GameChanger/Notes here..." 
                         style={{ width: "100%", height: "80px", marginBottom: "12px", fontFamily: MONO, fontSize: "12px", padding: "8px", boxSizing: "border-box", border: `1px solid ${C.borderBright}` }}
                      />
                  )}
@@ -1401,7 +1426,13 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
             <Label>BATTING ORDER</Label>
             {list.map((player, i) => (
                 <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
-                    <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{i+1}.</div>
+                    {mode === 'edit' && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <button disabled={i === 0} onClick={() => swapLineup(activeTab, i, i-1)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "8px", opacity: i === 0 ? 0.3 : 1 }}>▲</button>
+                            <button disabled={i === list.length - 1} onClick={() => swapLineup(activeTab, i, i+1)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === list.length - 1 ? "default" : "pointer", fontSize: "8px", opacity: i === list.length - 1 ? 0.3 : 1 }}>▼</button>
+                        </div>
+                    )}
+                    <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.text }}>{i+1}.</div>
                     {mode === 'edit' ? (
                         <>
                             <div style={{ flex: 2 }}>
@@ -1421,6 +1452,23 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                                     <option value="DH">DH</option><option value="EH">EH</option>
                                 </Sel>
                             </div>
+                            <button 
+                                onClick={() => {
+                                    const newRoster = { ...roster };
+                                    if (!newRoster.lineupIdx) newRoster.lineupIdx = { away: 0, home: 0 };
+                                    newRoster.lineupIdx[activeTab] = i;
+                                    setRoster(newRoster);
+                                }}
+                                style={{
+                                    padding: "4px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold",
+                                    background: roster.lineupIdx?.[activeTab] === i ? C.accent : "transparent",
+                                    color: roster.lineupIdx?.[activeTab] === i ? C.bg : C.muted,
+                                    border: `1px solid ${roster.lineupIdx?.[activeTab] === i ? C.accent : C.borderBright}`,
+                                    cursor: "pointer", borderRadius: "2px", whiteSpace: "nowrap"
+                                }}
+                            >
+                                {roster.lineupIdx?.[activeTab] === i ? "UP" : "SET UP"}
+                            </button>
                         </>
                     ) : (
                         <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, padding: "9px", fontFamily: MONO, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
@@ -1923,7 +1971,15 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [copyText, setCopyText]     = useState("");
   
   // Roster / Field logic
-  const [lineupIdx, setLineupIdx] = useState({ away: 0, home: 0 });
+  const lineupIdx = rosterData.lineupIdx || { away: 0, home: 0 };
+  const setLineupIdx = useCallback((updater) => {
+      setRosterData(prev => {
+          const oldIdx = prev.lineupIdx || { away: 0, home: 0 };
+          const nextIdx = typeof updater === 'function' ? updater(oldIdx) : updater;
+          return { ...prev, lineupIdx: nextIdx };
+      });
+  }, [setRosterData]);
+
   const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
   const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
@@ -2067,6 +2123,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       if (logs.length > 0) {
           setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId }))]);
       }
+      setAtBatCount({ b: 0, s: 0 });
       setIsTypingTime(false);
       setEntryTime(nowTime());
   };
@@ -2080,9 +2137,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       commitEventBatch(newEvents, logs);
       setBases({ home: null, '1b': null, '2b': null, '3b': null }); 
   };
-
-  const currentPitcher = activeFieldersMap['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
-  const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
 
   const logPitch = (type) => {
       if (!inActiveInning || currentOuts >= 3) return;
@@ -2432,9 +2486,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       newRoster.pool[activeFielderSubModal.team][poolIdx] = { ...newRoster.pool[activeFielderSubModal.team][poolIdx], pos: activeFielderSubModal.pos };
                   }
 
-                  const lineupIdx = newRoster[activeFielderSubModal.team].findIndex(p => p.id === newPlayer.id);
-                  if (lineupIdx > -1) {
-                      newRoster[activeFielderSubModal.team][lineupIdx] = { ...newPlayer, pos: activeFielderSubModal.pos };
+                  const lineupIndexLoc = newRoster[activeFielderSubModal.team].findIndex(p => p.id === newPlayer.id);
+                  if (lineupIndexLoc > -1) {
+                      newRoster[activeFielderSubModal.team][lineupIndexLoc] = { ...newPlayer, pos: activeFielderSubModal.pos };
                   }
 
                   setRosterData(newRoster);
@@ -2758,7 +2812,8 @@ function App() {
           pool: { away: [], home: [] },
           fielders: { away: {}, home: {} },
           lineupLocks: { away: {}, home: {} },
-          lineupClosed: { away: false, home: false }
+          lineupClosed: { away: false, home: false },
+          lineupIdx: { away: 0, home: 0 }
       };
   });
 
@@ -2798,6 +2853,9 @@ function App() {
         }
         if (rd.lineupClosed === undefined) {
             rd.lineupClosed = { away: (rd.away || []).length > 1, home: (rd.home || []).length > 1 };
+        }
+        if (!rd.lineupIdx) {
+            rd.lineupIdx = { away: 0, home: 0 };
         }
         setRosterData(rd);
     }
