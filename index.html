@@ -26,7 +26,6 @@
             box-shadow: 0px 0px 0px rgba(0,0,0,0) !important;
         }
         
-        /* Interactive Field Diagram Styles */
         .field-container {
             position: relative;
             width: 100%;
@@ -172,8 +171,6 @@
 /** @jsxFrag React.Fragment */
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
-const FONT = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Special+Elite&display=swap";
-
 const C = {
   bg: "#f4f1ea", card: "#eae4d3", border: "#d0c8b6", borderBright: "#b8af9b",
   text: "#2c2c2c", muted: "#5a5a5a", faint: "#8a8a8a",
@@ -184,7 +181,7 @@ const C = {
   accent: "#8b3a3a", accentDim: "#e0caca",
   orange: "#b3592d",
 };
-const DISPLAY = "'Special Elite', cursive";
+const DISPLAY = "sans-serif";
 const MONO    = "'Courier Prime', monospace";
 const SERIF   = "'Courier Prime', monospace";
 
@@ -403,7 +400,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   let canEstimate = warmupDurs.length >= 1;
   const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : sorted[sorted.length - 1];
 
-  // Fix for Late Arrival Predictions
+  // Dynamic Late Start Computation
   if (config?.lateStart && !canEstimate) {
       const latestT = latestEvent?.time || parseTime(nowTime());
       const elapsedSecs = latestT - (config.gameStartTime || latestT) - (accumulatedDelay || 0);
@@ -418,7 +415,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
           avgHalf = remainingTime / halvesElapsed;
           avgWarmup = fallbackWarmup * 60;
           canEstimate = true; 
-          confidence = "low"; // Synthesized dynamically
+          confidence = "low"; 
       } else {
           canEstimate = true;
           confidence = "low";
@@ -1393,7 +1390,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
           setGcUrl("");
           setShowImportTextarea(false);
       } catch (err) {
-          alert("Failed to fetch GameChanger URL. Please ensure it is a valid public GameChanger roster link.");
+          alert("Failed to fetch GameChanger URL. The link might be private or blocked. Please paste the text instead.");
       }
       setLoadingGc(false);
   };
@@ -1450,13 +1447,13 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                          <textarea 
                             ref={importTextareaRef}
                             onChange={(e) => handlePastedRoster(e, activeTab)}
-                            placeholder="Paste list from GameChanger/Notes here..." 
+                            placeholder="Paste text list from GameChanger/Notes here..." 
                             style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "8px", boxSizing: "border-box", border: `1px solid ${C.borderBright}` }}
                          />
                          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
                              <Inp value={gcUrl} onChange={setGcUrl} placeholder="Or paste GC Roster URL..." style={{ flex: "1 1 100%" }} />
                              <Btn variant="primary" small full onClick={() => handleGcImport(activeTab)} disabled={!gcUrl || loadingGc}>
-                                 {loadingGc ? "FETCHING..." : "📥 IMPORT FROM GAMECHANGER"}
+                                 {loadingGc ? "FETCHING..." : "📥 IMPORT FROM URL"}
                              </Btn>
                          </div>
                      </>
@@ -1526,7 +1523,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                                     cursor: "pointer", borderRadius: "2px", whiteSpace: "nowrap"
                                 }}
                             >
-                                {roster.lineupIdx?.[activeTab] === i ? "UP" : "SET UP"}
+                                {roster.lineupIdx?.[activeTab] === i ? "CURRENT" : "SET ACTIVE"}
                             </button>
                         </>
                     ) : (
@@ -2571,7 +2568,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 const targetLineupIndex = offensiveSubModal.runner.lineupIndex;
                 const leadoffId = rosterData[battingTeam][0]?.id;
                 
-                // If closing the lineup intentionally
                 if (isBatter && targetLineupIndex > 0 && newPlayer.id === leadoffId && !rosterData.lineupClosed?.[battingTeam]) {
                     const newRoster = { ...rosterData };
                     newRoster.lineupClosed[battingTeam] = true;
@@ -2638,7 +2634,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   const isBatter = actionMenuState === 'home';
                   const leadoffId = rosterData[battingTeam][0]?.id;
                   
-                  // Wrap-around Logic for line-ups
                   if (isBatter && lineupIdx[battingTeam] > 0 && info.id === leadoffId && !rosterData.lineupClosed?.[battingTeam]) {
                       const newRoster = { ...rosterData };
                       newRoster.lineupClosed[battingTeam] = true;
