@@ -1054,7 +1054,12 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
                                 onEditInfo({ id: `p_${Date.now()}`, name: editName, no: editNo });
                             } else {
                                 const existing = rosterPool.find(p => p.id === editSelectedId);
-                                if (existing) onEditInfo({ ...existing, name: editName, no: editNo });
+                                if (existing) {
+                                    onEditInfo({ ...existing, name: editName, no: editNo });
+                                } else if (editSelectedId === runner?.id) {
+                                    // Fallback for an unsaved dummy runner
+                                    onEditInfo({ ...runner, name: editName, no: editNo });
+                                }
                             }
                         }}>SAVE INFO</Btn>
                         <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
@@ -1307,21 +1312,39 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       const lines = text.split('\n');
       const newRoster = { ...roster };
       lines.forEach((line, i) => {
-          if (!line.trim()) return;
-          let name = line.trim();
+          const clean = line.trim();
+          if (!clean) return;
+          
+          const lower = clean.toLowerCase();
+          if (lower.startsWith('#') && lower.includes('name')) return;
+          if (lower === 'order' || lower === 'player' || lower === 'position') return;
+          if (lower.includes('first name') || lower.includes('last name')) return;
+
+          let name = clean;
           let no = '';
-          const parts = line.split(/[,]+| - | \t /);
-          if (parts.length > 1) {
-              name = parts[0].trim();
-              no = parts[1].trim();
+          
+          // Match GameChanger formats like "12 John Doe"
+          const gcMatch = clean.match(/^(\d+)\s+(.+)$/);
+          if (gcMatch) {
+              no = gcMatch[1];
+              name = gcMatch[2].trim();
           } else {
-              const spaceParts = line.split(' ');
-              const lastWord = spaceParts[spaceParts.length - 1];
-              if (!isNaN(parseInt(lastWord))) {
-                  no = lastWord;
-                  name = spaceParts.slice(0, -1).join(' ').trim();
+              // Match alternate formats like "John Doe 12"
+              const reverseMatch = clean.match(/^(.+?)\s+(\d+)$/);
+              if (reverseMatch) {
+                  name = reverseMatch[1].trim();
+                  no = reverseMatch[2];
+              } else {
+                  // Fallbacks for commas or dashes
+                  const parts = clean.split(/[,]+| - | \t /);
+                  if (parts.length > 1) {
+                      name = parts[0].trim();
+                      no = parts[1].trim();
+                  }
               }
           }
+          
+          name = name.split('\t')[0].trim(); 
           newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
       });
       setRoster(newRoster);
@@ -1345,16 +1368,15 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       setShowImportTextarea(false);
   };
   
-  const swapLineup = (team, i, j) => {
-      if (j < 0 || j >= roster[team].length) return;
+  const rotateLineup = (team, newLeadoffIndex) => {
+      if (newLeadoffIndex === 0) return;
       const newRoster = { ...roster };
-      const temp = newRoster[team][i];
-      newRoster[team][i] = newRoster[team][j];
-      newRoster[team][j] = temp;
+      const currentLineup = newRoster[team];
+      newRoster[team] = [...currentLineup.slice(newLeadoffIndex), ...currentLineup.slice(0, newLeadoffIndex)];
       
-      if (newRoster.lineupIdx?.[team] === i) newRoster.lineupIdx[team] = j;
-      else if (newRoster.lineupIdx?.[team] === j) newRoster.lineupIdx[team] = i;
-      
+      if (newRoster.lineupIdx?.[team] !== undefined) {
+          newRoster.lineupIdx[team] = 0; // Reset active batter to top for clarity
+      }
       setRoster(newRoster);
   };
 
@@ -1374,7 +1396,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
 
       <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
           
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", display: "flex", justify-content: "space-between", alignItems: "center" }}>
             <div>
                 <Label>ENTRY MODE</Label>
                 <div style={{ fontSize: "11px", fontFamily: MONO, color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
@@ -1428,8 +1450,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                 <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                     {mode === 'edit' && (
                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <button disabled={i === 0} onClick={() => swapLineup(activeTab, i, i-1)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "8px", opacity: i === 0 ? 0.3 : 1 }}>▲</button>
-                            <button disabled={i === list.length - 1} onClick={() => swapLineup(activeTab, i, i+1)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === list.length - 1 ? "default" : "pointer", fontSize: "8px", opacity: i === list.length - 1 ? 0.3 : 1 }}>▼</button>
+                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "8px", padding: "4px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap" }}>↻ LEADOFF</button>
                         </div>
                     )}
                     <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.text }}>{i+1}.</div>
@@ -2034,6 +2055,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   // Safe Fielder map lookup
   const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
 
+  // CORRECTLY DEFINE ACTIVE PITCHER SO BUTTONS WORK
+  const currentPitcher = activeFieldersMap?.['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
+  const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
+
   // Base state spawn logic: spawn batter with lineupIndex tagged so subs target the right spot
   useEffect(() => {
       if (inActiveInning && !bases.home && currentOuts < 3) {
@@ -2569,6 +2594,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   setBases(p => ({ ...p, [actionMenuState]: updated }));
                   
                   const newRoster = { ...rosterData };
+                  // Ensure player exists in pool
                   if (!newRoster.pool[battingTeam].find(p => p.id === updated.id)) {
                       newRoster.pool[battingTeam].push({ ...updated, pos: '' });
                   } else {
@@ -2576,17 +2602,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       if (poolIdx > -1) newRoster.pool[battingTeam][poolIdx] = { ...newRoster.pool[battingTeam][poolIdx], ...info };
                   }
                   
-                  if (info.id === newRoster[battingTeam][0]?.id && runner.lineupIndex > 0) {
-                      if (!newRoster.lineupClosed) newRoster.lineupClosed = { away: false, home: false };
-                      newRoster.lineupClosed[battingTeam] = true;
-                      newRoster[battingTeam] = newRoster[battingTeam].slice(0, runner.lineupIndex);
-                      setRosterData(newRoster);
-                      setLineupIdx(prev => ({ ...prev, [battingTeam]: 0 }));
-                      setBases(p => ({ ...p, [actionMenuState]: { ...newRoster[battingTeam][0], lineupIndex: 0 } }));
-                      setActionMenuState(null);
-                      return;
-                  }
-
+                  // Update in lineup
                   const lIdx = newRoster[battingTeam].findIndex(p => p.lineupIndex === runner.lineupIndex || p.id === runner.id);
                   if (lIdx > -1) {
                       newRoster[battingTeam][lIdx] = { ...updated, pos: newRoster[battingTeam][lIdx].pos };
