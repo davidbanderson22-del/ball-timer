@@ -1172,6 +1172,8 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
   const [roster, setRoster] = useState(() => JSON.parse(JSON.stringify(rosterData)));
   const [mode, setMode] = useState('edit');
   const fileInputRef = useRef(null);
+  const importTextareaRef = useRef(null);
+  const [showImportTextarea, setShowImportTextarea] = useState(false);
 
   const updatePlayer = (team, id, field, value) => {
       const newRoster = { ...roster };
@@ -1199,6 +1201,12 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
   const handleAddPoolPlayer = (team) => {
       const newRoster = { ...roster };
       newRoster.pool[team].push({ id: `p_${Date.now()}`, name: '', no: '', pos: '' });
+      setRoster(newRoster);
+  };
+  
+  const handleRemovePoolPlayer = (team, id) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team] = newRoster.pool[team].filter(p => p.id !== id);
       setRoster(newRoster);
   };
 
@@ -1283,35 +1291,46 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       setRoster(newRoster);
   };
 
+  const processRosterText = (text, team) => {
+      const lines = text.split('\n');
+      const newRoster = { ...roster };
+      lines.forEach((line, i) => {
+          if (!line.trim()) return;
+          let name = line.trim();
+          let no = '';
+          const parts = line.split(/[,]+| - | \t /);
+          if (parts.length > 1) {
+              name = parts[0].trim();
+              no = parts[1].trim();
+          } else {
+              const spaceParts = line.split(' ');
+              const lastWord = spaceParts[spaceParts.length - 1];
+              if (!isNaN(parseInt(lastWord))) {
+                  no = lastWord;
+                  name = spaceParts.slice(0, -1).join(' ').trim();
+              }
+          }
+          newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
+      });
+      setRoster(newRoster);
+  };
+
   const handleFileImport = (e, team) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-          const lines = ev.target.result.split('\n');
-          const newRoster = { ...roster };
-          lines.forEach((line, i) => {
-              if (!line.trim()) return;
-              let name = line.trim();
-              let no = '';
-              const parts = line.split(/[,]+| - /);
-              if (parts.length > 1) {
-                  name = parts[0].trim();
-                  no = parts[1].trim();
-              } else {
-                  const spaceParts = line.split(' ');
-                  const lastWord = spaceParts[spaceParts.length - 1];
-                  if (!isNaN(parseInt(lastWord))) {
-                      no = lastWord;
-                      name = spaceParts.slice(0, -1).join(' ').trim();
-                  }
-              }
-              newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
-          });
-          setRoster(newRoster);
+          processRosterText(ev.target.result, team);
       };
       reader.readAsText(file);
       e.target.value = null; // reset input
+  };
+  
+  const handlePastedRoster = (e, team) => {
+      const val = e.target.value;
+      if (!val) return;
+      processRosterText(val, team);
+      setShowImportTextarea(false);
   };
 
   const list = roster[activeTab];
@@ -1349,19 +1368,30 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                     </div>
                  </div>
                  
+                 {showImportTextarea && (
+                     <textarea 
+                        ref={importTextareaRef}
+                        onChange={(e) => handlePastedRoster(e, activeTab)}
+                        placeholder="Paste list from Notes/GameChanger here..." 
+                        style={{ width: "100%", height: "80px", marginBottom: "12px", fontFamily: MONO, fontSize: "12px", padding: "8px", boxSizing: "border-box", border: `1px solid ${C.borderBright}` }}
+                     />
+                 )}
+                 
                  <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "12px", paddingRight: "4px" }}>
                      {poolList.map((p, i) => (
-                         <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+                         <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px", alignItems: "center" }}>
                              <Inp value={p.name} onChange={v => handlePoolChange(activeTab, i, 'name', v)} placeholder="Name" />
                              <div style={{ width: "80px" }}>
                                  <Inp value={p.no} onChange={v => handlePoolChange(activeTab, i, 'no', v)} placeholder="No." />
                              </div>
+                             <button onClick={() => handleRemovePoolPlayer(activeTab, p.id)} style={{ background: "transparent", border: "none", color: C.red, fontWeight: "bold", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>×</button>
                          </div>
                      ))}
                  </div>
-                 <div style={{ display: "flex", gap: "6px" }}>
-                     <Btn variant="outline" small full onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Player</Btn>
-                     <Btn variant="outline" small full onClick={() => fileInputRef.current.click()}>+ Import .txt</Btn>
+                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Player</Btn>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => fileInputRef.current.click()}>+ Import .txt</Btn>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => setShowImportTextarea(!showImportTextarea)}>📋 Paste List</Btn>
                      <input type="file" ref={fileInputRef} accept=".txt" style={{ display: "none" }} onChange={e => handleFileImport(e, activeTab)} />
                  </div>
              </div>
@@ -1410,7 +1440,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -1476,8 +1506,8 @@ function FieldDiagram({ activeHalf, currentOuts, bases, fieldingRoster, activeFi
     };
 
     const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
-    const onDeckIdx = (lineupIdx + 1) % 9;
-    const inHoleIdx = (lineupIdx + 2) % 9;
+    const onDeckIdx = (lineupIdx + 1) % battingLineup.length;
+    const inHoleIdx = (lineupIdx + 2) % battingLineup.length;
 
     return (
         <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
@@ -1951,7 +1981,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   // Base state spawn logic: spawn batter with lineupIndex tagged so subs target the right spot
   useEffect(() => {
       if (inActiveInning && !bases.home && currentOuts < 3) {
-          const batter = rosterData[battingTeam][lineupIdx[battingTeam]];
+          let batter = rosterData[battingTeam][lineupIdx[battingTeam]];
+          if (!batter) {
+              batter = { id: `blank_${Date.now()}`, name: `Batter ${lineupIdx[battingTeam] + 1}`, no: '', pos: '' };
+              const newRoster = { ...rosterData };
+              if (!newRoster[battingTeam]) newRoster[battingTeam] = [];
+              newRoster[battingTeam][lineupIdx[battingTeam]] = batter;
+              setRosterData(newRoster);
+          }
           setBases(prev => ({ ...prev, home: { ...batter, lineupIndex: lineupIdx[battingTeam] } }));
       }
   }, [inActiveInning, activeHalf, bases.home, currentOuts, lineupIdx, battingTeam, rosterData]);
@@ -1960,7 +1997,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   useEffect(() => {
       if (inActiveInning && bases.home) {
           const currentBatterInLineup = rosterData[battingTeam][lineupIdx[battingTeam]];
-          if (bases.home.id !== currentBatterInLineup.id || bases.home.name !== currentBatterInLineup.name) {
+          if (currentBatterInLineup && (bases.home.id !== currentBatterInLineup.id || bases.home.name !== currentBatterInLineup.name)) {
               setBases(prev => ({ ...prev, home: { ...currentBatterInLineup, lineupIndex: lineupIdx[battingTeam] } }));
           }
       }
@@ -1968,8 +2005,17 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
   const advanceBatter = useCallback(() => {
       if (!battingTeam) return;
-      setLineupIdx(prev => ({ ...prev, [battingTeam]: (prev[battingTeam] + 1) % 9 }));
-  }, [battingTeam]);
+      setLineupIdx(prev => {
+          const currentIdx = prev[battingTeam];
+          const isClosed = rosterData.lineupClosed?.[battingTeam];
+          const lineupLen = rosterData[battingTeam].length;
+          let nextIdx = currentIdx + 1;
+          if (isClosed) {
+              nextIdx = nextIdx % lineupLen;
+          }
+          return { ...prev, [battingTeam]: nextIdx };
+      });
+  }, [battingTeam, rosterData]);
 
   const score = useMemo(() => {
       const s = { home: baseScore.home, away: baseScore.away };
@@ -2021,7 +2067,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       if (logs.length > 0) {
           setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId }))]);
       }
-      setAtBatCount({ b: 0, s: 0 });
       setIsTypingTime(false);
       setEntryTime(nowTime());
   };
@@ -2043,8 +2088,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       if (!inActiveInning || currentOuts >= 3) return;
       const t = getSafeTime(entryTime, events);
       const pName = currentPitcher?.name || 'Pitcher';
-      
-      setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: currentPitches + 1 } }));
+      const batchId = Date.now();
+      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
       
       let newB = atBatCount.b;
       let newS = atBatCount.s;
@@ -2054,28 +2099,38 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       if (type === 'strike') { newS++; if (newS >= 3) autoAction = 'k'; }
       if (type === 'foul') { newS = Math.min(newS + 1, 2); }
       if (type === 'hbp') { autoAction = 'hbp'; }
+
+      const pitchLog = `[${formatTime(t)}] ⚾ Pitch: ${type.toUpperCase()} (${newB}-${newS})`;
+      const newPitchData = { ...pitchData, [fieldingTeam]: { ...(pitchData[fieldingTeam] || {}), [pName]: currentPitches + 1 } };
       
-      setAtBatCount({ b: autoAction ? 0 : newB, s: autoAction ? 0 : newS });
-      
-      if (autoAction === 'walk') executeAdvance('home', 'walk');
-      else if (autoAction === 'hbp') executeAdvance('home', 'hbp');
-      else if (autoAction === 'k') handleActionOut('home', 'K', 1, ['home']);
+      if (!autoAction) {
+          setPitchData(newPitchData);
+          setAtBatCount({ b: newB, s: newS });
+          const pitchEvent = { id: batchId, batchId, type: 'pitch', pitchType: type, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf };
+          commitEventBatch([pitchEvent], [pitchLog], snap);
+      } else {
+          setPitchData(newPitchData);
+          setAtBatCount({ b: 0, s: 0 });
+          if (autoAction === 'walk') executeAdvance('home', 'walk', null, false, pitchLog, snap, batchId);
+          else if (autoAction === 'hbp') executeAdvance('home', 'hbp', null, false, pitchLog, snap, batchId);
+          else if (autoAction === 'k') handleActionOut('home', 'K', 1, ['home'], pitchLog, snap, batchId);
+      }
   };
 
   const BASE_VAL = { home: 0, '1b': 1, '2b': 2, '3b': 3, score: 4 };
   const VAL_BASE = { 0: 'home', 1: '1b', 2: '2b', 3: '3b', 4: 'score' };
 
-  const executeAdvance = (sourceId, targetId, actionLabel = null, isError = false) => {
+  const executeAdvance = (sourceId, targetId, actionLabel = null, isError = false, extraLog = null, incomingSnap = null, incomingBatchId = null) => {
       const sVal = BASE_VAL[sourceId];
       const tVal = targetId === 'walk' || targetId === 'hbp' ? 1 : BASE_VAL[targetId];
       if (tVal <= sVal && targetId !== 'walk' && targetId !== 'hbp') return; 
 
       const t = getSafeTime(entryTime, events);
-      const batchId = Date.now();
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
+      const batchId = incomingBatchId || Date.now();
+      const snap = incomingSnap || { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
       
       let pitchAdded = 0;
-      if (sourceId === 'home' && targetId !== 'walk' && targetId !== 'hbp') {
+      if (sourceId === 'home' && targetId !== 'walk' && targetId !== 'hbp' && !incomingBatchId) {
           pitchAdded = 1;
       }
       if (pitchAdded > 0 && currentPitcher) {
@@ -2085,10 +2140,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       
       let newBases = { ...bases };
       let runsScored = 0;
-      let advanceLogs = [];
+      let advanceLogs = extraLog ? [extraLog] : [];
       let newEvents = [];
 
       if (sourceId === 'home') {
+          setAtBatCount({ b: 0, s: 0 }); // reset count on ball in play
           const has1B = !!bases['1b'];
           const has2B = !!bases['2b'];
           const has3B = !!bases['3b'];
@@ -2204,13 +2260,13 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       }
   };
 
-  const handleActionOut = (baseId, label, count, selectedBaseIds = [baseId]) => {
+  const handleActionOut = (baseId, label, count, selectedBaseIds = [baseId], extraLog = null, incomingSnap = null, incomingBatchId = null) => {
       const t = getSafeTime(entryTime, events);
-      const batchId = Date.now();
-      const snap = { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
+      const batchId = incomingBatchId || Date.now();
+      const snap = incomingSnap || { bases: { ...bases }, lineupIdx: { ...lineupIdx }, pitchData: JSON.parse(JSON.stringify(pitchData)), atBatCount: { ...atBatCount } };
       
       let pitchAdded = 0;
-      if (selectedBaseIds.includes('home')) {
+      if (selectedBaseIds.includes('home') && !incomingBatchId) {
           pitchAdded = 1;
       }
       if (pitchAdded > 0 && currentPitcher) {
@@ -2219,7 +2275,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       }
       
       let newBases = { ...bases };
-      const logs = [];
+      const logs = extraLog ? [extraLog] : [];
       const newEvents = [];
       
       selectedBaseIds.forEach((bId, idx) => {
@@ -2230,6 +2286,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       setBases(newBases);
       if (selectedBaseIds.includes('home')) {
+          setAtBatCount({ b: 0, s: 0 }); // reset on out
           advanceBatter();
       }
 
@@ -2243,7 +2300,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
   const handleCourtesyRun = (baseId) => {
       const runner = bases[baseId];
-      const prevLineupIdx = (lineupIdx[battingTeam] + 8) % 9;
+      const prevLineupIdx = (lineupIdx[battingTeam] + 8) % Math.max(9, rosterData[battingTeam].length);
       const courtesyPlayer = rosterData[battingTeam][prevLineupIdx];
       
       const t = getSafeTime(entryTime, events);
@@ -2465,9 +2522,20 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       if (poolIdx > -1) newRoster.pool[battingTeam][poolIdx] = { ...newRoster.pool[battingTeam][poolIdx], ...info };
                   }
                   
-                  const lineupIdx = newRoster[battingTeam].findIndex(p => p.lineupIndex === runner.lineupIndex);
-                  if (lineupIdx > -1) {
-                      newRoster[battingTeam][lineupIdx] = { ...updated, pos: newRoster[battingTeam][lineupIdx].pos };
+                  if (info.id === newRoster[battingTeam][0]?.id && runner.lineupIndex > 0) {
+                      if (!newRoster.lineupClosed) newRoster.lineupClosed = { away: false, home: false };
+                      newRoster.lineupClosed[battingTeam] = true;
+                      newRoster[battingTeam] = newRoster[battingTeam].slice(0, runner.lineupIndex);
+                      setRosterData(newRoster);
+                      setLineupIdx(prev => ({ ...prev, [battingTeam]: 0 }));
+                      setBases(p => ({ ...p, [actionMenuState]: { ...newRoster[battingTeam][0], lineupIndex: 0 } }));
+                      setActionMenuState(null);
+                      return;
+                  }
+
+                  const lIdx = newRoster[battingTeam].findIndex(p => p.lineupIndex === runner.lineupIndex || p.id === runner.id);
+                  if (lIdx > -1) {
+                      newRoster[battingTeam][lIdx] = { ...updated, pos: newRoster[battingTeam][lIdx].pos };
                       if (newRoster.lineupLocks && newRoster.lineupLocks[battingTeam]) {
                           const lockVal = newRoster.lineupLocks[battingTeam][runner.id];
                           if (lockVal !== undefined) {
@@ -2681,15 +2749,16 @@ function App() {
   
   // Safe Initialization with Pool and Fielders maps (Empty by default)
   const [rosterData, setRosterData] = useState(() => {
-      const awayLineup = Array.from({length: 9}).map((_, i) => ({ id: `a${i}`, name: '', no: '', pos: '' }));
-      const homeLineup = Array.from({length: 9}).map((_, i) => ({ id: `h${i}`, name: '', no: '', pos: '' }));
+      const awayLineup = [{ id: `blank_a0`, name: '', no: '', pos: '' }];
+      const homeLineup = [{ id: `blank_h0`, name: '', no: '', pos: '' }];
       
       return {
           away: awayLineup,
           home: homeLineup,
           pool: { away: [], home: [] },
           fielders: { away: {}, home: {} },
-          lineupLocks: { away: {}, home: {} }
+          lineupLocks: { away: {}, home: {} },
+          lineupClosed: { away: false, home: false }
       };
   });
 
@@ -2715,7 +2784,6 @@ function App() {
     setInitState(data);
     if (data.rosterData) {
         const rd = { ...data.rosterData };
-        // Migration patch for old save files
         if (!rd.pool) rd.pool = { away: [...(rd.away || [])], home: [...(rd.home || [])] };
         if (!rd.fielders) {
             rd.fielders = {
@@ -2727,6 +2795,9 @@ function App() {
             rd.lineupLocks = { away: {}, home: {} };
             (rd.away || []).forEach((p, i) => { if (p.id) rd.lineupLocks.away[p.id] = i; });
             (rd.home || []).forEach((p, i) => { if (p.id) rd.lineupLocks.home[p.id] = i; });
+        }
+        if (rd.lineupClosed === undefined) {
+            rd.lineupClosed = { away: (rd.away || []).length > 1, home: (rd.home || []).length > 1 };
         }
         setRosterData(rd);
     }
