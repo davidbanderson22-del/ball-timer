@@ -401,6 +401,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   let canEstimate = warmupDurs.length >= 1;
   const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : sorted[sorted.length - 1];
 
+  // Dynamic Late Start Computation
   if (config?.lateStart && !canEstimate) {
       const latestT = latestEvent?.time || parseTime(nowTime());
       const elapsedSecs = latestT - (config.gameStartTime || latestT) - (accumulatedDelay || 0);
@@ -776,7 +777,6 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         const hStats = { away: {}, home: {} };
         const pStats = { away: {}, home: {} };
 
-        // Initialize players in pool and lineup into the stats map
         ['away', 'home'].forEach(team => {
             (rosterData.pool?.[team] || []).forEach(p => {
                 hStats[team][p.id] = { id: p.id, name: p.name, no: p.no, PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
@@ -788,7 +788,6 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             });
         });
 
-        // Parse events for advanced stat tracking
         events.forEach(e => {
             if (!e.team && !e.pitcher) return;
             
@@ -796,13 +795,11 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             const battingTeam = isTop ? 'away' : 'home';
             const fieldingTeam = isTop ? 'home' : 'away';
 
-            // Ensure batter exists dynamically if missed in initial mapping
             if (e.batterId && !hStats[battingTeam][e.batterId]) {
                 const poolP = rosterData.pool?.[battingTeam]?.find(p => p.id === e.batterId);
                 hStats[battingTeam][e.batterId] = { id: e.batterId, name: poolP?.name || 'Unknown', no: poolP?.no || '', PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
             }
             
-            // Ensure pitcher exists
             if (e.pitcher) {
                 if (!pStats[fieldingTeam][e.pitcher]) pStats[fieldingTeam][e.pitcher] = { name: e.pitcher, outs: 0, H: 0, R: 0, ER: 0, BB: 0, K: 0, HBP: 0 };
             }
