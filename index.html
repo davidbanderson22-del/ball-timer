@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <style>
         body { 
-            margin: 0; 
+            margin: 0;
             padding: 0; 
             background-color: #f4f1ea; 
             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
@@ -34,7 +34,7 @@
             margin: 0 auto 16px;
             background: #3c5e3c; 
             border: 2px solid #2c2c2c;
-            overflow: hidden; 
+            overflow: hidden;
             touch-action: none; 
             border-radius: 8px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.15);
@@ -99,7 +99,8 @@
             box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
         .base-visual.home {
-            width: 16px; height: 16px;
+            width: 16px;
+            height: 16px;
             clip-path: polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%); 
             transform: translate(-50%, -50%);
         }
@@ -114,7 +115,8 @@
         }
         
         .runner {
-            width: 30px; height: 30px;
+            width: 30px;
+            height: 30px;
             background: #eae4d3;
             border: 2px solid #2c2c2c;
             border-radius: 50%;
@@ -124,7 +126,7 @@
             cursor: pointer;
             z-index: 20;
             box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
-            touch-action: none; 
+            touch-action: none;
         }
         
         .pos-home  { top: 88%; left: 50%; width: 64px; height: 64px; }
@@ -141,19 +143,23 @@
             opacity: 0.9;
         }
         .def-player .dot {
-            width: 8px; height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
+            width: 8px;
+            height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
             box-shadow: 1px 1px 0 #000;
         }
         .def-player .name {
-            font-size: 9px; color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
+            font-size: 9px;
+            color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
             background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 2px;
             white-space: nowrap;
         }
         
         .pos-pitcher { 
-            position: absolute; top: 65%; left: 50%; transform: translate(-50%, -50%);
+            position: absolute;
+            top: 65%; left: 50%; transform: translate(-50%, -50%);
             border-radius: 50%; width: 50px; height: 50px; 
-            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
             cursor: pointer; z-index: 15; 
             pointer-events: auto;
         }
@@ -171,7 +177,6 @@
 /** @jsx React.createElement */
 /** @jsxFrag React.Fragment */
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
-
 const C = {
   bg: "#f4f1ea", card: "#eae4d3", border: "#d0c8b6", borderBright: "#b8af9b",
   text: "#2c2c2c", muted: "#5a5a5a", faint: "#8a8a8a",
@@ -194,11 +199,9 @@ const LEAGUES = {
   softball: { label: "Softball",            halfInning: 9,   warmup: 2.5, innings: 7, mercy: 10, mercyAfter: 5 },
   custom:   { label: "Custom",              halfInning: 11,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
 };
-
 const EV = { START: "start", TOP: "top", MID: "mid", BOT: "bot" };
 const PHASE_ORDER = [EV.START, EV.TOP, EV.MID, EV.BOT];
 const isWarmup = p => p === EV.START || p === EV.MID;
-
 function phaseLabel(inning, phase) {
   const m = { start: `Pre-${inning} Warmup`, top: `Top ${inning}`, mid: `Mid-${inning} Warmup`, bot: `Bot ${inning}` };
   return m[phase] ?? "";
@@ -277,13 +280,13 @@ function isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, 
         if (last.inning >= mercyAfter && (last.phase === EV.MID || last.phase === EV.BOT)) return true;
         if (lastCompleted >= mercyAfter) return true;
     } else {
-        if (lastCompleted >= mercyAfter) return true; 
+        if (lastCompleted >= mercyAfter) return true;
     }
   }
 
   if (last.inning >= effTotalInnings) {
-      if (last.phase === EV.MID && score.home > score.away) return true; 
-      if (lastCompleted >= effTotalInnings && score.home !== score.away) return true; 
+      if (last.phase === EV.MID && score.home > score.away) return true;
+      if (lastCompleted >= effTotalInnings && score.home !== score.away) return true;
   }
   
   if (allowTies && lastCompleted >= tieInningLimit && score.home === score.away) return true;
@@ -316,7 +319,6 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
   const baseInning = activeInningNum || (lastPhase ? lastPhase.inning : 1);
   const isTop = activeHalf === 'top';
   const isBot = activeHalf === 'bot';
-
   for (let i = 0; i < N; i++) {
     let a = score.away, h = score.home;
     let currentInn = Math.max(lastCompletedInning + 1, baseInning);
@@ -339,13 +341,12 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
     }
     
     const diff = Math.abs(a - h);
-    
     if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
       mercy++;
     } else if (a === h) {
       extra++;
     } else if (h > a) {
-      endTop++; 
+      endTop++;
     } else {
       endBot++; 
     }
@@ -359,7 +360,8 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
       a += poissonSample(awayRate);
       h += poissonSample(homeRate);
       currentInningResolution++;
-      if (currentInningResolution > 50) { tieCount++; break; }
+      if (currentInningResolution > 50) { tieCount++;
+        break; }
     }
 
     if (a > h) awayWin++;
@@ -384,7 +386,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   for (let i = 0; i < sorted.length - 1; i++) {
     const c = sorted[i], n = sorted[i + 1];
     const d = n.time - c.time;
-    if (d < 0 || d > 5400) continue; 
+    if (d < 0 || d > 5400) continue;
     if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
     if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
@@ -392,15 +394,13 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   }
   const measuredHalf   = avg(halfDurs);
   const measuredWarmup = avg(warmupDurs);
-  
-  let avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600; 
+  let avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600;
   let avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
   
   const minS = Math.min(halfDurs.length, warmupDurs.length);
   let confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
   let canEstimate = warmupDurs.length >= 1;
   const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : sorted[sorted.length - 1];
-
   // Dynamic Late Start Computation
   if (config?.lateStart && !canEstimate) {
       const latestT = latestEvent?.time || parseTime(nowTime());
@@ -409,13 +409,12 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
       const activeInning = lastPhase?.inning || 1;
       const isBot = lastPhase?.phase === EV.BOT;
       const halvesElapsed = (activeInning - 1) * 2 + (isBot ? 1 : 0);
-      
       if (halvesElapsed > 0 && elapsedSecs > 0) {
           const totalWarmupTime = halvesElapsed * (fallbackWarmup * 60);
           const remainingTime = Math.max(0, elapsedSecs - totalWarmupTime);
           avgHalf = remainingTime / halvesElapsed;
           avgWarmup = fallbackWarmup * 60;
-          canEstimate = true; 
+          canEstimate = true;
           confidence = "low"; 
       } else {
           canEstimate = true;
@@ -426,7 +425,6 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const last = sorted[sorted.length - 1];
   const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
   const runDiff = Math.abs(score.home - score.away);
-  
   let mercyEligible = false;
   if (mercyAfter && mercyRuns && runDiff >= mercyRuns) {
       if (score.home > score.away) {
@@ -455,7 +453,6 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   const currentlyInWarmup = isWarmup(last.phase);
   const outPace = (avgHalf || 0) / 3;
   const activeTimeRem = (!currentlyInWarmup && activeHalf) ? Math.max(0, (3 - (currentOuts || 0)) * outPace) : (currentlyInWarmup ? (avgWarmup || 0) : 0);
-  
   const estimatedEnd = Number((latestEvent?.time || 0) + (activeTimeRem || 0) + (remHalf * (avgHalf || 0)) + (remWarmup * (avgWarmup || 0)) + (accumulatedDelay || 0)) || 0;
   
   const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
@@ -683,24 +680,19 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
   const yAbsMax = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 5);
   const yMin = yMode === "signed" ? -yAbsMax : 0;
   const yMax = yAbsMax;
-
   const toSVG = (xv, yv) => ({
     x: PL + ((xv - xMin) / (xMax - xMin || 1)) * IW,
     y: PT + (1 - (yv - yMin) / (yMax - yMin || 1)) * IH,
   });
-
   const zeroY = PT + (1 - (0 - yMin) / (yMax - yMin || 1)) * IH;
   const pathD = validPoints.map((p, i) => { const { x, y } = toSVG(p.xVal, p.error); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ");
-
   const yTicks = [];
   const step = Math.ceil(yAbsMax / 3);
   for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) yTicks.push(v);
-  
   const maxInn = Math.max(config.totalInnings, Math.ceil(xMax || 1));
   const xTicks = xMode === "inning"
     ? Array.from({ length: maxInn }, (_, i) => i + 1).filter(v => v >= Math.floor(xMin) && v <= Math.ceil(xMax))
     : validPoints.map(p => p.xVal);
-
   return (
     <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "14px", marginBottom: "16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -742,11 +734,11 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
           {validPoints.length > 1 && <path d={`${pathD} L${toSVG(validPoints[validPoints.length - 1].xVal, yMin).x},${toSVG(validPoints[validPoints.length - 1].xVal, yMin).y} L${toSVG(validPoints[0].xVal, yMin).x},${toSVG(validPoints[0].xVal, yMin).y} Z`} fill={C.accentDim} opacity="0.4" />}
           {validPoints.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
           {validPoints.map((p, i) => {
-            const { x, y } = toSVG(p.xVal, p.error);
-            const col = yMode === "signed"
+             const { x, y } = toSVG(p.xVal, p.error);
+             const col = yMode === "signed"
               ? (p.error > 0 ? C.yellow : p.error < 0 ? C.blue : C.green)
               : (Math.abs(p.error) <= 5 ? C.green : Math.abs(p.error) <= 15 ? C.yellow : C.red);
-            return <circle key={i} cx={x} cy={y} r="5" fill={col} stroke={C.bg} strokeWidth="2" />;
+             return <circle key={i} cx={x} cy={y} r="5" fill={col} stroke={C.bg} strokeWidth="2" />;
           })}
           <text x={PL + IW / 2} y={H} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold">{xMode === "inning" ? "INNING" : "TIME"}</text>
           <text x={10} y={PT + IH / 2} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold" transform={`rotate(-90,10,${PT + IH / 2})`}>ERROR (MIN)</text>
@@ -818,8 +810,10 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 }
             } else if (e.type === 'advance') {
                 if (e.batterId) {
-                    if (e.targetBase === 'walk') { hStats[battingTeam][e.batterId].BB++; hStats[battingTeam][e.batterId].PA++; }
-                    else if (e.targetBase === 'hbp') { hStats[battingTeam][e.batterId].HBP++; hStats[battingTeam][e.batterId].PA++; }
+                    if (e.targetBase === 'walk') { hStats[battingTeam][e.batterId].BB++;
+                        hStats[battingTeam][e.batterId].PA++; }
+                    else if (e.targetBase === 'hbp') { hStats[battingTeam][e.batterId].HBP++;
+                        hStats[battingTeam][e.batterId].PA++; }
                     else {
                         hStats[battingTeam][e.batterId].AB++;
                         hStats[battingTeam][e.batterId].PA++;
@@ -842,7 +836,6 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 }
             }
         });
-
         return { hStats, pStats };
     }, [events, rosterData]);
 
@@ -878,12 +871,10 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             </div>
         );
     };
-
     const renderPitching = (teamName, teamKey) => {
         const pitchers = Object.values(stats.pStats[teamKey]);
         if (!pitchers.length) return null;
         const innPerGame = config.totalInnings || 7;
-
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} PITCHING</Label>
@@ -933,13 +924,11 @@ function StatsTable({ events, rosterData, config, pitchData }) {
 // ── Modals ────────────────────────────────────────────────────────────────────
 const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" };
 const modalStyle   = { background: C.bg, border: `4px solid ${C.text}`, padding: "20px", width: "100%", maxWidth: "360px", boxShadow: `6px 6px 0px rgba(0,0,0,0.2)`, maxHeight: "90vh", overflowY: "auto" };
-
 function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   const [text, setText] = useState("");
   const [error, setError] = useState(null);
   const [step, setStep] = useState(hasActiveGame ? "warn" : "paste");
   const fileRef = useRef(null);
-
   const handleFile = e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -947,7 +936,6 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
     reader.onload = ev => setText(ev.target.result);
     reader.readAsText(file);
   };
-
   const handleImport = () => {
     const result = parseImport(text);
     if (!result.ok) { setError(result.error); return; }
@@ -1023,17 +1011,14 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
     const [isError, setIsError] = useState(false);
 
     const isBatter = baseId === 'home';
-
     const outOptions = isBatter
         ? [{l:'K', v:1}, {l:'GO', v:1}, {l:'FO', v:1}, {l:'DP', v:2}, {l:'TP', v:3}, {l:'Other', v:1}]
         : [{l:'Force', v:1}, {l:'Tag', v:1}, {l:'CS', v:1}, {l:'Pickoff', v:1}, {l:'Double off', v:2}, {l:'Other', v:1}];
-
     const advanceOptions = isBatter
         ? [{l:'Walk', v:'walk'}, {l:'HBP', v:'hbp'}, {l:'Single', v:'1b'}, {l:'Double', v:'2b'}, {l:'Triple', v:'3b'}, {l:'HR', v:'score'}]
         : (baseId === '1b' ? [{l:'2B', v:'2b'}, {l:'3B', v:'3b'}, {l:'Score', v:'score'}]
           : baseId === '2b' ? [{l:'3B', v:'3b'}, {l:'Score', v:'score'}]
           : [{l:'Score', v:'score'}]);
-
     const handleOutClick = (label, count) => {
         if (count > 1) {
             setTargetOuts(count);
@@ -1055,7 +1040,7 @@ function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, 
                     {runner?.name || 'Player'}
                 </div>
                 {mode === 'main' && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                         <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
                         <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
@@ -1155,7 +1140,6 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
     const [pitches, setPitches] = useState(String(currentPitchTotal || ""));
     const [newName, setNewName] = useState("");
     const [newNo, setNewNo] = useState("");
-
     const handleConfirm = () => {
          let newPlayer;
          if (selectedId === 'add_new') {
@@ -1216,7 +1200,6 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
     const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
     const [newName, setNewName] = useState("");
     const [newNo, setNewNo] = useState("");
-    
     const handleConfirm = () => {
         let newPlayer;
         if (selectedId === 'add_new') {
@@ -1229,9 +1212,7 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
         }
         if (newPlayer) onSave(newPlayer);
     };
-
     const label = baseId === 'home' ? 'PINCH HITTER' : 'PINCH RUNNER';
-
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
@@ -1272,22 +1253,17 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
   const [showImportTextarea, setShowImportTextarea] = useState(false);
   const [gcUrl, setGcUrl] = useState("");
   const [loadingGc, setLoadingGc] = useState(false);
-
   const updatePlayer = (team, id, field, value) => {
       const newRoster = { ...roster };
-      
       const poolIdx = newRoster.pool[team].findIndex(p => p.id === id);
       if (poolIdx > -1) newRoster.pool[team][poolIdx][field] = value;
-      
       const lineupIdx = newRoster[team].findIndex(p => p.id === id);
       if (lineupIdx > -1) newRoster[team][lineupIdx][field] = value;
-      
       Object.keys(newRoster.fielders[team]).forEach(pos => {
           if (newRoster.fielders[team][pos]?.id === id) {
               newRoster.fielders[team][pos][field] = value;
           }
       });
-      
       setRoster(newRoster);
   };
 
@@ -1301,7 +1277,6 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       newRoster.pool[team].push({ id: `p_${Date.now()}`, name: '', no: '', pos: '' });
       setRoster(newRoster);
   };
-  
   const handleRemovePoolPlayer = (team, id) => {
       const newRoster = { ...roster };
       newRoster.pool[team] = newRoster.pool[team].filter(p => p.id !== id);
@@ -1343,39 +1318,32 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       }
       setRoster(newRoster);
   };
-
   const handleDefensiveChange = (team, pos, val) => {
       const newRoster = { ...roster };
       newRoster.fielders = { ...newRoster.fielders };
       newRoster.fielders[team] = { ...newRoster.fielders[team] };
-      
       Object.keys(newRoster.fielders[team]).forEach(p => {
           if (newRoster.fielders[team][p]?.id === val) newRoster.fielders[team][p] = null;
       });
-
       if (val === "clear") {
           newRoster.fielders[team][pos] = null;
       } else {
           const poolPlayer = newRoster.pool[team].find(p => p.id === val);
           if (poolPlayer) {
               newRoster.fielders[team][pos] = { ...poolPlayer, pos };
-              
               const pIdx = newRoster.pool[team].findIndex(p => p.id === val);
               if (pIdx > -1) newRoster.pool[team][pIdx].pos = pos;
-              
               const lIdx = newRoster[team].findIndex(p => p.id === val);
               if (lIdx > -1) newRoster[team][lIdx].pos = pos;
           }
       }
       setRoster(newRoster);
   };
-
   const handleAddHitter = (team) => {
       const newRoster = { ...roster };
       newRoster[team].push({ id: `h_${Date.now()}`, name: '', no: '', pos: '' });
       setRoster(newRoster);
   };
-
   const handleRemoveHitter = (team, index) => {
       const newRoster = { ...roster };
       if (newRoster[team].length > 1) {
@@ -1387,7 +1355,6 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
           setRoster(newRoster);
       }
   };
-
   const handleSortPool = (team, by) => {
       const newRoster = { ...roster };
       newRoster.pool[team].sort((a, b) => {
@@ -1434,12 +1401,11 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
               }
           }
           
-          name = name.split('\t')[0].trim(); 
+          name = name.split('\t')[0].trim();
           newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
       });
       setRoster(newRoster);
   };
-
   const handleFileImport = (e, team) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1481,16 +1447,14 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
       const newRoster = { ...roster };
       const currentLineup = newRoster[team];
       newRoster[team] = [...currentLineup.slice(newLeadoffIndex), ...currentLineup.slice(0, newLeadoffIndex)];
-      
       if (newRoster.lineupIdx?.[team] !== undefined) {
-          newRoster.lineupIdx[team] = 0; 
+          newRoster.lineupIdx[team] = 0;
       }
       setRoster(newRoster);
   };
 
   const list = roster[activeTab];
   const poolList = roster.pool?.[activeTab] || [];
-
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
       <div style={{ padding: "20px 20px 10px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
@@ -1626,7 +1590,7 @@ function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName })
                      <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
                          <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
-                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={e => handleDefensiveChange(activeTab, pos, e.target.value)}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
                                  <option value="clear">-- CLEAR --</option>
                                  {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
@@ -1678,7 +1642,6 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
         { id: '1b', label: '', cls: 'pos-1b' },
         { id: 'home', label: '', cls: 'pos-home' }
     ];
-
     const defCoords = {
         'C': { top: '96%', left: '50%' },
         'P': { top: '65%', left: '50%' },
@@ -1690,7 +1653,6 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
         'CF': { top: '18%', left: '50%' },
         'RF': { top: '28%', left: '80%' }
     };
-
     const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
     const onDeckIdx = (lineupIdx + 1) % (battingLineup?.length || 1);
     const inHoleIdx = (lineupIdx + 2) % (battingLineup?.length || 1);
@@ -1723,7 +1685,8 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
             </div>
 
             <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
-                TAP runner or batter for Actions. <br/>TAP a defensive position to sub/assign.
+                TAP runner or batter for Actions.
+                <br/>TAP a defensive position to sub/assign.
             </div>
 
             <div className="field-container">
@@ -1814,10 +1777,8 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
     setTieInningLimit(p.innings);
     if (p.mercy) { setMercyRuns(p.mercy); setMercyAfter(p.mercyAfter); setUseMercy(true); } else setUseMercy(false);
   }, [league]);
-
   const preset = LEAGUES[league];
   const valid  = away.trim() && home.trim();
-
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
       {showImport && (
@@ -1828,11 +1789,13 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
           onExportFirst={() => {}}
         />
       )}
+  
       <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center", position: "relative" }}>
         <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>ℹ️</button>
         <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
         <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
       </div>
+    
       <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
         
         <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
@@ -1891,7 +1854,6 @@ function LateStartScreen({ config, onComplete, onCancel }) {
   const [half, setHalf] = useState("top");
   const [outs, setOuts] = useState(0);
   const [runs, setRuns] = useState({});
-
   const halvesToPlay = useMemo(() => {
     const res = [];
     for (let i = 1; i <= inning; i++) {
@@ -1902,7 +1864,6 @@ function LateStartScreen({ config, onComplete, onCancel }) {
     }
     return res;
   }, [inning, half]);
-
   const handleRunsChange = (inn, h, val) => {
     setRuns(prev => ({ ...prev, [`${inn}-${h}`]: Math.max(0, parseInt(val) || 0) }));
   };
@@ -1914,13 +1875,11 @@ function LateStartScreen({ config, onComplete, onCancel }) {
       inning: h.inn,
       half: h.half
     }));
-
     let awayScore = 0, homeScore = 0;
     baseRunsLog.forEach(r => {
       if (r.team === 'away') awayScore += r.runs;
       else homeScore += r.runs;
     });
-
     const nowSecs = parseTime(nowTime());
     const initialEvents = [
       { id: Date.now(), batchId: Date.now(), type: 'phase', phase: half === 'top' ? EV.TOP : EV.BOT, inning, time: nowSecs }
@@ -1983,7 +1942,6 @@ function LateStartScreen({ config, onComplete, onCancel }) {
 // ── Summary Screen ────────────────────────────────────────────────────────────
 function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, rosterData, pitchData, onNewGame }) {
   const { away, home, totalInnings } = config;
-  
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type);
   const sorted = sortEvents(phaseEvents);
   const startTime = sorted[0]?.time;
@@ -2003,16 +1961,13 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
 
   const score = { home: baseScore.home, away: baseScore.away };
   events.filter(e => e.type === 'run').forEach(e => score[e.team] += e.val);
-  
   const combinedRunsLog = [...baseRunsLog, ...events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half }))];
-
   const firstEst = estimateHistory.find(h => h.estimate != null);
   const firstEstError = firstEst && endTime ? Math.round((firstEst.estimate - endTime) / 60) : null;
   const winner = score.home > score.away ? home : score.away > score.home ? away : null;
   
   const [showCopy, setShowCopy] = useState(false);
   const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData);
-
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
       {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
@@ -2078,17 +2033,14 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
 // ── Game Tracker ──────────────────────────────────────────────────────────────
 function GameTracker({ config, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
-
   const [extraInningsAdded, setExtraInningsAdded] = useState(0);
   const effTotalInnings = totalInnings + extraInningsAdded;
-
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
   const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
   const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
   
   const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
-
   const [entryTime, setEntryTime] = useState(nowTime());
   const [isTypingTime, setIsTypingTime] = useState(false);
   const [gameOverPrompt, setGameOverPrompt] = useState(false);
@@ -2100,7 +2052,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [delayStartTime, setDelayStartTime] = useState(initialState?.weatherDelayState?.startTime ?? null);
   const [accumulatedDelaySec, setAccumulatedDelaySec] = useState(initialState?.weatherDelayState?.accumulatedSec ?? 0);
   const [liveDelaySec, setLiveDelaySec] = useState(0);
-  
   const [showImport, setShowImport] = useState(false);
   const [showCopy, setShowCopy]     = useState(false);
   const [copyText, setCopyText]     = useState("");
@@ -2113,31 +2064,26 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           return { ...prev, lineupIdx: nextIdx };
       });
   }, [setRosterData]);
-
   const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
   const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
   const [actionMenuState, setActionMenuState] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
-  
   const defaultPitchers = {
       away: rosterData?.fielders?.away?.['P']?.name || rosterData?.away.find(p => p.pos === 'P')?.name || 'Unassigned',
       home: rosterData?.fielders?.home?.['P']?.name || rosterData?.home.find(p => p.pos === 'P')?.name || 'Unassigned'
   };
   const [pitchData, setPitchData] = useState(initialState?.pitchData ?? { away: { [defaultPitchers.away]: 0 }, home: { [defaultPitchers.home]: 0 } });
-  
   const [atBatCount, setAtBatCount] = useState({ b: 0, s: 0 });
 
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
-
   useEffect(() => {
       if (!isTypingTime) {
           const id = setInterval(() => setEntryTime(nowTime()), 1000);
           return () => clearInterval(id);
       }
   }, [isTypingTime]);
-
   useEffect(() => {
       if (delayActive && delayStartTime) {
           const id = setInterval(() => {
@@ -2154,21 +2100,31 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const sortedPhaseEvents = sortEvents(phaseEvents);
   const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
   const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
-  
+
   let activeHalf = null, activeInningNum = null, battingTeam = null, fieldingTeam = null, currentOuts = 0;
-  if (inActiveInning) {
-      activeHalf = lastPhase.phase === EV.TOP ? 'top' : 'bot';
+
+  // Determine teams globally based on current or upcoming half-innings
+  if (lastPhase) {
       activeInningNum = lastPhase.inning;
-      battingTeam = activeHalf === 'top' ? 'away' : 'home';
-      fieldingTeam = activeHalf === 'top' ? 'home' : 'away';
-      const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInningNum && e.half === activeHalf);
-      currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
+      if (lastPhase.phase === EV.TOP || lastPhase.phase === EV.START) {
+          activeHalf = 'top';
+          battingTeam = 'away';
+          fieldingTeam = 'home';
+      } else {
+          activeHalf = 'bot';
+          battingTeam = 'home';
+          fieldingTeam = 'away';
+      }
+
+      if (inActiveInning) {
+          const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInningNum && e.half === activeHalf);
+          currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
+      }
   }
 
   const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
   const currentPitcher = activeFieldersMap?.['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
   const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
-
   useEffect(() => {
       if (inActiveInning && !bases.home && currentOuts < 3) {
           let batter = rosterData[battingTeam][lineupIdx[battingTeam]];
@@ -2182,7 +2138,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           setBases(prev => ({ ...prev, home: { ...batter, lineupIndex: lineupIdx[battingTeam] } }));
       }
   }, [inActiveInning, activeHalf, bases.home, currentOuts, lineupIdx, battingTeam, rosterData]);
-
   useEffect(() => {
       if (inActiveInning && bases.home) {
           const currentBatterInLineup = rosterData[battingTeam][lineupIdx[battingTeam]];
@@ -2191,7 +2146,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           }
       }
   }, [rosterData, battingTeam, lineupIdx, inActiveInning]);
-
   const advanceBatter = useCallback(() => {
       if (!battingTeam) return;
       setLineupIdx(prev => {
@@ -2205,21 +2159,17 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           return { ...prev, [battingTeam]: nextIdx };
       });
   }, [battingTeam, rosterData]);
-
   const score = useMemo(() => {
       const s = { home: baseScore.home, away: baseScore.away };
       events.filter(e => e.type === 'run').forEach(e => s[e.team] += e.val);
       return s;
   }, [baseScore, events]);
-
   const combinedRunsLog = useMemo(() => {
       const activeRuns = events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half, eventId: e.id, batchId: e.batchId }));
       return [...baseRunsLog, ...activeRuns];
   }, [baseRunsLog, events]);
-
   const nextPhaseFallback = getNextPhase(phaseEvents);
   const est = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings: effTotalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay: accumulatedDelaySec + liveDelaySec, config });
-
   useEffect(() => {
     if (!est?.canEstimate || !events.length) return;
     const lastEv = events[events.length - 1];
@@ -2236,7 +2186,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       }];
     });
   }, [events, est?.estimatedEnd]);
-
   useEffect(() => { 
     if (isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit) && !gameOverPrompt && !showSummary) { 
       setGameOverPrompt(true); setEndTimeInput(nowTime()); 
@@ -2244,12 +2193,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setGameOverPrompt(false);
     }
   }, [phaseEvents, score, showSummary, effTotalInnings, gameOverPrompt]);
-
   const commitEventBatch = (newEvents, logs = [], incomingSnap = null) => {
       // DEEP CLONE everything for immutable undo history stack
       const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
       const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
-      
       if (newEvents.length > 0) {
           newEvents[0].snapshot = snap;
           setEvents(p => [...p, ...newEvents]);
@@ -2268,7 +2215,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
       const logs = [`[${formatTime(t)}] 📍 ${phaseLabel(next.inning, next.phase)}`];
       commitEventBatch(newEvents, logs);
-      setBases({ home: null, '1b': null, '2b': null, '3b': null }); 
+      setBases({ home: null, '1b': null, '2b': null, '3b': null });
       setAtBatCount({ b: 0, s: 0 }); 
   };
 
@@ -2290,7 +2237,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       const pitchLog = `[${formatTime(t)}] ⚾ Pitch: ${type.toUpperCase()} (${newB}-${newS})`;
       const newPitchData = { ...pitchData, [fieldingTeam]: { ...(pitchData[fieldingTeam] || {}), [pName]: currentPitches + 1 } };
-      
       if (!autoAction) {
           setPitchData(newPitchData);
           setAtBatCount({ b: newB, s: newS });
@@ -2304,10 +2250,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           else if (autoAction === 'k') handleActionOut('home', 'K', 1, ['home'], pitchLog, snap, batchId);
       }
   };
-
   const BASE_VAL = { home: 0, '1b': 1, '2b': 2, '3b': 3, score: 4 };
   const VAL_BASE = { 0: 'home', 1: '1b', 2: '2b', 3: '3b', 4: 'score' };
-
   const executeAdvance = (sourceId, targetId, actionLabel = null, isError = false, extraLog = null, incomingSnap = null, incomingBatchId = null) => {
       const sVal = BASE_VAL[sourceId];
       const tVal = targetId === 'walk' || targetId === 'hbp' ? 1 : BASE_VAL[targetId];
@@ -2330,20 +2274,24 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       let runsScored = 0;
       let advanceLogs = extraLog ? [extraLog] : [];
       let newEvents = [];
-
       if (sourceId === 'home') {
           setAtBatCount({ b: 0, s: 0 });
           const has1B = !!bases['1b'];
           const has2B = !!bases['2b'];
           const has3B = !!bases['3b'];
           const batter = bases['home'];
-
           if (targetId === 'score') { 
-              if (has3B) { runsScored++; newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
-              if (has2B) { runsScored++; newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
-              if (has1B) { runsScored++; newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
-              runsScored++; newEvents.push({ id: batchId+4, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: batter?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-              
+              if (has3B) { runsScored++;
+                  newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              if (has2B) { runsScored++;
+                  newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              if (has1B) { runsScored++;
+                  newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              runsScored++;
+              newEvents.push({ id: batchId+4, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: batter?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               newBases = { home: null, '1b': null, '2b': null, '3b': null };
               advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Home Run!`);
           } else if (targetId === 'walk' || targetId === 'hbp') {
@@ -2363,19 +2311,29 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           } else if (targetId === '3b') { 
               advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Triple!`);
               newBases = { home: null, '1b': null, '2b': null, '3b': batter };
-              if (has3B) { runsScored++; newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
-              if (has2B) { runsScored++; newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
-              if (has1B) { runsScored++; newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
+              if (has3B) { runsScored++;
+                  newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              if (has2B) { runsScored++;
+                  newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              if (has1B) { runsScored++;
+                  newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
               newEvents.push({ id: batchId+4, batchId, type: 'advance', targetBase: '3b', isError, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
           } else if (targetId === '2b') { 
               advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Double!`);
               newBases = { home: null, '1b': null, '2b': batter, '3b': null };
               if (has3B) {
-                  if (has1B || has2B) { runsScored++; newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
+                  if (has1B || has2B) { runsScored++;
+                      newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  }
                   else newBases['3b'] = bases['3b'];
               }
               if (has2B) {
-                  if (has1B) { runsScored++; newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
+                  if (has1B) { runsScored++;
+                      newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  }
                   else newBases['3b'] = bases['2b'];
               }
               if (has1B) {
@@ -2386,7 +2344,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Single!`);
               newBases = { home: null, '1b': batter, '2b': null, '3b': null };
               if (has3B) {
-                  if (has1B && has2B) { runsScored++; newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }); }
+                  if (has1B && has2B) { runsScored++;
+                      newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  }
                   else newBases['3b'] = bases['3b'];
               }
               if (has2B) {
@@ -2407,7 +2367,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           const N = tVal - sVal;
           let displacements = { 1: 0, 2: 0, 3: 0 };
           displacements[sVal] = N;
-
           for (let i = sVal + 1; i <= 3; i++) {
               if (bases[VAL_BASE[i]]) {
                   let maxPosBehind = 0;
@@ -2464,13 +2423,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       let newBases = { ...bases };
       const logs = extraLog ? [extraLog] : [];
       const newEvents = [];
-      
       selectedBaseIds.forEach((bId, idx) => {
           newEvents.push({ id: batchId+idx, batchId, type: 'out', outType: label, batterId: bases[bId]?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
           logs.push(`[${formatTime(t)}] ⚾ Out (${label}) recorded on ${bases[bId]?.name || 'Player'}`);
           newBases[bId] = null;
       });
-
       setBases(newBases);
       if (selectedBaseIds.includes('home')) {
           setAtBatCount({ b: 0, s: 0 });
@@ -2484,7 +2441,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       commitEventBatch(newEvents, logs, snap);
       setActionMenuState(null);
   };
-
   const handleCourtesyRun = (baseId) => {
       const runner = bases[baseId];
       const prevLineupIdx = (lineupIdx[battingTeam] + 8) % Math.max(9, rosterData[battingTeam].length);
@@ -2493,27 +2449,22 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
-      
       setBases(prev => ({
           ...prev,
           [baseId]: { ...courtesyPlayer, lineupIndex: runner.lineupIndex, isCourtesy: true }
       }));
-      
       const logs = [`[${formatTime(t)}] 🏃 Courtesy Runner: ${courtesyPlayer?.name || 'Player'} runs for ${runner?.name || 'Unassigned'}`];
       commitEventBatch([{ id: batchId, batchId, type: 'sub', time: t }], logs, snap);
       setActionMenuState(null);
   };
-
   const finishInningAfterPitchCount = (pitches) => {
       setPendingPitchCountPrompt(false);
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
       const nextPhase = activeHalf === 'top' ? EV.MID : EV.START;
       const nextInning = activeHalf === 'top' ? activeInningNum : activeInningNum + 1;
-      
       const newEvents = [{ id: batchId, batchId, type: 'phase', phase: nextPhase, inning: nextInning, time: t }];
       const logs = [`[${formatTime(t)}] 🕒 3 Outs! Auto-advanced to ${phaseLabel(nextInning, nextPhase)}`];
-      
       if (pitches >= 0) {
           const pName = currentPitcher?.name || 'Pitcher';
           setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: pitches }}));
@@ -2553,7 +2504,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setGameOverPrompt(false);
       setPendingPitchCountPrompt(false);
   };
-
   if (showSummary) {
     return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} rosterData={rosterData} pitchData={pitchData} onNewGame={onNewGame} />;
   }
@@ -2581,9 +2531,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               onSave={(newPlayer, pitches) => {
                   const newRoster = { ...rosterData };
                   if (!newRoster.fielders) newRoster.fielders = { away: {}, home: {} };
-                  
                   const oldPosOfNewPlayer = Object.keys(activeFieldersMap).find(pPos => activeFieldersMap[pPos]?.id === newPlayer.id && pPos !== activeFielderSubModal.pos);
-                  
                   if (activeFielderSubModal.pos === 'P' && activeFielderSubModal.player) {
                       if (pitches >= 0) {
                           setPitchData(prev => ({ ...prev, [activeFielderSubModal.team]: { ...prev[activeFielderSubModal.team], [activeFielderSubModal.player.name]: pitches }}));
@@ -2610,7 +2558,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   }
 
                   setRosterData(newRoster);
-                  
                   if (oldPosOfNewPlayer) {
                       setActiveFielderSubModal({ team: activeFielderSubModal.team, pos: oldPosOfNewPlayer, player: null });
                   } else {
@@ -2653,11 +2600,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 }
                 
                 const newRoster = { ...rosterData };
-                
                 if (!newRoster.lineupLocks) newRoster.lineupLocks = { away: {}, home: {} };
                 if (!newRoster.lineupLocks[battingTeam]) newRoster.lineupLocks[battingTeam] = {};
                 newRoster.lineupLocks[battingTeam][newPlayer.id] = targetLineupIndex;
-
                 if (!newRoster.pool[battingTeam].find(p => p.id === newPlayer.id)) {
                     newRoster.pool[battingTeam].push({ ...newPlayer, pos: '' });
                 }
@@ -2702,7 +2647,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
                   const isBatter = actionMenuState === 'home';
                   const leadoffId = rosterData[battingTeam][0]?.id;
-                  
                   if (isBatter && lineupIdx[battingTeam] > 0 && info.id === leadoffId && !rosterData.lineupClosed?.[battingTeam]) {
                       const newRoster = { ...rosterData };
                       newRoster.lineupClosed[battingTeam] = true;
@@ -2812,50 +2756,55 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
         )}
 
         {!gameOverPrompt && (
-          inActiveInning ? (
-            <div style={{ position: "relative" }}>
-                <FieldDiagram 
-                    activeHalf={activeHalf}
-                    activeInningNum={activeInningNum}
-                    awayName={away}
-                    homeName={home}
-                    currentOuts={currentOuts} 
-                    bases={bases} 
-                    fieldingRoster={rosterData[fieldingTeam]}
-                    activeFieldersMap={activeFieldersMap}
-                    battingLineup={rosterData[battingTeam]}
-                    lineupIdx={lineupIdx[battingTeam]}
-                    lineupClosed={rosterData.lineupClosed?.[battingTeam]}
-                    onOpenActionMenu={setActionMenuState}
-                    onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
-                />
-                {!actionMenuState && !pendingPitchCountPrompt && currentOuts < 3 && (
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
-                         <Btn full small variant="outline" onClick={() => logPitch('ball')}>Ball ({atBatCount.b})</Btn>
-                         <Btn full small variant="outline" onClick={() => logPitch('strike')}>Strike ({atBatCount.s})</Btn>
-                         <Btn full small variant="outline" onClick={() => logPitch('foul')}>Foul</Btn>
-                         <Btn full small variant="outline" onClick={() => logPitch('hbp')}>HBP</Btn>
-                    </div>
-                )}
-                {currentOuts >= 3 && !pendingPitchCountPrompt && (
-                    <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", border: `2px solid ${C.text}`, borderRadius: "8px" }}>
-                        <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
-                    </div>
-                )}
-            </div>
-          ) : (
-            <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
-              <Label>NEXT PHASE TO LOG</Label>
-              <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
-              <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
-                <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
-                <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
-                <Btn variant="primary" disabled={delayActive} onClick={handleLogNextPhase}>LOG ↵</Btn>
-              </div>
-            </div>
-          )
+          <div style={{ position: "relative" }}>
+              {lastPhase && (
+                  <FieldDiagram 
+                      activeHalf={activeHalf}
+                      activeInningNum={activeInningNum}
+                      awayName={away}
+                      homeName={home}
+                      currentOuts={inActiveInning ? currentOuts : 0} 
+                      bases={bases} 
+                      fieldingRoster={rosterData[fieldingTeam] || []}
+                      activeFieldersMap={activeFieldersMap || {}}
+                      battingLineup={rosterData[battingTeam] || []}
+                      lineupIdx={lineupIdx[battingTeam] || 0}
+                      lineupClosed={rosterData.lineupClosed?.[battingTeam]}
+                      onOpenActionMenu={inActiveInning ? setActionMenuState : () => {}} 
+                      onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
+                  />
+              )}
+
+              {inActiveInning ? (
+                <>
+                    {!actionMenuState && !pendingPitchCountPrompt && currentOuts < 3 && (
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+                             <Btn full small variant="outline" onClick={() => logPitch('ball')}>Ball ({atBatCount.b})</Btn>
+                             <Btn full small variant="outline" onClick={() => logPitch('strike')}>Strike ({atBatCount.s})</Btn>
+                             <Btn full small variant="outline" onClick={() => logPitch('foul')}>Foul</Btn>
+                             <Btn full small variant="outline" onClick={() => logPitch('hbp')}>HBP</Btn>
+                        </div>
+                    )}
+                    {currentOuts >= 3 && !pendingPitchCountPrompt && (
+                        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", border: `2px solid ${C.text}`, borderRadius: "8px" }}>
+                            <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
+                        </div>
+                    )}
+                </>
+              ) : (
+                <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+                  <Label>NEXT PHASE TO LOG</Label>
+                  <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
+                  <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
+                    <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
+                    <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
+                    <Btn variant="primary" disabled={delayActive} onClick={handleLogNextPhase}>LOG ↵</Btn>
+                  </div>
+                </div>
+              )}
+          </div>
         )}
 
         <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
@@ -2899,7 +2848,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 <StatBox label={`${away.toUpperCase()} WIN`} value={`${Math.round(est.probs.awayWin*100)}%`} color={C.blue} />
                 <StatBox label={`${home.toUpperCase()} WIN`} value={`${Math.max(0, 100 - Math.round(est.probs.awayWin*100) - (allowTies ? Math.round(est.probs.tie*100) : 0))}%`} color={C.accent} />
                 {allowTies && <StatBox label="TIE" value={`${Math.round(est.probs.tie*100)}%`} color={C.muted} />}
-              </div>
+               </div>
             </div>
           )}
         </div>
@@ -2945,7 +2894,6 @@ function App() {
   const [config,  setConfig]  = useState(null);
   const [initState, setInitState] = useState(null);
   const [key, setKey] = useState(0);
-  
   const [rosterData, setRosterData] = useState(() => {
       const awayLineup = [{ id: `blank_a0`, name: '', no: '', pos: '' }];
       const homeLineup = [{ id: `blank_h0`, name: '', no: '', pos: '' }];
@@ -2960,15 +2908,14 @@ function App() {
           lineupIdx: { away: 0, home: 0 }
       };
   });
-
   const handleStart = cfg => { 
-      setConfig(cfg); 
+      setConfig(cfg);
       if (cfg.lateStart) {
           setScreen("latestart");
       } else {
           setInitState(null); 
           setKey(k => k + 1); 
-          setScreen("game"); 
+          setScreen("game");
       }
   };
   
@@ -3006,7 +2953,6 @@ function App() {
     setKey(k => k + 1);
     setScreen("game");
   };
-
   return (
       <>
         <div style={{ display: screen === 'latestart' && config ? 'block' : 'none' }}>
