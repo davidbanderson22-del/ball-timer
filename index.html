@@ -127,6 +127,7 @@
             z-index: 20;
             box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
             touch-action: none;
+            position: relative;
         }
         
         .pos-home  { top: 88%; left: 50%; width: 64px; height: 64px; }
@@ -401,7 +402,7 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
   let confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
   let canEstimate = warmupDurs.length >= 1;
   const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : sorted[sorted.length - 1];
-  // Dynamic Late Start Computation
+  
   if (config?.lateStart && !canEstimate) {
       const latestT = latestEvent?.time || parseTime(nowTime());
       const elapsedSecs = latestT - (config.gameStartTime || latestT) - (accumulatedDelay || 0);
@@ -1000,6 +1001,38 @@ function CopyModal({ text, onClose }) {
   );
 }
 
+function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, onCancel }) {
+    const [selectedId, setSelectedId] = useState(defaultCourtesyId || "");
+    
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>COURTESY RUNNER</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    Running for: {runner?.name || 'Player'}
+                </div>
+                
+                <Label>SELECT RUNNER</Label>
+                <Sel value={selectedId} onChange={setSelectedId}>
+                    <option value="" disabled hidden>Select Player...</option>
+                    {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                </Sel>
+                <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, marginTop: "6px" }}>
+                    * Defaults to the last batted out. Change this selection if the system defaulted to the wrong player.
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={() => {
+                        const p = rosterPool.find(x => x.id === selectedId);
+                        if (p) onSave(p);
+                    }} disabled={!selectedId}>CONFIRM</Btn>
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ActionMenuModal({ baseId, bases, runner, rosterPool, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
     const [mode, setMode] = useState('main');
     const [editSelectedId, setEditSelectedId] = useState(runner?.id || "");
@@ -1212,13 +1245,13 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
         }
         if (newPlayer) onSave(newPlayer);
     };
-    const label = baseId === 'home' ? 'PINCH HITTER' : 'PINCH RUNNER';
+    const label = baseId === 'home' ? 'PINCH HITTER' : baseId === 'lineup' ? 'LINEUP EDIT' : 'PINCH RUNNER';
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>{label}</div>
                 <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
-                    {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently on base`}
+                    {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently populated.`}
                 </div>
                 
                 <Label>SELECT FROM FULL ROSTER</Label>
@@ -1635,7 +1668,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, onOpenActionMenu, onChangeFielder }) {
+function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, onOpenActionMenu, onChangeFielder, onEditLineupSlot, onQuickAdvance }) {
     const zones = [
         { id: '2b', label: '', cls: 'pos-2b' },
         { id: '3b', label: '', cls: 'pos-3b' },
@@ -1729,12 +1762,20 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                             data-base-id={z.id}
                         >
                             {runner && (
-                                <div 
-                                    className="runner"
-                                    onClick={(e) => { e.stopPropagation(); onOpenActionMenu(z.id); }}
-                                >
-                                    {runner.no || '🏃'}
-                                </div>
+                                <>
+                                    <div 
+                                        className="runner"
+                                        onClick={(e) => { e.stopPropagation(); onOpenActionMenu(z.id); }}
+                                    >
+                                        {runner.no || '🏃'}
+                                    </div>
+                                    {z.id !== 'home' && (
+                                        <div onClick={(e) => { e.stopPropagation(); onQuickAdvance(z.id); }} 
+                                             style={{ position: 'absolute', right: -8, top: -8, background: C.green, color: C.bg, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 25, fontSize: '14px', fontWeight: 'bold', boxShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                                            +1
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     );
@@ -1745,8 +1786,8 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                 <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span></div>
                 <div style={{ textAlign: "right" }}>
                     <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
-                    <div>ON DECK: <span style={{color: C.muted}}>{onDeckName}</span></div>
-                    <div>IN HOLE: <span style={{color: C.muted}}>{inHoleName}</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(onDeckIdx)}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(inHoleIdx)}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
                 </div>
             </div>
         </div>
@@ -2068,6 +2109,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
   const [actionMenuState, setActionMenuState] = useState(null);
+  const [lineupEditModal, setLineupEditModal] = useState(null);
+  const [courtesyModal, setCourtesyModal] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   const defaultPitchers = {
       away: rosterData?.fielders?.away?.['P']?.name || rosterData?.away.find(p => p.pos === 'P')?.name || 'Unassigned',
@@ -2406,6 +2449,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       }
   };
 
+  const handleQuickAdvance = (baseId) => {
+      const nextBases = { '1b': '2b', '2b': '3b', '3b': 'score' };
+      const target = nextBases[baseId];
+      if (target) {
+          executeAdvance(baseId, target, "Extra Base", false);
+      }
+  };
+
   const handleActionOut = (baseId, label, count, selectedBaseIds = [baseId], extraLog = null, incomingSnap = null, incomingBatchId = null) => {
       const t = getSafeTime(entryTime, events);
       const batchId = incomingBatchId || Date.now();
@@ -2441,22 +2492,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       commitEventBatch(newEvents, logs, snap);
       setActionMenuState(null);
   };
-  const handleCourtesyRun = (baseId) => {
-      const runner = bases[baseId];
-      const prevLineupIdx = (lineupIdx[battingTeam] + 8) % Math.max(9, rosterData[battingTeam].length);
-      const courtesyPlayer = rosterData[battingTeam][prevLineupIdx];
-      
-      const t = getSafeTime(entryTime, events);
-      const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
-      setBases(prev => ({
-          ...prev,
-          [baseId]: { ...courtesyPlayer, lineupIndex: runner.lineupIndex, isCourtesy: true }
-      }));
-      const logs = [`[${formatTime(t)}] 🏃 Courtesy Runner: ${courtesyPlayer?.name || 'Player'} runs for ${runner?.name || 'Unassigned'}`];
-      commitEventBatch([{ id: batchId, batchId, type: 'sub', time: t }], logs, snap);
-      setActionMenuState(null);
-  };
+  
   const finishInningAfterPitchCount = (pitches) => {
       setPendingPitchCountPrompt(false);
       const t = getSafeTime(entryTime, events);
@@ -2570,6 +2606,25 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           />
       )}
 
+      {lineupEditModal && (
+          <OffensiveSubModal 
+            team={battingTeam}
+            baseId="lineup"
+            currentPlayer={rosterData[battingTeam][lineupEditModal.idx] || { lineupIndex: lineupEditModal.idx }}
+            rosterPool={rosterData.pool?.[battingTeam] || []}
+            onSave={(newPlayer) => {
+                const newRoster = { ...rosterData };
+                if (!newRoster.pool[battingTeam].find(p => p.id === newPlayer.id)) {
+                    newRoster.pool[battingTeam].push({ ...newPlayer, pos: '' });
+                }
+                newRoster[battingTeam][lineupEditModal.idx] = { ...newPlayer, lineupIndex: lineupEditModal.idx };
+                setRosterData(newRoster);
+                setLineupEditModal(null);
+            }} 
+            onCancel={() => setLineupEditModal(null)} 
+          />
+      )}
+
       {offensiveSubModal && (
           <OffensiveSubModal 
             team={battingTeam}
@@ -2624,6 +2679,30 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           />
       )}
 
+      {courtesyModal && (
+          <CourtesyRunnerModal 
+              runner={bases[courtesyModal.baseId]}
+              rosterPool={rosterData.pool?.[battingTeam] || []}
+              defaultCourtesyId={
+                  rosterData[battingTeam]?.[(lineupIdx[battingTeam] - 1 + (rosterData[battingTeam]?.length || 1)) % (rosterData[battingTeam]?.length || 1)]?.id
+              }
+              onSave={(newPlayer) => {
+                  const runner = bases[courtesyModal.baseId];
+                  const t = getSafeTime(entryTime, events);
+                  const batchId = Date.now();
+                  const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+                  setBases(prev => ({
+                      ...prev,
+                      [courtesyModal.baseId]: { ...newPlayer, lineupIndex: runner.lineupIndex, isCourtesy: true }
+                  }));
+                  const logs = [`[${formatTime(t)}] 🏃 Courtesy Runner: ${newPlayer?.name || 'Player'} runs for ${runner?.name || 'Unassigned'}`];
+                  commitEventBatch([{ id: batchId, batchId, type: 'sub', time: t }], logs, snap);
+                  setCourtesyModal(null);
+              }}
+              onCancel={() => setCourtesyModal(null)}
+          />
+      )}
+
       {actionMenuState && (
           <ActionMenuModal
               baseId={actionMenuState}
@@ -2640,7 +2719,10 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   setOffensiveSubModal({ baseId: actionMenuState, runner: bases[actionMenuState] });
                   setActionMenuState(null);
               }}
-              onCourtesy={() => handleCourtesyRun(actionMenuState)}
+              onCourtesy={() => {
+                  setCourtesyModal({ baseId: actionMenuState });
+                  setActionMenuState(null);
+              }}
               onEditInfo={(info) => {
                   const runner = bases[actionMenuState];
                   if (!runner) return;
@@ -2712,8 +2794,9 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               {away} <span style={{ color: C.faint, fontSize: "20px" }}>@</span> {home}
             </div>
           </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "160px" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "200px" }}>
             {events.length > 0 && <Btn small variant="outline" onClick={handleUndo} disabled={delayActive}>↩ Undo</Btn>}
+            <Btn small variant="ghost" onClick={() => setGameOverPrompt(true)}>🏁 End</Btn>
             <Btn small variant="ghost" onClick={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}>⬇</Btn>
             <Btn small variant="ghost" onClick={() => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)); setShowCopy(true); }}>📋</Btn>
             <Btn small variant="ghost" onClick={() => setShowImport(true)}>⬆</Btn>
@@ -2772,6 +2855,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       lineupClosed={rosterData.lineupClosed?.[battingTeam]}
                       onOpenActionMenu={inActiveInning ? setActionMenuState : () => {}} 
                       onChangeFielder={(pos, player) => setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
+                      onEditLineupSlot={(idx) => setLineupEditModal({ idx })}
+                      onQuickAdvance={handleQuickAdvance}
                   />
               )}
 
