@@ -3,644 +3,2603 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Score & Pace Tracker</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Game Time Estimator</title>
+    
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <style>
-        :root {
-            --bg: #1a1a1a; --surface: #2d2d2d; --border: #404040;
-            --text: #ffffff; --muted: #a0a0a0; --accent: #4a90e2;
-            --danger: #e24a4a; --success: #4ae26c; --warning: #e2b94a;
+        body { 
+            margin: 0;
+            padding: 0; 
+            background-color: #f4f1ea; 
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            color: #2c2c2c;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-        * { box-sizing: border-box; }
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px rgba(0,0,0,0) !important;
+        }
         
-        .container { max-width: 480px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
-        button { font-family: inherit; font-weight: 600; cursor: pointer; border: none; border-radius: 8px; padding: 12px 16px; transition: opacity 0.2s, transform 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        button:active { transform: scale(0.98); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-success { background: var(--success); color: #1a1a1a; }
-        .btn-warning { background: var(--warning); color: #1a1a1a; }
-        .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
-        .btn-full { width: 100%; }
+        .field-container {
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 16px;
+            background: #3c5e3c; 
+            border: 2px solid #2c2c2c;
+            overflow: hidden;
+            touch-action: none; 
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.15);
+        }
 
-        input, select { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid var(--border); border-radius: 8px; color: white; font-family: inherit; font-size: 16px; outline: none; }
-        input:focus, select:focus { border-color: var(--accent); }
+        .foul-line-left, .foul-line-right {
+            position: absolute;
+            bottom: 12%; left: 50%;
+            width: 2px; height: 120%;
+            background: rgba(255,255,255,0.6);
+            transform-origin: bottom center;
+            pointer-events: none;
+        }
+        .foul-line-left { transform: rotate(-45deg); }
+        .foul-line-right { transform: rotate(45deg); }
 
-        .flex { display: flex; } .grid { display: grid; }
-        .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
-        .justify-between { justify-content: space-between; } .align-center { align-items: center; }
-        .text-center { text-align: center; } .text-sm { font-size: 12px; } .text-muted { color: var(--muted); }
-        
-        /* Field Diagram CSS */
-        .field { position: relative; width: 100%; aspect-ratio: 1; background: #2a472a; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); }
-        .dirt { position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%) rotate(45deg); width: 70%; aspect-ratio: 1; background: #8b5a2b; border-radius: 8px; }
-        .grass-infield { position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%) rotate(45deg); width: 45%; aspect-ratio: 1; background: #2a472a; border-radius: 4px; }
-        .base { position: absolute; width: 24px; height: 24px; background: white; transform: translate(-50%, -50%) rotate(45deg); display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; font-size: 12px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border-radius: 4px;}
-        .base.home { clip-path: polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%); bottom: 2%; left: 50%; transform: translateX(-50%); }
-        
-        .runner-node { position: absolute; z-index: 20; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .runner-avatar { width: 32px; height: 32px; background: var(--accent); border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-        
-        .defender-node { position: absolute; z-index: 5; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: 0.8; cursor: pointer; }
-        .defender-dot { width: 8px; height: 8px; background: white; border-radius: 50%; }
-        .defender-label { font-size: 9px; background: rgba(0,0,0,0.6); padding: 2px 4px; border-radius: 4px; white-space: nowrap; }
+        .infield-dirt {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 75%; aspect-ratio: 1;
+            background: #b37b59; 
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
-        .modal { background: var(--surface); border: 1px solid var(--border); width: 100%; max-width: 400px; border-radius: 16px; padding: 24px; margin: auto; }
+        .infield-grass {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 33%; aspect-ratio: 1;
+            background: #3c5e3c; 
+            transform: translate(-50%, -50%) rotate(45deg);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .pitcher-mound {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 15%; aspect-ratio: 1;
+            background: #a06a4b;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .pitcher-plate {
+            position: absolute;
+            top: 65%; left: 50%;
+            width: 8px; height: 4px;
+            background: white;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .base-visual {
+            position: absolute;
+            width: 14px; height: 14px;
+            background: white;
+            transform: translate(-50%, -50%) rotate(45deg);
+            pointer-events: none;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .base-visual.home {
+            width: 16px;
+            height: 16px;
+            clip-path: polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%); 
+            transform: translate(-50%, -50%);
+        }
         
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 500; }
-        .nav-btn { flex: 1; padding: 16px; background: transparent; color: var(--muted); border-radius: 0; border: none; font-size: 14px; }
-        .nav-btn.active { color: var(--accent); border-top: 2px solid var(--accent); background: rgba(74, 144, 226, 0.1); }
+        .base-zone {
+            position: absolute;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10;
+        }
+        
+        .runner {
+            width: 30px;
+            height: 30px;
+            background: #eae4d3;
+            border: 2px solid #2c2c2c;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Courier Prime', monospace;
+            font-weight: bold; font-size: 13px; color: #2c2c2c;
+            cursor: pointer;
+            z-index: 20;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+            touch-action: none;
+            position: relative;
+        }
+        
+        .pos-home  { top: 88%; left: 50%; width: 64px; height: 64px; }
+        .pos-1b    { top: 65%; left: 73%; }
+        .pos-2b    { top: 42%; left: 50%; }
+        .pos-3b    { top: 65%; left: 27%; }
+
+        .def-player {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.9;
+        }
+        .def-player .dot {
+            width: 8px;
+            height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
+            box-shadow: 1px 1px 0 #000;
+        }
+        .def-player .name {
+            font-size: 9px;
+            color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
+            background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 2px;
+            white-space: nowrap;
+        }
+        
+        .pos-pitcher { 
+            position: absolute;
+            top: 65%; left: 50%; transform: translate(-50%, -50%);
+            border-radius: 50%; width: 50px; height: 50px; 
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+            cursor: pointer; z-index: 15; 
+            pointer-events: auto;
+        }
+        
+        .stats-table { width: 100%; border-collapse: collapse; font-family: 'Courier Prime', monospace; font-size: 11px; }
+        .stats-table th { background: #eae4d3; border-bottom: 2px solid #2c2c2c; padding: 4px; text-align: left; }
+        .stats-table td { border-bottom: 1px solid #b8af9b; padding: 4px; text-align: center; }
+        .stats-table td:first-child { text-align: left; }
     </style>
 </head>
 <body>
     <div id="root"></div>
+
     <script type="text/babel">
-        const { useState, useReducer, useEffect, useMemo } = React;
+/** @jsx React.createElement */
+/** @jsxFrag React.Fragment */
+const { useState, useCallback, useEffect, useRef, useMemo } = React;
+const C = {
+  bg: "#f4f1ea", card: "#eae4d3", border: "#d0c8b6", borderBright: "#b8af9b",
+  text: "#2c2c2c", muted: "#5a5a5a", faint: "#8a8a8a",
+  green: "#4a6b4a", greenDim: "#d4dbd4",
+  red: "#8b3a3a", redDim: "#ebd6d6",
+  yellow: "#b89030", yellowDim: "#e8dfc8",
+  blue: "#4a6b8c", blueDim: "#d2dce6",
+  accent: "#8b3a3a", accentDim: "#e0caca",
+  orange: "#b3592d",
+};
+const DISPLAY = "sans-serif";
+const MONO    = "'Courier Prime', monospace";
+const SERIF   = "'Courier Prime', monospace";
 
-        // --- 1. CORE BASEBALL STATE MACHINE ---
-        
-        // Helper to generate a default team roster
-        const generateDefaultTeam = (prefix) => {
-            const positions = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'];
-            const players = [];
-            for(let i=0; i<15; i++) {
-                players.push({
-                    id: `${prefix}${i}`,
-                    name: `Player ${i+1}`,
-                    number: i+1,
-                    // First 9 get a lineup spot and a position
-                    lineupIndex: i < 9 ? i : null,
-                    pos: i < 9 ? positions[i] : null
-                });
-            }
-            return players;
-        };
+const LEAGUES = {
+  hs:       { label: "High School",         halfInning: 10,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+  college:  { label: "College / NCAA",      halfInning: 11,  warmup: 2.5, innings: 9, mercy: 10, mercyAfter: 7 },
+  rec:      { label: "Adult Rec / Amateur", halfInning: 13,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+  mlb:      { label: "MLB / Pro",           halfInning: 10,  warmup: 2.0, innings: 9, mercy: null, mercyAfter: null },
+  softball: { label: "Softball",            halfInning: 9,   warmup: 2.5, innings: 7, mercy: 10, mercyAfter: 5 },
+  custom:   { label: "Custom",              halfInning: 11,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
+};
+const EV = { START: "start", TOP: "top", MID: "mid", BOT: "bot" };
+const PHASE_ORDER = [EV.START, EV.TOP, EV.MID, EV.BOT];
+const isWarmup = p => p === EV.START || p === EV.MID;
+function phaseLabel(inning, phase) {
+  const m = { start: `Pre-${inning} Warmup`, top: `Top ${inning}`, mid: `Mid-${inning} Warmup`, bot: `Bot ${inning}` };
+  return m[phase] ?? "";
+}
+function phaseDesc(phase, awayName = "Away", homeName = "Home") {
+  const m = { start: "Between-inning warmup begins", top: `${awayName} steps up to bat`, mid: "Mid-inning warmup begins", bot: `${homeName} steps up to bat` };
+  return m[phase] ?? "";
+}
 
-        const initialGameState = {
-            inning: 1,
-            isTop: true,
-            outs: 0,
-            bases: { first: null, second: null, third: null }, 
-            score: { away: 0, home: 0 },
-            count: { balls: 0, strikes: 0 },
-            roster: {
-                away: generateDefaultTeam('a'),
-                home: generateDefaultTeam('h')
-            },
-            currentBatterIdx: { away: 0, home: 0 },
-            eventLog: []
-        };
+function parseTime(str) {
+  if (!str) return null;
+  const parts = str.trim().split(":").map(Number);
+  let h = 0, m = 0, s = 0;
+  if (parts.length === 3) { [h, m, s] = parts; } 
+  else if (parts.length === 2) { [h, m] = parts; }
+  else return null;
+  if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+  return h * 3600 + m * 60 + s;
+}
+function formatTime(sec) {
+  if (sec == null || isNaN(sec)) return "—";
+  const t = ((Math.round(sec)) % 86400 + 86400) % 86400;
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
+function formatDur(sec) {
+  if (sec == null || isNaN(sec)) return "—";
+  const t = Math.round(sec);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+}
+function nowTime() {
+  const d = new Date();
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+}
+function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-        function gameReducer(state, action) {
-            const teamBatting = state.isTop ? 'away' : 'home';
-            const teamFielding = state.isTop ? 'home' : 'away';
+function sortEvents(arr) {
+  return [...arr].sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time;
+    return (a.id || 0) - (b.id || 0);
+  });
+}
 
-            // Helpers for roster management within reducer
-            const getBattingOrder = (team) => {
-                return state.roster[team]
-                    .filter(p => p.lineupIndex !== null)
-                    .sort((a, b) => a.lineupIndex - b.lineupIndex);
-            };
-            
-            const getCurrentBatter = () => {
-                const order = getBattingOrder(teamBatting);
-                return order[state.currentBatterIdx[teamBatting] % order.length]; // Modulo safety
-            };
+function getSafeTime(inputTime, allEvents) {
+  let t = parseTime(inputTime) ?? parseTime(nowTime());
+  if (allEvents && allEvents.length > 0) {
+      const sorted = sortEvents(allEvents);
+      const lastTime = sorted[sorted.length - 1].time;
+      if (t < lastTime) return lastTime;
+  }
+  return t;
+}
 
-            switch (action.type) {
-                case 'PITCH': {
-                    let { balls, strikes } = state.count;
-                    if (action.payload === 'ball') balls++;
-                    if (action.payload === 'strike') strikes++;
-                    if (action.payload === 'foul' && strikes < 2) strikes++;
+function getNextPhase(phaseEvents) {
+  if (!phaseEvents.length) return { inning: 1, phase: EV.START };
+  const sorted = sortEvents(phaseEvents);
+  const last = sorted[sorted.length - 1];
+  const idx = PHASE_ORDER.indexOf(last.phase);
+  if (idx < 3) {
+    return { inning: last.inning, phase: PHASE_ORDER[idx + 1] };
+  }
+  return { inning: last.inning + 1, phase: EV.START };
+}
 
-                    if (balls === 4) return gameReducer(state, { type: 'ADVANCE_BATTER', payload: { to: 'first', event: 'Walk' } });
-                    if (strikes === 3) return gameReducer(state, { type: 'BATTER_OUT', payload: { event: 'Strikeout' } });
+function isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit) {
+  if (!phaseEvents.length) return false;
+  const sorted = sortEvents(phaseEvents);
+  const last = sorted[sorted.length - 1];
+  const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
+  const diff = Math.abs(score.home - score.away);
 
-                    return { ...state, count: { balls, strikes } };
+  if (mercyAfter && mercyRuns && diff >= mercyRuns) {
+    if (score.home > score.away) {
+        if (last.inning >= mercyAfter && (last.phase === EV.MID || last.phase === EV.BOT)) return true;
+        if (lastCompleted >= mercyAfter) return true;
+    } else {
+        if (lastCompleted >= mercyAfter) return true;
+    }
+  }
+
+  if (last.inning >= effTotalInnings) {
+      if (last.phase === EV.MID && score.home > score.away) return true;
+      if (lastCompleted >= effTotalInnings && score.home !== score.away) return true;
+  }
+  
+  if (allowTies && lastCompleted >= tieInningLimit && score.home === score.away) return true;
+  
+  return false;
+}
+
+function poissonSample(lambda) {
+  if (lambda <= 0) return 0;
+  const L = Math.exp(-Math.min(lambda, 20));
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
+}
+
+function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning, halfDurCount, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase }) {
+  if (halfDurCount < 2) return null;
+  const prior = 0.8, pw = 2;
+  const awayRuns   = runsLog.filter(r => r.team === "away").reduce((s, r) => s + r.runs, 0);
+  const homeRuns   = runsLog.filter(r => r.team === "home").reduce((s, r) => s + r.runs, 0);
+  const awayHalves = Math.max(1, runsLog.filter(r => r.half === "top").length);
+  const homeHalves = Math.max(1, runsLog.filter(r => r.half === "bot").length);
+  const awayRate   = (awayRuns + pw * prior) / (awayHalves + pw);
+  const homeRate   = (homeRuns + pw * prior) / (homeHalves + pw);
+  
+  const N = 4000;
+  let mercy = 0, endTop = 0, endBot = 0, extra = 0;
+  let awayWin = 0, homeWin = 0, tieCount = 0;
+
+  const baseInning = activeInningNum || (lastPhase ? lastPhase.inning : 1);
+  const isTop = activeHalf === 'top';
+  const isBot = activeHalf === 'bot';
+  for (let i = 0; i < N; i++) {
+    let a = score.away, h = score.home;
+    let currentInn = Math.max(lastCompletedInning + 1, baseInning);
+
+    if (isTop) {
+        a += poissonSample(awayRate * ((3 - (currentOuts || 0)) / 3));
+        h += poissonSample(homeRate);
+        currentInn++;
+    } else if (isBot) {
+        h += poissonSample(homeRate * ((3 - (currentOuts || 0)) / 3));
+        currentInn++;
+    } else if (lastPhase && lastPhase.phase === EV.MID) {
+        h += poissonSample(homeRate);
+        currentInn++;
+    }
+
+    for (let j = currentInn; j <= totalInnings; j++) {
+        a += poissonSample(awayRate);
+        h += poissonSample(homeRate);
+    }
+    
+    const diff = Math.abs(a - h);
+    if (mercyAfter && mercyRuns && diff >= mercyRuns && (lastCompletedInning >= mercyAfter - 1 || totalInnings >= mercyAfter)) {
+      mercy++;
+    } else if (a === h) {
+      extra++;
+    } else if (h > a) {
+      endTop++;
+    } else {
+      endBot++; 
+    }
+
+    let currentInningResolution = Math.max(totalInnings, lastCompletedInning);
+    while (a === h) {
+      if (allowTies && currentInningResolution >= tieInningLimit) {
+        tieCount++;
+        break;
+      }
+      a += poissonSample(awayRate);
+      h += poissonSample(homeRate);
+      currentInningResolution++;
+      if (currentInningResolution > 50) { tieCount++;
+        break; }
+    }
+
+    if (a > h) awayWin++;
+    else if (h > a) homeWin++;
+  }
+  return {
+    mercy:       clamp(mercy / N, 0, 1),
+    endTop:      clamp(endTop / N, 0, 1),
+    endBot:      clamp(endBot / N, 0, 1),
+    extra:       clamp(extra / N, 0, 1),
+    awayWin:     clamp(awayWin / N, 0, 1),
+    homeWin:     clamp(homeWin / N, 0, 1),
+    tie:         clamp(tieCount / N, 0, 1),
+    awayRate, homeRate,
+  };
+}
+
+function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay, config }) {
+  if (!phaseEvents.length) return null;
+  const sorted = sortEvents(phaseEvents);
+  const halfDurs = [], warmupDurs = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const c = sorted[i], n = sorted[i + 1];
+    const d = n.time - c.time;
+    if (d < 0 || d > 5400) continue;
+    if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
+    if (c.phase === EV.BOT  && n.phase === EV.START && n.inning === c.inning + 1) halfDurs.push(d);
+  }
+  const measuredHalf   = avg(halfDurs);
+  const measuredWarmup = avg(warmupDurs);
+  let avgHalf   = (measuredHalf ?? (fallbackHalf * 60)) || 600;
+  let avgWarmup = (measuredWarmup ?? (fallbackWarmup * 60)) || 180;
+  
+  const minS = Math.min(halfDurs.length, warmupDurs.length);
+  let confidence = minS === 0 ? null : minS === 1 ? "low" : minS <= 2 ? "fair" : minS <= 4 ? "good" : "strong";
+  let canEstimate = warmupDurs.length >= 1;
+  const latestEvent = allEvents && allEvents.length ? sortEvents(allEvents)[allEvents.length - 1] : sorted[sorted.length - 1];
+  
+  if (config?.lateStart && !canEstimate) {
+      const latestT = latestEvent?.time || parseTime(nowTime());
+      const elapsedSecs = latestT - (config.gameStartTime || latestT) - (accumulatedDelay || 0);
+      
+      const activeInning = lastPhase?.inning || 1;
+      const isBot = lastPhase?.phase === EV.BOT;
+      const halvesElapsed = (activeInning - 1) * 2 + (isBot ? 1 : 0);
+      if (halvesElapsed > 0 && elapsedSecs > 0) {
+          const totalWarmupTime = halvesElapsed * (fallbackWarmup * 60);
+          const remainingTime = Math.max(0, elapsedSecs - totalWarmupTime);
+          avgHalf = remainingTime / halvesElapsed;
+          avgWarmup = fallbackWarmup * 60;
+          canEstimate = true;
+          confidence = "low"; 
+      } else {
+          canEstimate = true;
+          confidence = "low";
+      }
+  }
+
+  const last = sorted[sorted.length - 1];
+  const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
+  const runDiff = Math.abs(score.home - score.away);
+  let mercyEligible = false;
+  if (mercyAfter && mercyRuns && runDiff >= mercyRuns) {
+      if (score.home > score.away) {
+          if (last.inning >= mercyAfter && (last.phase === EV.MID || last.phase === EV.BOT)) mercyEligible = true;
+          if (lastCompleted >= mercyAfter) mercyEligible = true;
+      } else {
+          if (lastCompleted >= mercyAfter) mercyEligible = true;
+      }
+  }
+  
+  const homeLeading = score.home > score.away;
+  const botFinalNeeded = !homeLeading;
+  const inExtra = lastCompleted >= totalInnings;
+  let remHalf = 0, remWarmup = 0;
+  const effEnd = inExtra ? lastCompleted + 1 : totalInnings;
+  for (let inn = 1; inn <= effEnd; inn++) {
+    for (const ph of PHASE_ORDER) {
+      if (inn === totalInnings && ph === EV.BOT && !botFinalNeeded && !inExtra) continue;
+      if (inn === 1 && ph === EV.START) continue;
+      if (sorted.some(e => e.inning === inn && e.phase === ph)) continue;
+      if (ph === EV.TOP || ph === EV.BOT) remHalf++; else remWarmup++;
+    }
+  }
+  if (inExtra) { remHalf += 2; remWarmup += 2; }
+  
+  const currentlyInWarmup = isWarmup(last.phase);
+  const outPace = (avgHalf || 0) / 3;
+  const activeTimeRem = (!currentlyInWarmup && activeHalf) ? Math.max(0, (3 - (currentOuts || 0)) * outPace) : (currentlyInWarmup ? (avgWarmup || 0) : 0);
+  const estimatedEnd = Number((latestEvent?.time || 0) + (activeTimeRem || 0) + (remHalf * (avgHalf || 0)) + (remWarmup * (avgWarmup || 0)) + (accumulatedDelay || 0)) || 0;
+  
+  const probs = computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, lastCompletedInning: lastCompleted, halfDurCount: halfDurs.length, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase });
+  return {
+    avgHalf, avgWarmup, measuredHalf, measuredWarmup,
+    halfDurs, warmupDurs, confidence, canEstimate,
+    remHalf, remWarmup, estimatedEnd, last,
+    mercyEligible, botFinalNeeded, inExtra,
+    lastCompletedInning: lastCompleted, currentlyInWarmup,
+    probs, runDiff,
+  };
+}
+
+const SAVE_VERSION = 2;
+
+function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
+  const data = {
+    v: SAVE_VERSION,
+    savedAt: new Date().toISOString(),
+    config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  const ts   = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "-");
+  a.href     = url;
+  a.download = `game_${config.away}_vs_${config.home}_${ts}.json`.replace(/\s+/g, "_");
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
+  const lines = [
+    `GAME: ${config.away} @ ${config.home}`,
+    `SAVED: ${new Date().toLocaleString()}`,
+    `---`,
+    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData }),
+  ];
+  return lines.join("\n");
+}
+
+function parseImport(text) {
+  try {
+    const data = JSON.parse(text.trim());
+    if (data.v && data.config && data.events) return { ok: true, data };
+    return { ok: false, error: "Unrecognized format" };
+  } catch {
+    const lines = text.trim().split("\n");
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const data = JSON.parse(lines[i]);
+        if (data.v && data.config && data.events) return { ok: true, data };
+      } catch {}
+    }
+    return { ok: false, error: "Could not parse game data" };
+  }
+}
+
+// ── Micro components ──────────────────────────────────────────────────────────
+function Label({ children, style: s }) {
+  return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontFamily: MONO, marginBottom: "5px", fontWeight: "bold", ...s }}>{children}</div>;
+}
+function Inp({ value, onChange, placeholder, type = "text", style: s, autoFocus, disabled }) {
+  return (
+    <input disabled={disabled} autoFocus={autoFocus} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: disabled ? C.muted : C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }} />
+  );
+}
+function Sel({ value, onChange, children, style: s }) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", ...s }}>
+      {children}
+    </select>
+  );
+}
+function Btn({ children, onClick, variant = "primary", small, full, disabled, style: s }) {
+  const vs = {
+    primary:   { background: C.text, color: C.bg, border: `2px solid ${C.text}`, boxShadow: `2px 2px 0px ${C.text}` },
+    outline:   { background: "transparent", color: C.text, border: `2px solid ${C.text}`, boxShadow: `2px 2px 0px ${C.text}` },
+    ghost:     { background: "transparent", color: C.muted, border: `1px dashed ${C.borderBright}` },
+    danger:    { background: C.red, color: C.bg, border: `2px solid ${C.red}`, boxShadow: `2px 2px 0px ${C.red}` },
+    success:   { background: C.green, color: C.bg, border: `2px solid ${C.green}`, boxShadow: `2px 2px 0px ${C.green}` },
+    highlight: { background: C.yellow, color: C.bg, border: `2px solid ${C.yellow}`, boxShadow: `2px 2px 0px ${C.yellow}` },
+  };
+  return (
+    <button onClick={disabled ? undefined : onClick} style={{
+      ...vs[variant], cursor: disabled ? "default" : "pointer",
+      fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase",
+      fontSize: small ? "11px" : "14px", padding: small ? "7px 10px" : "11px 16px",
+      width: full ? "100%" : undefined, opacity: disabled ? 0.35 : 1, transition: "transform 0.1s, box-shadow 0.1s", ...s,
+    }}>{children}</button>
+  );
+}
+function Toggle({ on, onToggle, label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <button onClick={onToggle} style={{ background: on ? C.text : "transparent", border: `2px solid ${C.text}`, width: "38px", height: "22px", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+        <div style={{ position: "absolute", top: "2px", left: on ? "18px" : "2px", width: "14px", height: "14px", background: on ? C.bg : C.text, transition: "left 0.2s" }} />
+      </button>
+      <span style={{ fontSize: "12px", color: C.text, fontFamily: MONO, fontWeight: "bold" }}>{label}</span>
+    </div>
+  );
+}
+function ConfChip({ confidence }) {
+  if (!confidence) return null;
+  const map = { low: { label: "Low", color: C.red, bg: C.redDim }, fair: { label: "Fair", color: C.yellow, bg: C.yellowDim }, good: { label: "Good", color: C.blue, bg: C.blueDim }, strong: { label: "Strong", color: C.green, bg: C.greenDim } };
+  const { label, color, bg } = map[confidence];
+  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO }}>{label}</span>;
+}
+function StatBox({ label, value, sub, color, dim }) {
+  return (
+    <div style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "8px 6px", textAlign: "center", opacity: dim ? 0.6 : 1, transition: "opacity 0.3s" }}>
+      <Label style={{ marginBottom: "3px" }}>{label}</Label>
+      <div style={{ fontSize: "22px", fontFamily: DISPLAY, color: color ?? C.text, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, marginTop: "4px" }}>{sub}</div>}
+    </div>
+  );
+}
+function Divider({ label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "14px 0 12px" }}>
+      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
+      {label && <span style={{ fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontFamily: MONO }}>{label}</span>}
+      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
+    </div>
+  );
+}
+
+function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning, currentPhase, currentInning }) {
+  const maxCols = Math.max(totalInnings, currentInning || lastCompletedInning || 1);
+  const cols = Array.from({ length: maxCols }, (_, i) => i + 1);
+  const getRuns = (team, inning) => {
+    const half = team === "away" ? "top" : "bot";
+    const entries = runsLog.filter(r => r.team === team && r.inning === inning && r.half === half);
+    if (entries.length) return String(entries.reduce((s, r) => s + r.runs, 0));
+
+    let played = false;
+    if (currentPhase !== null && currentPhase !== undefined) {
+        if (inning < (currentInning || 1)) {
+           played = true;
+        } else if (inning === currentInning) {
+           if (team === "away" && (currentPhase === EV.TOP || currentPhase === EV.MID || currentPhase === EV.BOT)) played = true;
+           if (team === "home" && currentPhase === EV.BOT) played = true;
+        }
+    } else {
+        played = team === "away" ? inning <= Math.ceil((lastCompletedInning || 0) + 0.5) : inning <= (lastCompletedInning || 0);
+    }
+    return played ? "0" : "·";
+  };
+  const cell = val => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "5px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}` });
+  return (
+    <div style={{ overflowX: "auto", border: `2px solid ${C.text}`, background: C.bg }}>
+      <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <thead>
+          <tr>
+            <td style={{ width: "64px", fontSize: "10px", fontFamily: MONO, color: C.muted, padding: "3px 4px", borderBottom: `2px solid ${C.text}` }} />
+            {cols.map(i => <td key={i} style={{ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "3px 2px", borderRight: `1px solid ${C.borderBright}`, borderBottom: `2px solid ${C.text}` }}>{i}{i > totalInnings ? "x" : ""}</td>)}
+            <td style={{ width: "28px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "3px 4px", borderBottom: `2px solid ${C.text}`, borderLeft: `2px solid ${C.text}` }}>R</td>
+          </tr>
+        </thead>
+        <tbody>
+          {[["away", away], ["home", home]].map(([side, name]) => (
+            <tr key={side}>
+              <td style={{ fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "5px 4px", maxWidth: "64px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderBottom: `1px solid ${C.borderBright}`, borderRight: `2px solid ${C.text}` }}>{name}</td>
+              {cols.map(inn => { const v = getRuns(side, inn); return <td key={inn} style={cell(v)}>{v}</td>; })}
+              <td style={{ width: "28px", textAlign: "center", fontSize: "14px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "5px 4px", borderBottom: `1px solid ${C.borderBright}`, borderLeft: `2px solid ${C.text}` }}>{score[side]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AccuracyGraph({ estimateHistory, endTime, config }) {
+  const [xMode, setXMode] = useState("inning");
+  const [yMode, setYMode] = useState("signed");
+  const [excludeEarly, setExcludeEarly] = useState(false);
+  const svgRef = useRef(null);
+
+  const points = useMemo(() => {
+    if (!endTime || !estimateHistory.length) return [];
+    let filteredHistory = estimateHistory.filter(h => h.estimate != null && !isNaN(h.estimate));
+    
+    if (excludeEarly) {
+        filteredHistory = filteredHistory.filter(h => h.inning > 1);
+    }
+
+    let phaseCounts = {};
+
+    return filteredHistory.map(h => {
+      let xVal;
+      if (xMode === "inning") {
+          const phaseKey = `${h.inning}-${h.phase}`;
+          phaseCounts[phaseKey] = (phaseCounts[phaseKey] || 0) + 1;
+          
+          const baseMap = { [EV.START]: 0, [EV.TOP]: 0.1, [EV.MID]: 0.5, [EV.BOT]: 0.6 };
+          const maxMap = { [EV.START]: 0.05, [EV.TOP]: 0.45, [EV.MID]: 0.55, [EV.BOT]: 0.95 };
+          const offset = baseMap[h.phase] ?? 0;
+          const maxO = maxMap[h.phase] ?? 0.95;
+          const staggered = offset + ((phaseCounts[phaseKey] - 1) * 0.05);
+          
+          xVal = h.inning + Math.min(staggered, maxO);
+      } else {
+          xVal = h.wallTime;
+      }
+
+      return {
+        ...h,
+        error: yMode === "signed" ? Math.round((h.estimate - endTime) / 60) : Math.round(Math.abs(h.estimate - endTime) / 60),
+        xVal
+      };
+    });
+  }, [estimateHistory, endTime, xMode, yMode, excludeEarly]);
+
+  const validPoints = points.filter(p => !isNaN(p.xVal) && !isNaN(p.error));
+  if (validPoints.length === 0) return null;
+
+  const W = 320, H = 180, PL = 44, PR = 12, PT = 16, PB = 28;
+  const IW = W - PL - PR, IH = H - PT - PB;
+  const xs = validPoints.map(p => p.xVal);
+  const ys = validPoints.map(p => p.error);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yAbsMax = Math.max(Math.abs(Math.min(...ys)), Math.abs(Math.max(...ys)), 5);
+  const yMin = yMode === "signed" ? -yAbsMax : 0;
+  const yMax = yAbsMax;
+  const toSVG = (xv, yv) => ({
+    x: PL + ((xv - xMin) / (xMax - xMin || 1)) * IW,
+    y: PT + (1 - (yv - yMin) / (yMax - yMin || 1)) * IH,
+  });
+  const zeroY = PT + (1 - (0 - yMin) / (yMax - yMin || 1)) * IH;
+  const pathD = validPoints.map((p, i) => { const { x, y } = toSVG(p.xVal, p.error); return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`; }).join(" ");
+  const yTicks = [];
+  const step = Math.ceil(yAbsMax / 3);
+  for (let v = Math.ceil(yMin / step) * step; v <= yMax; v += step) yTicks.push(v);
+  const maxInn = Math.max(config.totalInnings, Math.ceil(xMax || 1));
+  const xTicks = xMode === "inning"
+    ? Array.from({ length: maxInn }, (_, i) => i + 1).filter(v => v >= Math.floor(xMin) && v <= Math.ceil(xMax))
+    : validPoints.map(p => p.xVal);
+  return (
+    <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "14px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+        <Label style={{ marginBottom: 0 }}>ESTIMATE ACCURACY</Label>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>
+            {excludeEarly ? "SHOW ALL" : "HIDE EARLY"}
+          </button>
+          {[["signed", "±"], ["absolute", "|e|"]].map(([v, l]) => (
+            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+          ))}
+          {[["inning", "INN"], ["time", "TIME"]].map(([v, l]) => (
+            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.blue : "transparent", border: `1px solid ${xMode === v ? C.blue : C.text}`, color: xMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px 0" }}>
+        <svg ref={svgRef} width={W} height={H} style={{ display: "block", margin: "0 auto" }}>
+          {yMode === "signed" && <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke={C.borderBright} strokeWidth="2" strokeDasharray="4,4" />}
+          {yTicks.map(v => {
+            const y = PT + (1 - (v - yMin) / (yMax - yMin || 1)) * IH;
+            return <line key={v} x1={PL} y1={y} x2={W - PR} y2={y} stroke={C.borderBright} strokeWidth="1" strokeDasharray="2,2" />;
+          })}
+          <line x1={PL} y1={PT} x2={PL} y2={PT + IH} stroke={C.text} strokeWidth="2" />
+          <line x1={PL} y1={PT + IH} x2={W - PR} y2={PT + IH} stroke={C.text} strokeWidth="2" />
+          {yTicks.map(v => {
+            const y = PT + (1 - (v - yMin) / (yMax - yMin || 1)) * IH;
+            return <text key={v} x={PL - 6} y={y + 4} textAnchor="end" fontSize="10" fill={C.text} fontFamily={MONO} fontWeight="bold">{v > 0 ? `+${v}` : v}m</text>;
+          })}
+          {xMode === "inning" ? xTicks.map(v => {
+            const { x } = toSVG(v, 0);
+            return <text key={v} x={x} y={H - 6} textAnchor="middle" fontSize="10" fill={C.text} fontFamily={MONO} fontWeight="bold">{v}</text>;
+          }) : validPoints.map((p, i) => {
+            if (i % Math.max(1, Math.floor(validPoints.length / 5)) !== 0) return null;
+            const { x } = toSVG(p.xVal, 0);
+            return <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="9" fill={C.muted} fontFamily={MONO}>{formatTime(p.wallTime)}</text>;
+          })}
+          {validPoints.length > 1 && <path d={`${pathD} L${toSVG(validPoints[validPoints.length - 1].xVal, yMin).x},${toSVG(validPoints[validPoints.length - 1].xVal, yMin).y} L${toSVG(validPoints[0].xVal, yMin).x},${toSVG(validPoints[0].xVal, yMin).y} Z`} fill={C.accentDim} opacity="0.4" />}
+          {validPoints.length > 1 && <path d={pathD} fill="none" stroke={C.accent} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />}
+          {validPoints.map((p, i) => {
+             const { x, y } = toSVG(p.xVal, p.error);
+             const col = yMode === "signed"
+              ? (p.error > 0 ? C.yellow : p.error < 0 ? C.blue : C.green)
+              : (Math.abs(p.error) <= 5 ? C.green : Math.abs(p.error) <= 15 ? C.yellow : C.red);
+             return <circle key={i} cx={x} cy={y} r="5" fill={col} stroke={C.bg} strokeWidth="2" />;
+          })}
+          <text x={PL + IW / 2} y={H} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold">{xMode === "inning" ? "INNING" : "TIME"}</text>
+          <text x={10} y={PT + IH / 2} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold" transform={`rotate(-90,10,${PT + IH / 2})`}>ERROR (MIN)</text>
+        </svg>
+      </div>
+
+      <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "12px" }}>
+        {yMode === "signed"
+          ? [["Long", C.yellow], ["Short", C.blue], ["Exact", C.green]].map(([l, c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
+              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
+            </div>
+          ))
+          : [["≤5m", C.green], ["≤15m", C.yellow], [">15m", C.red]].map(([l, c]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
+              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function StatsTable({ events, rosterData, config, pitchData }) {
+    const stats = useMemo(() => {
+        const hStats = { away: {}, home: {} };
+        const pStats = { away: {}, home: {} };
+
+        ['away', 'home'].forEach(team => {
+            (rosterData.pool?.[team] || []).forEach(p => {
+                hStats[team][p.id] = { id: p.id, name: p.name, no: p.no, PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
+            });
+            (rosterData[team] || []).forEach(p => {
+                if (p.id && !hStats[team][p.id]) {
+                    hStats[team][p.id] = { id: p.id, name: p.name, no: p.no, PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
                 }
+            });
+        });
 
-                case 'ADVANCE_BATTER': {
-                    const { to, event } = action.payload;
-                    const batter = getCurrentBatter();
-                    if (!batter) return state; // Safety check
+        events.forEach(e => {
+            if (!e.team && !e.pitcher) return;
+            
+            const isTop = e.half === 'top';
+            const battingTeam = isTop ? 'away' : 'home';
+            const fieldingTeam = isTop ? 'home' : 'away';
 
-                    let newBases = { ...state.bases };
-                    let runsScored = 0;
-                    
-                    if (to === 'first') {
-                        if (newBases.first) {
-                            if (newBases.second) {
-                                if (newBases.third) runsScored++;
-                                newBases.third = newBases.second;
-                            }
-                            newBases.second = newBases.first;
-                        }
-                        newBases.first = batter.id;
-                    } 
-                    else if (to === 'home') {
-                        if (newBases.third) runsScored++;
-                        if (newBases.second) runsScored++;
-                        if (newBases.first) runsScored++;
-                        runsScored++; 
-                        newBases = { first: null, second: null, third: null };
+            if (e.batterId && !hStats[battingTeam][e.batterId]) {
+                const poolP = rosterData.pool?.[battingTeam]?.find(p => p.id === e.batterId);
+                hStats[battingTeam][e.batterId] = { id: e.batterId, name: poolP?.name || 'Unknown', no: poolP?.no || '', PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
+            }
+            
+            const pId = e.pitcherId || e.pitcher;
+            if (pId) {
+                if (!pStats[fieldingTeam][pId]) pStats[fieldingTeam][pId] = { id: pId, name: e.pitcher, outs: 0, H: 0, R: 0, ER: 0, BB: 0, K: 0, HBP: 0 };
+            }
+
+            if (e.type === 'out') {
+                if (e.batterId) {
+                    if (e.outType === 'K') hStats[battingTeam][e.batterId].K++;
+                    if (e.outType !== 'CS' && e.outType !== 'Pickoff') {
+                        hStats[battingTeam][e.batterId].AB++;
+                        hStats[battingTeam][e.batterId].PA++;
                     }
-
-                    const orderLen = getBattingOrder(teamBatting).length || 1;
-                    const nextIdx = (state.currentBatterIdx[teamBatting] + 1) % orderLen;
-                    
-                    return {
-                        ...state,
-                        bases: newBases,
-                        score: { ...state.score, [teamBatting]: state.score[teamBatting] + runsScored },
-                        currentBatterIdx: { ...state.currentBatterIdx, [teamBatting]: nextIdx },
-                        count: { balls: 0, strikes: 0 },
-                        eventLog: [...state.eventLog, `${batter.name}: ${event}${runsScored > 0 ? ` (${runsScored} RBI)` : ''}`]
-                    };
                 }
-
-                case 'BATTER_OUT': {
-                    const batter = getCurrentBatter();
-                    if (!batter) return state;
-
-                    const newOuts = state.outs + 1;
-                    const orderLen = getBattingOrder(teamBatting).length || 1;
-                    const nextIdx = (state.currentBatterIdx[teamBatting] + 1) % orderLen;
-                    
-                    if (newOuts >= 3) {
-                        return gameReducer(state, { type: 'END_HALF_INNING' });
+                if (pId) {
+                    pStats[fieldingTeam][pId].outs += (e.val || 1);
+                    if (e.outType === 'K') pStats[fieldingTeam][pId].K++;
+                }
+            } else if (e.type === 'advance') {
+                if (e.batterId) {
+                    if (e.targetBase === 'walk') { hStats[battingTeam][e.batterId].BB++;
+                        hStats[battingTeam][e.batterId].PA++; }
+                    else if (e.targetBase === 'hbp') { hStats[battingTeam][e.batterId].HBP++;
+                        hStats[battingTeam][e.batterId].PA++; }
+                    else {
+                        hStats[battingTeam][e.batterId].AB++;
+                        hStats[battingTeam][e.batterId].PA++;
+                        if (!e.isError && ['1b','2b','3b','score'].includes(e.targetBase)) hStats[battingTeam][e.batterId].H++;
                     }
-
-                    return {
-                        ...state,
-                        outs: newOuts,
-                        currentBatterIdx: { ...state.currentBatterIdx, [teamBatting]: nextIdx },
-                        count: { balls: 0, strikes: 0 },
-                        eventLog: [...state.eventLog, `${batter.name}: ${action.payload.event}`]
-                    };
                 }
-
-                case 'RESOLVE_PLAY': {
-                    const { batterOutcome, runnersOut, runs, runnersRemaining } = action.payload;
-                    const batter = getCurrentBatter();
-                    
-                    let newOuts = state.outs + runnersOut.length;
-                    if (batterOutcome === 'out') newOuts++;
-
-                    if (newOuts >= 3) return gameReducer(state, { type: 'END_HALF_INNING' });
-
-                    const orderLen = getBattingOrder(teamBatting).length || 1;
-                    const nextIdx = (state.currentBatterIdx[teamBatting] + 1) % orderLen;
-                    
-                    return {
-                        ...state,
-                        outs: newOuts,
-                        bases: runnersRemaining,
-                        score: { ...state.score, [teamBatting]: state.score[teamBatting] + runs },
-                        currentBatterIdx: { ...state.currentBatterIdx, [teamBatting]: nextIdx },
-                        count: { balls: 0, strikes: 0 },
-                        eventLog: [...state.eventLog, `Play resolved: ${batter?.name} ${batterOutcome}. ${runs} runs scored.`]
-                    };
+                if (pId && e.batterId) {
+                    if (e.targetBase === 'walk') pStats[fieldingTeam][pId].BB++;
+                    else if (e.targetBase === 'hbp') pStats[fieldingTeam][pId].HBP++;
+                    else if (!e.isError && ['1b','2b','3b','score'].includes(e.targetBase)) pStats[fieldingTeam][pId].H++;
                 }
-
-                case 'COURTESY_RUNNER': {
-                    const { base, newRunnerId } = action.payload;
-                    return {
-                        ...state,
-                        bases: { ...state.bases, [base]: newRunnerId },
-                        eventLog: [...state.eventLog, `Courtesy runner entered at ${base}.`]
-                    };
+            } else if (e.type === 'run') {
+                if (e.scoredId) {
+                    if (!hStats[battingTeam][e.scoredId]) hStats[battingTeam][e.scoredId] = { id: e.scoredId, name: 'Unknown', PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
+                    hStats[battingTeam][e.scoredId].R += (e.val || 1);
                 }
-
-                case 'END_HALF_INNING': {
-                    return {
-                        ...state,
-                        isTop: !state.isTop,
-                        inning: !state.isTop ? state.inning + 1 : state.inning,
-                        outs: 0,
-                        bases: { first: null, second: null, third: null },
-                        count: { balls: 0, strikes: 0 },
-                        eventLog: [...state.eventLog, `--- ${state.isTop ? 'Mid' : 'End'} ${state.inning} ---`]
-                    };
-                }
-
-                // --- ROSTER MANAGEMENT ---
-                case 'UPDATE_ROSTER_PLAYER': {
-                    const { team, player } = action.payload;
-                    const updatedRoster = state.roster[team].map(p => {
-                        if (p.id === player.id) return player;
-                        
-                        // Positional Integrity: If new player is assigned 'P', remove 'P' from whoever else had it
-                        if (player.pos && p.id !== player.id && p.pos === player.pos) {
-                            return { ...p, pos: null };
-                        }
-                        
-                        // Lineup Integrity: If new player is assigned lineupIdx 3, remove it from whoever else had it
-                        if (player.lineupIndex !== null && p.id !== player.id && p.lineupIndex === player.lineupIndex) {
-                            return { ...p, lineupIndex: null };
-                        }
-
-                        return p;
-                    });
-
-                    return {
-                        ...state,
-                        roster: { ...state.roster, [team]: updatedRoster }
-                    };
-                }
-
-                default: return state;
-            }
-        }
-
-        // --- 2. HELPERS ---
-        const getEligibleCourtesyRunner = (state) => {
-            const team = state.isTop ? 'away' : 'home';
-            const order = state.roster[team].filter(p => p.lineupIndex !== null).sort((a,b) => a.lineupIndex - b.lineupIndex);
-            if(order.length === 0) return null;
-
-            const currentIdx = state.currentBatterIdx[team] % order.length;
-            const activeRunnerIds = Object.values(state.bases).filter(Boolean);
-            const currentBatterId = order[currentIdx].id;
-
-            for (let i = 1; i <= order.length; i++) {
-                const checkIdx = (currentIdx - i + order.length) % order.length;
-                const candidate = order[checkIdx];
-                
-                if (!activeRunnerIds.includes(candidate.id) && candidate.id !== currentBatterId) {
-                    return candidate;
+                if (pId) {
+                    pStats[fieldingTeam][pId].R += (e.val || 1);
+                    if (!e.isError) pStats[fieldingTeam][pId].ER += (e.val || 1);
                 }
             }
-            return order[0]; 
-        };
+        });
+        return { hStats, pStats };
+    }, [events, rosterData]);
 
-        const getPlayerById = (state, id, forceTeam=null) => {
-            if(!id) return null;
-            if(forceTeam) return state.roster[forceTeam].find(p => p.id === id);
-            return state.roster.away.find(p => p.id === id) || state.roster.home.find(p => p.id === id);
-        };
+    const renderBatting = (teamName, teamKey) => {
+        const players = Object.values(stats.hStats[teamKey]).filter(p => p.PA > 0 || p.R > 0 || p.H > 0);
+        if (!players.length) return null;
 
-        // --- 3. UI COMPONENTS ---
-
-        function RunnerActionModal({ state, base, onClose, dispatch }) {
-            const runnerId = state.bases[base];
-            const runner = getPlayerById(state, runnerId);
-            const lbo = getEligibleCourtesyRunner(state);
-            const [selectedCourtesy, setSelectedCourtesy] = useState(lbo?.id || '');
-            
-            const team = state.isTop ? 'away' : 'home';
-
-            const handleCourtesy = () => {
-                if(!selectedCourtesy) return;
-                dispatch({ type: 'COURTESY_RUNNER', payload: { base, newRunnerId: selectedCourtesy } });
-                onClose();
-            };
-
-            return (
-                <div className="modal-overlay" onClick={onClose}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 style={{marginTop: 0}}>Runner on {base}</h2>
-                        <p className="text-muted">Current: <strong>{runner?.name}</strong></p>
-                        
-                        <div className="card" style={{marginTop: 24}}>
-                            <h3 style={{marginTop: 0, fontSize: 16}}>Courtesy Runner</h3>
-                            <p className="text-sm text-muted">The system identifies the last batted out. You may override this.</p>
-                            <select value={selectedCourtesy} onChange={e => setSelectedCourtesy(e.target.value)} style={{marginBottom: 16}}>
-                                <option value="" disabled>Select Runner...</option>
-                                {state.roster[team].map(p => (
-                                    <option key={p.id} value={p.id}>{p.name} {p.id === lbo?.id ? '(Last Batted Out)' : ''}</option>
-                                ))}
-                            </select>
-                            <button className="btn-primary btn-full" onClick={handleCourtesy} disabled={!selectedCourtesy}>Swap Runner</button>
-                        </div>
-
-                        <button className="btn-outline btn-full" onClick={onClose}>Cancel</button>
-                    </div>
-                </div>
-            );
-        }
-
-        function BallInPlayModal({ state, dispatch, onClose }) {
-            const teamBatting = state.isTop ? 'away' : 'home';
-            const order = state.roster[teamBatting].filter(p => p.lineupIndex !== null).sort((a,b) => a.lineupIndex - b.lineupIndex);
-            const batter = order[state.currentBatterIdx[teamBatting] % (order.length||1)] || {name: 'Unknown', id: 'unknown'};
-            
-            const [batterOutcome, setBatterOutcome] = useState('safe_first'); 
-            const [runs, setRuns] = useState(0);
-            const [outsCount, setOutsCount] = useState(0);
-
-            const handleResolve = () => {
-                // Determine remaining runners blindly based on outcome for this simple mock
-                let rem = { first: null, second: null, third: null };
-                if(batterOutcome === 'safe_first') rem.first = batter.id;
-                if(batterOutcome === 'safe_second') rem.second = batter.id;
-                if(batterOutcome === 'safe_third') rem.third = batter.id;
-
-                dispatch({ 
-                    type: 'RESOLVE_PLAY', 
-                    payload: { 
-                        batterOutcome: batterOutcome === 'out' ? 'out' : 'safe', 
-                        runnersOut: Array(outsCount).fill('out'), // Mock out array
-                        runs: runs,
-                        runnersRemaining: rem 
-                    } 
-                });
-                onClose();
-            };
-
-            return (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <h2 style={{marginTop: 0, color: 'var(--warning)'}}>Ball in Play!</h2>
-                        
-                        <div className="card">
-                            <label className="text-sm text-muted">Batter Outcome ({batter.name})</label>
-                            <select value={batterOutcome} onChange={e => setBatterOutcome(e.target.value)} style={{marginTop: 8}}>
-                                <option value="out">Out</option>
-                                <option value="safe_first">Safe at 1st</option>
-                                <option value="safe_second">Safe at 2nd</option>
-                                <option value="safe_third">Safe at 3rd</option>
-                                <option value="hr">Home Run</option>
-                            </select>
-                        </div>
-
-                        <div className="card flex justify-between align-center">
-                            <label className="text-sm text-muted">Runs Scored on Play</label>
-                            <input type="number" min="0" max="4" value={runs} onChange={e => setRuns(Number(e.target.value))} style={{width: 80, textAlign: 'center'}} />
-                        </div>
-                        
-                        <div className="card flex justify-between align-center">
-                            <label className="text-sm text-muted">Runners Out on Play</label>
-                            <input type="number" min="0" max="3" value={outsCount} onChange={e => setOutsCount(Number(e.target.value))} style={{width: 80, textAlign: 'center'}} />
-                        </div>
-
-                        <div className="grid gap-3">
-                            <button className="btn-success btn-full" onClick={handleResolve}>Commit Play</button>
-                            <button className="btn-outline btn-full" onClick={onClose}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function DefenderSubModal({ state, pos, onClose, dispatch }) {
-            const teamFielding = state.isTop ? 'home' : 'away';
-            const currentDefender = state.roster[teamFielding].find(p => p.pos === pos);
-            const [selectedId, setSelectedId] = useState(currentDefender?.id || '');
-
-            const handleSave = () => {
-                if(!selectedId) return;
-                const player = state.roster[teamFielding].find(p => p.id === selectedId);
-                // Dispatch roster update
-                dispatch({
-                    type: 'UPDATE_ROSTER_PLAYER',
-                    payload: { team: teamFielding, player: { ...player, pos: pos } }
-                });
-                onClose();
-            };
-
-            return (
-                <div className="modal-overlay" onClick={onClose}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2 style={{marginTop: 0}}>Assign {pos}</h2>
-                        <p className="text-muted">Current: <strong>{currentDefender?.name || 'Empty'}</strong></p>
-                        
-                        <select value={selectedId} onChange={e => setSelectedId(e.target.value)} style={{marginBottom: 16, marginTop: 16}}>
-                            <option value="" disabled>Select Player...</option>
-                            {state.roster[teamFielding].map(p => (
-                                <option key={p.id} value={p.id}>{p.name} {p.pos ? `(Currently ${p.pos})` : ''}</option>
-                            ))}
-                        </select>
-
-                        <div className="grid gap-3">
-                            <button className="btn-primary btn-full" onClick={handleSave} disabled={!selectedId}>Assign Position</button>
-                            <button className="btn-outline btn-full" onClick={onClose}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // --- SUB-SCREENS ---
-        
-        function RosterManager({ state, dispatch }) {
-            const [activeTab, setActiveTab] = useState('away');
-
-            const handlePlayerEdit = (player, field, value) => {
-                dispatch({
-                    type: 'UPDATE_ROSTER_PLAYER',
-                    payload: { team: activeTab, player: { ...player, [field]: value } }
-                });
-            };
-
-            const handleLineupChange = (player, newIdxStr) => {
-                const newIdx = newIdxStr === 'bench' ? null : parseInt(newIdxStr, 10);
-                dispatch({
-                    type: 'UPDATE_ROSTER_PLAYER',
-                    payload: { team: activeTab, player: { ...player, lineupIndex: newIdx } }
-                });
-            };
-
-            const handlePosChange = (player, newPos) => {
-                dispatch({
-                    type: 'UPDATE_ROSTER_PLAYER',
-                    payload: { team: activeTab, player: { ...player, pos: newPos || null } }
-                });
-            };
-
-            return (
-                <div className="container" style={{paddingBottom: 100}}>
-                    <h2 className="text-center" style={{marginTop: 0}}>Roster Management</h2>
-                    
-                    <div className="flex" style={{marginBottom: 16}}>
-                        <button className={`btn-full ${activeTab === 'away' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('away')} style={{borderRadius: '8px 0 0 8px'}}>Away</button>
-                        <button className={`btn-full ${activeTab === 'home' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('home')} style={{borderRadius: '0 8px 8px 0'}}>Home</button>
-                    </div>
-
-                    <div className="card">
-                        <div className="grid" style={{gridTemplateColumns: '30px 2fr 1fr 1fr', gap: 8, marginBottom: 8, fontWeight: 'bold', fontSize: 12, color: 'var(--muted)'}}>
-                            <div>#</div>
-                            <div>Name</div>
-                            <div>Order</div>
-                            <div>Pos</div>
-                        </div>
-                        
-                        {state.roster[activeTab].map(p => (
-                            <div key={p.id} className="grid" style={{gridTemplateColumns: '30px 2fr 1fr 1fr', gap: 8, marginBottom: 8, alignItems: 'center'}}>
-                                <input type="text" value={p.number} onChange={e => handlePlayerEdit(p, 'number', e.target.value)} style={{padding: '8px 4px', textAlign: 'center'}} />
-                                <input type="text" value={p.name} onChange={e => handlePlayerEdit(p, 'name', e.target.value)} style={{padding: '8px'}} />
-                                <select value={p.lineupIndex === null ? 'bench' : p.lineupIndex} onChange={e => handleLineupChange(p, e.target.value)} style={{padding: '8px 4px'}}>
-                                    <option value="bench">Bench</option>
-                                    {[0,1,2,3,4,5,6,7,8,9,10].map(i => <option key={i} value={i}>{i+1}</option>)}
-                                </select>
-                                <select value={p.pos || ''} onChange={e => handlePosChange(p, e.target.value)} style={{padding: '8px 4px'}}>
-                                    <option value="">-</option>
-                                    {['P','C','1B','2B','3B','SS','LF','CF','RF','DH','EH'].map(pos => <option key={pos} value={pos}>{pos}</option>)}
-                                </select>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        // --- MAIN APP ---
-
-        function App() {
-            const [state, dispatch] = useReducer(gameReducer, initialGameState);
-            const [activeModal, setActiveModal] = useState(null); 
-            const [currentView, setCurrentView] = useState('game'); // 'game', 'roster', 'log'
-
-            const teamBatting = state.isTop ? 'away' : 'home';
-            const teamFielding = state.isTop ? 'home' : 'away';
-            
-            const order = state.roster[teamBatting].filter(p => p.lineupIndex !== null).sort((a,b) => a.lineupIndex - b.lineupIndex);
-            const batter = order[state.currentBatterIdx[teamBatting] % (order.length||1)] || {name: 'Empty Slot', id: 'null'};
-
-            // Field Coordinates map
-            const defCoords = {
-                'C': { bottom: '2%', left: '50%' },
-                'P': { bottom: '35%', left: '50%' },
-                '1B': { bottom: '38%', left: '76%' },
-                '2B': { bottom: '52%', left: '65%' },
-                'SS': { bottom: '52%', left: '35%' },
-                '3B': { bottom: '38%', left: '24%' },
-                'LF': { bottom: '75%', left: '20%' },
-                'CF': { bottom: '85%', left: '50%' },
-                'RF': { bottom: '75%', left: '80%' }
-            };
-
-            return (
-                <>
-                {currentView === 'game' && (
-                    <div className="container">
-                        {/* Top Scoreboard */}
-                        <div className="card flex justify-between align-center">
-                            <div className="text-center">
-                                <div className="text-muted text-sm">AWAY</div>
-                                <div style={{fontSize: 32, fontWeight: 'bold'}}>{state.score.away}</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-muted text-sm" style={{color: 'var(--accent)', fontWeight: 'bold'}}>
-                                    {state.isTop ? 'TOP' : 'BOT'} {state.inning}
-                                </div>
-                                <div className="flex gap-2" style={{marginTop: 8, justifyContent: 'center'}}>
-                                    {[1,2,3].map(i => (
-                                        <div key={i} style={{width: 12, height: 12, borderRadius: '50%', background: state.outs >= i ? 'var(--danger)' : 'var(--border)'}} />
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-muted text-sm">HOME</div>
-                                <div style={{fontSize: 32, fontWeight: 'bold'}}>{state.score.home}</div>
-                            </div>
-                        </div>
-
-                        {/* Field Diagram */}
-                        <div className="field">
-                            <div className="dirt" />
-                            <div className="grass-infield" />
-                            
-                            <div className="base" style={{ bottom: '48%', left: '80%' }} /> {/* 1B */}
-                            <div className="base" style={{ bottom: '80%', left: '50%' }} /> {/* 2B */}
-                            <div className="base" style={{ bottom: '48%', left: '20%' }} /> {/* 3B */}
-                            <div className="base home" /> {/* Home */}
-
-                            {/* Defenders */}
-                            {Object.entries(defCoords).map(([pos, coords]) => {
-                                const player = state.roster[teamFielding].find(p => p.pos === pos);
+        return (
+            <div style={{ marginBottom: "16px" }}>
+                <Label>{teamName} BATTING</Label>
+                <div style={{ overflowX: "auto", border: `2px solid ${C.text}` }}>
+                    <table className="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>AB</th><th>R</th><th>H</th><th>BB</th><th>K</th><th>AVG</th><th>OBP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {players.map(p => {
+                                const avg = p.AB > 0 ? (p.H / p.AB).toFixed(3).replace(/^0+/, '') : '.000';
+                                const obp = p.PA > 0 ? ((p.H + p.BB + p.HBP) / p.PA).toFixed(3).replace(/^0+/, '') : '.000';
                                 return (
-                                    <div key={pos} className="defender-node" style={coords} onClick={() => setActiveModal(`def_${pos}`)}>
-                                        <div className="defender-dot" />
-                                        <div className="defender-label">{player ? player.name : pos}</div>
-                                    </div>
-                                )
-                            })}
+                                <tr key={p.id}>
+                                    <td>{p.no ? `#${p.no} ` : ''}{p.name || 'Unknown'}</td>
+                                    <td>{p.AB}</td><td>{p.R}</td><td>{p.H}</td><td>{p.BB}</td><td>{p.K}</td>
+                                    <td>{avg}</td><td>{obp}</td>
+                                </tr>
+                            )})}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+    const renderPitching = (teamName, teamKey) => {
+        const pitchers = Object.values(stats.pStats[teamKey]);
+        if (!pitchers.length) return null;
+        const innPerGame = config.totalInnings || 7;
+        return (
+            <div style={{ marginBottom: "16px" }}>
+                <Label>{teamName} PITCHING</Label>
+                <div style={{ overflowX: "auto", border: `2px solid ${C.text}` }}>
+                    <table className="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Pitcher</th>
+                                <th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>P/IP</th><th>WHIP</th><th>ERA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {pitchers.map(p => {
+                                const totalPitches = pitchData?.[teamKey]?.[p.id] || pitchData?.[teamKey]?.[p.name] || 0;
+                                const ipFull = Math.floor(p.outs / 3);
+                                const ipFrac = p.outs % 3;
+                                const ipStr = `${ipFull}.${ipFrac}`;
+                                const ipNum = p.outs / 3;
+                                const whip = ipNum > 0 ? ((p.BB + p.H) / ipNum).toFixed(2) : 'INF';
+                                const era = ipNum > 0 ? ((p.ER * innPerGame) / ipNum).toFixed(2) : 'INF';
+                                const p_ip = ipNum > 0 ? (totalPitches / ipNum).toFixed(1) : totalPitches;
+                                return (
+                                <tr key={p.id}>
+                                    <td>{p.name}</td>
+                                    <td>{ipStr}</td><td>{p.H}</td><td>{p.R}</td><td>{p.ER}</td><td>{p.BB}</td><td>{p.K}</td>
+                                    <td>{p_ip}</td><td>{whip}</td><td>{era}</td>
+                                </tr>
+                            )})}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
 
-                            {/* Runners */}
-                            {state.bases.first && (
-                                <div className="runner-node" style={{ bottom: '50%', left: '80%' }}>
-                                    <div className="runner-avatar" onClick={() => setActiveModal('runner_first')}>{getPlayerById(state, state.bases.first)?.number}</div>
-                                </div>
-                            )}
-                            {state.bases.second && (
-                                <div className="runner-node" style={{ bottom: '82%', left: '50%' }}>
-                                    <div className="runner-avatar" onClick={() => setActiveModal('runner_second')}>{getPlayerById(state, state.bases.second)?.number}</div>
-                                </div>
-                            )}
-                            {state.bases.third && (
-                                <div className="runner-node" style={{ bottom: '50%', left: '20%' }}>
-                                    <div className="runner-avatar" onClick={() => setActiveModal('runner_third')}>{getPlayerById(state, state.bases.third)?.number}</div>
-                                </div>
-                            )}
-                        </div>
+    return (
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+            {renderBatting(config.away, 'away')}
+            {renderBatting(config.home, 'home')}
+            <Divider label="Pitching" />
+            {renderPitching(config.away, 'away')}
+            {renderPitching(config.home, 'home')}
+        </div>
+    );
+}
 
-                        {/* Pitching Controls */}
-                        <div className="card">
-                            <div className="flex justify-between align-center" style={{marginBottom: 16}}>
-                                <div>
-                                    <span className="text-muted text-sm">AT BAT: </span>
-                                    <strong style={{color: 'var(--accent)'}}>{batter.name}</strong>
-                                </div>
-                                <div style={{fontSize: 24, fontFamily: 'monospace'}}>
-                                    {state.count.balls}-{state.count.strikes}
-                                </div>
-                            </div>
-                            
-                            <div className="grid gap-2" style={{gridTemplateColumns: '1fr 1fr 1fr'}}>
-                                <button className="btn-outline" onClick={() => dispatch({type: 'PITCH', payload: 'ball'})}>Ball</button>
-                                <button className="btn-outline" onClick={() => dispatch({type: 'PITCH', payload: 'strike'})}>Strike</button>
-                                <button className="btn-outline" onClick={() => dispatch({type: 'PITCH', payload: 'foul'})}>Foul</button>
-                            </div>
-                            
-                            <div className="grid gap-2" style={{gridTemplateColumns: '1fr 1fr', marginTop: 8}}>
-                                <button className="btn-warning" onClick={() => setActiveModal('bip')}>⚾ In Play</button>
-                                <button className="btn-danger" onClick={() => dispatch({type: 'BATTER_OUT', payload: {event: 'Out'}})}>X Out</button>
-                            </div>
-                        </div>
+// ── Modals ────────────────────────────────────────────────────────────────────
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" };
+const modalStyle   = { background: C.bg, border: `4px solid ${C.text}`, padding: "20px", width: "100%", maxWidth: "360px", boxShadow: `6px 6px 0px rgba(0,0,0,0.2)`, maxHeight: "90vh", overflowY: "auto" };
+function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState(null);
+  const [step, setStep] = useState(hasActiveGame ? "warn" : "paste");
+  const fileRef = useRef(null);
+  const handleFile = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setText(ev.target.result);
+    reader.readAsText(file);
+  };
+  const handleImport = () => {
+    const result = parseImport(text);
+    if (!result.ok) { setError(result.error); return; }
+    onImport(result.data);
+  };
 
-                        {/* Modals */}
-                        {activeModal === 'bip' && <BallInPlayModal state={state} dispatch={dispatch} onClose={() => setActiveModal(null)} />}
-                        {activeModal?.startsWith('runner_') && (
-                            <RunnerActionModal 
-                                base={activeModal.split('_')[1]} 
-                                state={state} 
-                                dispatch={dispatch} 
-                                onClose={() => setActiveModal(null)} 
-                            />
+  if (step === "warn") {
+    return (
+      <div style={overlayStyle}>
+        <div style={modalStyle}>
+          <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>GAME IN PROGRESS</div>
+          <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "18px", lineHeight: "1.6", fontWeight: "bold" }}>
+            You have an active game. Importing will overwrite it.<br />Save the current game first?
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Btn full variant="highlight" onClick={() => { onExportFirst(); setStep("paste"); }}>SAVE CURRENT GAME FIRST</Btn>
+            <Btn full variant="outline"   onClick={() => setStep("paste")}>DISCARD & IMPORT</Btn>
+            <Btn full variant="ghost"     onClick={onCancel}>CANCEL</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>IMPORT SAVED GAME</div>
+        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Upload a .json file or paste exported text.</div>
+        <input ref={fileRef} type="file" accept=".json,text/plain" onChange={handleFile} style={{ display: "none" }} />
+        <Btn full variant="outline" small onClick={() => fileRef.current.click()} style={{ marginBottom: "12px" }}>📂 CHOOSE FILE</Btn>
+        <textarea
+          value={text} onChange={e => setText(e.target.value)}
+          placeholder="Or paste exported text here..."
+          style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }}
+        />
+        {error && <div style={{ fontSize: "12px", color: C.red, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{error}</div>}
+        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+          <Btn full variant="primary" onClick={handleImport} disabled={!text.trim()}>IMPORT →</Btn>
+          <Btn full variant="ghost"   onClick={onCancel}>CANCEL</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopyModal({ text, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard?.writeText(text).then(() => setCopied(true)); };
+  return (
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>COPY SCORECARD</div>
+        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Copy this text to save your game anywhere.</div>
+        <textarea readOnly value={text} style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "11px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }} />
+        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+          <Btn full variant={copied ? "success" : "primary"} onClick={copy}>{copied ? "COPIED ✓" : "COPY TEXT"}</Btn>
+          <Btn full variant="ghost" onClick={onClose}>DONE</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, onCancel }) {
+    const [selectedId, setSelectedId] = useState(defaultCourtesyId || "");
+    
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>COURTESY RUNNER</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    Running for: {runner?.name || 'Player'}
+                </div>
+                
+                <Label>SELECT RUNNER</Label>
+                <Sel value={selectedId} onChange={setSelectedId}>
+                    <option value="" disabled hidden>Select Player...</option>
+                    {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                </Sel>
+                <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, marginTop: "6px" }}>
+                    * Defaults to the last batted out. Change this selection if the system defaulted to the wrong player.
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={() => {
+                        const p = rosterPool.find(x => x.id === selectedId);
+                        if (p) onSave(p);
+                    }} disabled={!selectedId}>CONFIRM</Btn>
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ActionMenuModal({ baseId, bases, runner, rosterPool, inPlayMode, onOut, onAdvance, onSub, onCourtesy, onEditInfo, onClose }) {
+    const [mode, setMode] = useState('main');
+    const [editSelectedId, setEditSelectedId] = useState(runner?.id || "");
+    const [editName, setEditName] = useState(runner?.name || "");
+    const [editNo, setEditNo] = useState(runner?.no || "");
+    const [isError, setIsError] = useState(false);
+
+    const isBatter = baseId === 'home';
+    
+    const outOptions = [
+        {l:'Force Out', v:1}, {l:'Tag Out', v:1}, {l:'Fly Out', v:1}, {l:'Line Out', v:1}, {l:'Other Out', v:1}
+    ];
+    
+    const advanceOptions = isBatter
+        ? [{l:'1B', v:'1b'}, {l:'2B', v:'2b'}, {l:'3B', v:'3b'}, {l:'HR', v:'score'}]
+        : (baseId === '1b' ? [{l:'2B', v:'2b'}, {l:'3B', v:'3b'}, {l:'Score', v:'score'}]
+          : baseId === '2b' ? [{l:'3B', v:'3b'}, {l:'Score', v:'score'}]
+          : [{l:'Score', v:'score'}]);
+          
+    const handleOutClick = (label, count) => {
+        if (inPlayMode) {
+            onOut(label, 1, [baseId]);
+        } else {
+            onOut(label, count, [baseId]);
+        }
+    };
+
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>
+                    {isBatter ? "BATTER ACTION" : "RUNNER ACTION"}
+                </div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    {runner?.name || 'Player'}
+                </div>
+                
+                {mode === 'main' && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {inPlayMode ? (
+                            <>
+                                <Btn full variant="success" onClick={() => setMode('advance')}>ADVANCE</Btn>
+                                <Btn full variant="danger" onClick={() => setMode('out')}>OUT</Btn>
+                            </>
+                        ) : (
+                            <>
+                                {!isBatter && <Btn full variant="danger" onClick={() => setMode('pickoff')}>PICKOFF / CS</Btn>}
+                                <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
+                                <Btn full variant="outline" onClick={() => { setMode('edit_info'); }}>EDIT INFO</Btn>
+                                {!isBatter && onCourtesy && (
+                                    <Btn full variant="highlight" onClick={onCourtesy}>COURTESY RUNNER</Btn>
+                                )}
+                            </>
                         )}
-                        {activeModal?.startsWith('def_') && (
-                            <DefenderSubModal 
-                                pos={activeModal.split('_')[1]} 
-                                state={state} 
-                                dispatch={dispatch} 
-                                onClose={() => setActiveModal(null)} 
-                            />
+                        <Btn full variant="ghost" onClick={onClose}>CANCEL</Btn>
+                    </div>
+                )}
+                
+                {mode === 'out' && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        {outOptions.map(o => (
+                            <Btn key={o.l} full variant="outline" onClick={() => handleOutClick(o.l, o.v)}>{o.l}</Btn>
+                        ))}
+                        <div style={{ gridColumn: "span 2" }}>
+                            <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                        </div>
+                    </div>
+                )}
+                
+                {mode === 'pickoff' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <Btn full variant="danger" onClick={() => handleOutClick('Pickoff', 1)}>PICKOFF OUT</Btn>
+                        <Btn full variant="danger" onClick={() => handleOutClick('CS', 1)}>CAUGHT STEALING</Btn>
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                )}
+                
+                {mode === 'advance' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div style={{ marginBottom: '8px' }}>
+                            <Toggle on={isError} onToggle={() => setIsError(!isError)} label="Reached/Advanced on Error" />
+                        </div>
+                        {advanceOptions.map(o => (
+                            <Btn key={o.l} full variant="outline" onClick={() => onAdvance(o.l, o.v, isError)}>{o.l}</Btn>
+                        ))}
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                )}
+                
+                {mode === 'edit_info' && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <Label>SELECT OR ADD PLAYER</Label>
+                        <Sel value={editSelectedId} onChange={v => {
+                            setEditSelectedId(v);
+                            if (v === 'add_new') {
+                                setEditName('');
+                                setEditNo('');
+                            } else {
+                                const existing = rosterPool.find(p => p.id === v);
+                                if (existing) {
+                                    setEditName(existing.name || '');
+                                    setEditNo(existing.no || '');
+                                }
+                            }
+                        }}>
+                            <option value="" disabled hidden>Select Player...</option>
+                            {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                            <option value="add_new">+ Add New Player</option>
+                        </Sel>
+                        {editSelectedId === 'add_new' && (
+                            <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                                <Inp value={editName} onChange={setEditName} placeholder="Name" />
+                                <div style={{ width: "80px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
+                            </div>
                         )}
+                        <Btn full variant="primary" onClick={() => {
+                            if (editSelectedId === 'add_new') {
+                                onEditInfo({ id: `p_${Date.now()}`, name: editName, no: editNo });
+                            } else {
+                                const existing = rosterPool.find(p => p.id === editSelectedId);
+                                if (existing) {
+                                    onEditInfo({ ...existing, name: editName, no: editNo });
+                                } else if (editSelectedId === runner?.id) {
+                                    onEditInfo({ ...runner, name: editName, no: editNo });
+                                }
+                            }
+                        }}>SAVE INFO</Btn>
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
+
+// ── Roster & Lineup Screen ────────────────────────────────────────────────────
+function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersMap, currentPitchTotal, onSave, onEditInfo, onCancel }) {
+    const [mode, setMode] = useState('main'); // 'main' or 'edit'
+    const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
+    const [pitches, setPitches] = useState(String(currentPitchTotal || ""));
+    const [newName, setNewName] = useState("");
+    const [newNo, setNewNo] = useState("");
+    
+    const [editName, setEditName] = useState(currentPlayer?.name || "");
+    const [editNo, setEditNo] = useState(currentPlayer?.no || "");
+
+    if (mode === 'edit') {
+        return (
+            <div style={overlayStyle}>
+                <div style={modalStyle}>
+                    <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>EDIT {pos} INFO</div>
+                    <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Update current player details without logging a substitution.</div>
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <Inp value={editName} onChange={setEditName} placeholder="Name" />
+                        <div style={{ width: "80px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                        <Btn full variant="primary" onClick={() => onEditInfo({ name: editName, no: editNo })}>SAVE INFO</Btn>
+                        <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const handleConfirm = () => {
+         let newPlayer;
+         if (selectedId === 'add_new') {
+             newPlayer = { id: `p_${Date.now()}`, name: newName, no: newNo, pos: pos };
+         } else {
+             newPlayer = rosterPool.find(p => p.id === selectedId);
+             if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+                 newPlayer = currentPlayer;
+             }
+         }
+         if (newPlayer) {
+             onSave({ ...newPlayer, pos }, parseInt(pitches) || 0);
+         }
+    };
+
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>ASSIGN {pos}</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently assigned to ${pos}`}
+                </div>
+                
+                <Label>SELECT FROM FULL ROSTER</Label>
+                <Sel value={selectedId} onChange={setSelectedId}>
+                    <option value="" disabled hidden>Select Player...</option>
+                    {rosterPool.map(p => {
+                        const existingPos = Object.entries(activeFieldersMap).find(([pPos, assigned]) => assigned?.id === p.id && pPos !== pos)?.[0];
+                        return <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player`} {existingPos ? `(Move from ${existingPos})` : ''}</option>;
+                    })}
+                    <option value="add_new">+ Add New Player (Sub)</option>
+                </Sel>
+
+                {selectedId === 'add_new' && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <Inp value={newName} onChange={setNewName} placeholder="Name" />
+                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
                     </div>
                 )}
 
-                {currentView === 'roster' && <RosterManager state={state} dispatch={dispatch} />}
+                {pos === 'P' && currentPlayer?.name && selectedId !== 'add_new' && selectedId !== currentPlayer?.id && (
+                    <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
+                        <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({currentPlayer.name})</Label>
+                        <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
+                    </div>
+                )}
 
-                {/* Bottom Navigation */}
-                <div className="nav-bar">
-                    <button className={`nav-btn ${currentView === 'game' ? 'active' : ''}`} onClick={() => setCurrentView('game')}>⚾ Game</button>
-                    <button className={`nav-btn ${currentView === 'roster' ? 'active' : ''}`} onClick={() => setCurrentView('roster')}>📋 Roster</button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM SUB</Btn>
+                    {currentPlayer?.name && <Btn full variant="outline" onClick={() => setMode('edit')}>EDIT CURRENT PLAYER INFO</Btn>}
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
-                </>
-            );
-        }
+            </div>
+        </div>
+    );
+}
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, onCancel }) {
+    const [selectedId, setSelectedId] = useState(currentPlayer?.id || "");
+    const [newName, setNewName] = useState("");
+    const [newNo, setNewNo] = useState("");
+    const handleConfirm = () => {
+        let newPlayer;
+        if (selectedId === 'add_new') {
+            newPlayer = { id: `p_${Date.now()}`, name: newName, no: newNo, pos: '' };
+        } else {
+            newPlayer = rosterPool.find(p => p.id === selectedId);
+            if (!newPlayer && selectedId === (currentPlayer?.id || "")) {
+                newPlayer = currentPlayer;
+            }
+        }
+        if (newPlayer) onSave(newPlayer);
+    };
+    const label = baseId === 'home' ? 'PINCH HITTER' : baseId === 'lineup' ? 'LINEUP EDIT' : 'PINCH RUNNER';
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>{label}</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently populated.`}
+                </div>
+                
+                <Label>SELECT FROM FULL ROSTER</Label>
+                <Sel value={selectedId} onChange={setSelectedId}>
+                    <option value="" disabled hidden>Select Player...</option>
+                    {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                    <option value="add_new">+ Add New Player</option>
+                </Sel>
+
+                {selectedId === 'add_new' && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <Inp value={newName} onChange={setNewName} placeholder="Name" />
+                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
+                    </div>
+                )}
+
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
+                    <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function RosterScreen({ rosterData, onSaveRoster, onClose, awayName, homeName }) {
+  const [activeTab, setActiveTab] = useState('away');
+  const [roster, setRoster] = useState(() => JSON.parse(JSON.stringify(rosterData)));
+  const [mode, setMode] = useState('edit');
+  const fileInputRef = useRef(null);
+  const importTextareaRef = useRef(null);
+  const [showImportTextarea, setShowImportTextarea] = useState(false);
+  const [gcUrl, setGcUrl] = useState("");
+  const [loadingGc, setLoadingGc] = useState(false);
+  const updatePlayer = (team, id, field, value) => {
+      const newRoster = { ...roster };
+      const poolIdx = newRoster.pool[team].findIndex(p => p.id === id);
+      if (poolIdx > -1) newRoster.pool[team][poolIdx][field] = value;
+      const lineupIdx = newRoster[team].findIndex(p => p.id === id);
+      if (lineupIdx > -1) newRoster[team][lineupIdx][field] = value;
+      Object.keys(newRoster.fielders[team]).forEach(pos => {
+          if (newRoster.fielders[team][pos]?.id === id) {
+              newRoster.fielders[team][pos][field] = value;
+          }
+      });
+      setRoster(newRoster);
+  };
+
+  const handlePoolChange = (team, index, field, value) => {
+      const poolId = roster.pool[team][index].id;
+      updatePlayer(team, poolId, field, value);
+  };
+
+  const handleAddPoolPlayer = (team) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team].push({ id: `p_${Date.now()}`, name: '', no: '', pos: '' });
+      setRoster(newRoster);
+  };
+  const handleRemovePoolPlayer = (team, id) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team] = newRoster.pool[team].filter(p => p.id !== id);
+      setRoster(newRoster);
+  };
+
+  const handleLineupSelect = (team, index, poolId) => {
+      const poolPlayer = roster.pool[team].find(p => p.id === poolId);
+      if (!poolPlayer) {
+          const newRoster = { ...roster };
+          newRoster[team][index] = { id: `blank_${Date.now()}`, name: '', no: '', pos: newRoster[team][index].pos };
+          setRoster(newRoster);
+          return;
+      }
+      const newRoster = { ...roster };
+      const oldPos = newRoster[team][index].pos;
+      newRoster[team][index] = { ...poolPlayer, pos: oldPos };
+      if (oldPos && newRoster.fielders[team][oldPos]?.id === newRoster[team][index].id) {
+          newRoster.fielders[team][oldPos] = { ...poolPlayer, pos: oldPos };
+      }
+      setRoster(newRoster);
+  };
+
+  const handleLineupPosChange = (team, index, value) => {
+      const newRoster = { ...roster };
+      const pId = newRoster[team][index].id;
+      newRoster[team][index].pos = value;
+      
+      if (pId) {
+          const pIdx = newRoster.pool[team].findIndex(p => p.id === pId);
+          if (pIdx > -1) newRoster.pool[team][pIdx].pos = value;
+          
+          Object.keys(newRoster.fielders[team]).forEach(p => {
+              if (newRoster.fielders[team][p]?.id === pId) newRoster.fielders[team][p] = null;
+          });
+          if (value) {
+              newRoster.fielders[team][value] = newRoster[team][index];
+          }
+      }
+      setRoster(newRoster);
+  };
+  const handleDefensiveChange = (team, pos, val) => {
+      const newRoster = { ...roster };
+      newRoster.fielders = { ...newRoster.fielders };
+      newRoster.fielders[team] = { ...newRoster.fielders[team] };
+      Object.keys(newRoster.fielders[team]).forEach(p => {
+          if (newRoster.fielders[team][p]?.id === val) newRoster.fielders[team][p] = null;
+      });
+      if (val === "clear") {
+          newRoster.fielders[team][pos] = null;
+      } else {
+          const poolPlayer = newRoster.pool[team].find(p => p.id === val);
+          if (poolPlayer) {
+              newRoster.fielders[team][pos] = { ...poolPlayer, pos };
+              const pIdx = newRoster.pool[team].findIndex(p => p.id === val);
+              if (pIdx > -1) newRoster.pool[team][pIdx].pos = pos;
+              const lIdx = newRoster[team].findIndex(p => p.id === val);
+              if (lIdx > -1) newRoster[team][lIdx].pos = pos;
+          }
+      }
+      setRoster(newRoster);
+  };
+  const handleAddHitter = (team) => {
+      const newRoster = { ...roster };
+      newRoster[team].push({ id: `h_${Date.now()}`, name: '', no: '', pos: '' });
+      setRoster(newRoster);
+  };
+  const handleRemoveHitter = (team, index) => {
+      const newRoster = { ...roster };
+      if (newRoster[team].length > 1) {
+          newRoster[team] = [...newRoster[team]];
+          newRoster[team].splice(index, 1);
+          if (newRoster.lineupIdx?.[team] >= newRoster[team].length) {
+              newRoster.lineupIdx[team] = 0;
+          }
+          setRoster(newRoster);
+      }
+  };
+  const handleSortPool = (team, by) => {
+      const newRoster = { ...roster };
+      newRoster.pool[team].sort((a, b) => {
+          if (by === 'no') {
+              return (parseInt(a.no) || 0) - (parseInt(b.no) || 0);
+          } else {
+              const getLastName = name => (name || '').trim().split(' ').pop().toLowerCase();
+              return getLastName(a.name).localeCompare(getLastName(b.name));
+          }
+      });
+      setRoster(newRoster);
+  };
+
+  const processRosterText = (text, team) => {
+      const lines = text.split('\n');
+      const newRoster = { ...roster };
+      lines.forEach((line, i) => {
+          const clean = line.trim();
+          if (!clean) return;
+          
+          const lower = clean.toLowerCase();
+          if (lower.startsWith('#') && lower.includes('name')) return;
+          if (lower === 'order' || lower === 'player' || lower === 'position') return;
+          if (lower.includes('first name') || lower.includes('last name')) return;
+
+          let name = clean;
+          let no = '';
+          
+          const gcMatch = clean.match(/^(\d+)\s+(.+)$/);
+          if (gcMatch) {
+              no = gcMatch[1];
+              name = gcMatch[2].trim();
+          } else {
+              const reverseMatch = clean.match(/^(.+?)\s+(\d+)$/);
+              if (reverseMatch) {
+                  name = reverseMatch[1].trim();
+                  no = reverseMatch[2];
+              } else {
+                  const parts = clean.split(/[,]+| - | \t /);
+                  if (parts.length > 1) {
+                      name = parts[0].trim();
+                      no = parts[1].trim();
+                  }
+              }
+          }
+          
+          name = name.split('\t')[0].trim();
+          newRoster.pool[team].push({ id: `p_${Date.now()}_${i}`, name, no, pos: '' });
+      });
+      setRoster(newRoster);
+  };
+  const handleFileImport = (e, team) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+          processRosterText(ev.target.result, team);
+      };
+      reader.readAsText(file);
+      e.target.value = null; 
+  };
+  
+  const handlePastedRoster = (e, team) => {
+      const val = e.target.value;
+      if (!val) return;
+      processRosterText(val, team);
+      setShowImportTextarea(false);
+  };
+  
+  const handleGcImport = async (team) => {
+      if (!gcUrl) return;
+      setLoadingGc(true);
+      try {
+          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(gcUrl)}`);
+          const data = await res.json();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(data.contents, "text/html");
+          const textToProcess = doc.body.innerText;
+          processRosterText(textToProcess, team);
+          setGcUrl("");
+          setShowImportTextarea(false);
+      } catch (err) {
+          alert("Failed to fetch GameChanger URL. The link might be private or blocked. Please paste the text instead.");
+      }
+      setLoadingGc(false);
+  };
+  
+  const rotateLineup = (team, newLeadoffIndex) => {
+      if (newLeadoffIndex === 0) return;
+      const newRoster = { ...roster };
+      const currentLineup = newRoster[team];
+      newRoster[team] = [...currentLineup.slice(newLeadoffIndex), ...currentLineup.slice(0, newLeadoffIndex)];
+      if (newRoster.lineupIdx?.[team] !== undefined) {
+          newRoster.lineupIdx[team] = 0;
+      }
+      setRoster(newRoster);
+  };
+
+  const list = roster[activeTab];
+  const poolList = roster.pool?.[activeTab] || [];
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      <div style={{ padding: "20px 20px 10px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1 }}>ROSTER & LINEUP</div>
+      </div>
+      
+      <div style={{ display: "flex", borderBottom: `2px solid ${C.text}`, background: C.card }}>
+          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'away' ? C.text : "transparent", color: activeTab === 'away' ? C.bg : C.text, border: "none" }}>{awayName || "AWAY"}</button>
+          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'home' ? C.text : "transparent", color: activeTab === 'home' ? C.bg : C.text, border: "none" }}>{homeName || "HOME"}</button>
+      </div>
+
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+          
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+                <Label>ENTRY MODE</Label>
+                <div style={{ fontSize: "11px", fontFamily: MONO, color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
+            </div>
+            <Toggle on={mode === 'sub'} onToggle={() => setMode(mode === 'edit' ? 'sub' : 'edit')} label={mode === 'sub' ? '🔄 VIEW' : '✎ EDIT'} />
+        </div>
+
+        {mode === 'edit' && (
+             <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+                 <Label>FULL TEAM ROSTER</Label>
+                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO }}>Add all players here to easily select them.</div>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'name')}>A-Z ↓</Btn>
+                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'no')}>1-9 ↓</Btn>
+                    </div>
+                 </div>
+                 
+                 {showImportTextarea && (
+                     <>
+                         <textarea 
+                            ref={importTextareaRef}
+                            onChange={(e) => handlePastedRoster(e, activeTab)}
+                            placeholder="Paste text list from GameChanger/Notes here..." 
+                            style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "8px", boxSizing: "border-box", border: `1px solid ${C.borderBright}` }}
+                         />
+                         <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
+                             <Inp value={gcUrl} onChange={setGcUrl} placeholder="Or paste GC Roster URL..." style={{ flex: "1 1 100%" }} />
+                             <Btn variant="primary" small full onClick={() => handleGcImport(activeTab)} disabled={!gcUrl || loadingGc}>
+                                 {loadingGc ? "FETCHING..." : "📥 IMPORT FROM URL"}
+                             </Btn>
+                         </div>
+                     </>
+                 )}
+                 
+                 <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "12px", paddingRight: "4px" }}>
+                     {poolList.map((p, i) => (
+                         <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px", alignItems: "center" }}>
+                             <Inp value={p.name} onChange={v => handlePoolChange(activeTab, i, 'name', v)} placeholder="Name" />
+                             <div style={{ width: "80px" }}>
+                                 <Inp value={p.no} onChange={v => handlePoolChange(activeTab, i, 'no', v)} placeholder="No." />
+                             </div>
+                             <button onClick={() => handleRemovePoolPlayer(activeTab, p.id)} style={{ background: "transparent", border: "none", color: C.red, fontWeight: "bold", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>×</button>
+                         </div>
+                     ))}
+                 </div>
+                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Player</Btn>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => fileInputRef.current.click()}>+ Import .txt</Btn>
+                     <Btn variant="outline" small style={{ flex: 1 }} onClick={() => setShowImportTextarea(!showImportTextarea)}>📋 Paste/Link</Btn>
+                     <input type="file" ref={fileInputRef} accept=".txt" style={{ display: "none" }} onChange={e => handleFileImport(e, activeTab)} />
+                 </div>
+             </div>
+        )}
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+            <Label>BATTING ORDER</Label>
+            {list.map((player, i) => (
+                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
+                    {mode === 'edit' && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "8px", padding: "4px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap" }}>↻ LEADOFF</button>
+                            {list.length > 1 && <button onClick={() => handleRemoveHitter(activeTab, i)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: "pointer", fontSize: "8px", padding: "4px", color: C.red, whiteSpace: "nowrap" }}>🗑 DEL</button>}
+                        </div>
+                    )}
+                    <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.text }}>{i+1}.</div>
+                    {mode === 'edit' ? (
+                        <>
+                            <div style={{ flex: 2 }}>
+                                <Sel value={player.id || ""} onChange={v => handleLineupSelect(activeTab, i, v)}>
+                                    <option value="" hidden>Leave Blank</option>
+                                    <option value="">-- CLEAR --</option>
+                                    {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
+                                </Sel>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <Sel value={player.pos || ""} onChange={v => handleLineupPosChange(activeTab, i, v)}>
+                                    <option value="" hidden>Pos</option>
+                                    <option value="">--</option>
+                                    <option value="P">P</option><option value="C">C</option><option value="1B">1B</option>
+                                    <option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option>
+                                    <option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option>
+                                    <option value="DH">DH</option><option value="EH">EH</option>
+                                </Sel>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    const newRoster = { ...roster };
+                                    if (!newRoster.lineupIdx) newRoster.lineupIdx = { away: 0, home: 0 };
+                                    newRoster.lineupIdx[activeTab] = i;
+                                    setRoster(newRoster);
+                                }}
+                                style={{
+                                    padding: "4px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold",
+                                    background: roster.lineupIdx?.[activeTab] === i ? C.accent : "transparent",
+                                    color: roster.lineupIdx?.[activeTab] === i ? C.bg : C.muted,
+                                    border: `1px solid ${roster.lineupIdx?.[activeTab] === i ? C.accent : C.borderBright}`,
+                                    cursor: "pointer", borderRadius: "2px", whiteSpace: "nowrap"
+                                }}
+                            >
+                                {roster.lineupIdx?.[activeTab] === i ? "CURRENT" : "SET ACTIVE"}
+                            </button>
+                        </>
+                    ) : (
+                        <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, padding: "9px", fontFamily: MONO, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
+                            {player.name ? `${player.no ? `#${player.no} ` : ''}${player.name} (${player.pos || '?'})` : 'Empty Slot'}
+                        </div>
+                    )}
+                </div>
+            ))}
+            {mode === 'edit' && <Btn variant="outline" small full onClick={() => handleAddHitter(activeTab)} style={{ marginTop: "8px" }}>+ Add Hitter</Btn>}
+        </div>
+
+        {mode === 'edit' && (
+             <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+                 <Label>DEFENSIVE ASSIGNMENTS</Label>
+                 <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Assign players to the field if they are not in the batting order.</div>
+                 {['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'].map(pos => (
+                     <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
+                         <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
+                         <div style={{ flex: 1 }}>
+                             <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
+                                 <option value="" disabled hidden>Unassigned</option>
+                                 <option value="clear">-- CLEAR --</option>
+                                 {poolList.map(pp => <option key={pp.id} value={pp.id}>{pp.no ? `#${pp.no} ` : ''}{pp.name || `Player`}</option>)}
+                             </Sel>
+                         </div>
+                     </div>
+                 ))}
+             </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full variant="primary" onClick={() => { onSaveRoster(roster); onClose(); }}>SAVE & RETURN</Btn>
+          <Btn full variant="ghost" onClick={onClose}>CANCEL (DISCARD CHANGES)</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
+    const [count, setCount] = useState(String(currentTotal || ""));
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>INNING END / PITCH COUNT</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    What is {pitcher?.name || "the pitcher"}'s TOTAL game pitch count right now?
+                </div>
+                <Inp value={count} onChange={setCount} placeholder="Total count..." type="number" autoFocus />
+                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <Btn full variant="primary" onClick={() => onSave(parseInt(count) || 0)}>LOG PITCHES</Btn>
+                    <Btn full variant="ghost" onClick={onSkip}>SKIP</Btn>
+                </div>
+                {onUndo && (
+                    <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px dashed ${C.borderBright}` }}>
+                        <Btn full variant="danger" onClick={onUndo}>↩ UNDO LAST OUT</Btn>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ── Interactive Field Diagram ──────────────────────────────────────────────────
+function FieldDiagram({ inPlayMode, activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, onOpenActionMenu, onChangeFielder, onEditLineupSlot, onQuickAdvance }) {
+    const zones = [
+        { id: '2b', label: '', cls: 'pos-2b' },
+        { id: '3b', label: '', cls: 'pos-3b' },
+        { id: '1b', label: '', cls: 'pos-1b' },
+        { id: 'home', label: '', cls: 'pos-home' }
+    ];
+    const defCoords = {
+        'C': { top: '96%', left: '50%' },
+        'P': { top: '65%', left: '50%' },
+        '1B': { top: '61%', left: '79%' },
+        '2B': { top: '47%', left: '62%' },
+        'SS': { top: '47%', left: '38%' },
+        '3B': { top: '61%', left: '21%' },
+        'LF': { top: '28%', left: '20%' },
+        'CF': { top: '18%', left: '50%' },
+        'RF': { top: '28%', left: '80%' }
+    };
+    const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
+    const onDeckIdx = (lineupIdx + 1) % (battingLineup?.length || 1);
+    const inHoleIdx = (lineupIdx + 2) % (battingLineup?.length || 1);
+
+    let onDeckName = '?';
+    let inHoleName = '?';
+    if (lineupClosed) {
+        onDeckName = battingLineup?.[onDeckIdx]?.name || '?';
+        inHoleName = battingLineup?.[inHoleIdx]?.name || '?';
+    } else {
+        onDeckName = battingLineup?.[lineupIdx + 1]?.name || `Batter ${lineupIdx + 2}`;
+        inHoleName = battingLineup?.[lineupIdx + 2]?.name || `Batter ${lineupIdx + 3}`;
+    }
+
+    return (
+        <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ fontSize: "14px", fontFamily: MONO, color: C.accent, fontWeight: "bold", display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: "10px", color: C.muted }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</span>
+                    <span>▶ {activeHalf === 'top' ? (awayName?.toUpperCase() || 'AWAY') : (homeName?.toUpperCase() || 'HOME')} BATTING</span>
+                </div>
+                <div>
+                   <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
+                   <div style={{ display: "flex", gap: "6px" }}>
+                      {[1,2,3].map(i => (
+                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
+                      ))}
+                   </div>
+                </div>
+            </div>
+
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
+                {inPlayMode ? "TAP runner to ADVANCE/OUT. Or use +1 quick advance." : "TAP runner or batter for Actions.\nTAP a defensive position to sub/assign."}
+            </div>
+
+            <div className="field-container">
+                <div className="foul-line-left"></div>
+                <div className="foul-line-right"></div>
+                <div className="infield-dirt"></div>
+                <div className="infield-grass"></div>
+                <div className="pitcher-mound"></div>
+                <div className="pitcher-plate"></div>
+                
+                <div className="base-visual home" style={{top: '88%', left: '50%'}}></div>
+                <div className="base-visual" style={{top: '65%', left: '73%'}}></div>
+                <div className="base-visual" style={{top: '42%', left: '50%'}}></div>
+                <div className="base-visual" style={{top: '65%', left: '27%'}}></div>
+                
+                {Object.keys(defCoords).map(pos => {
+                    const coords = defCoords[pos];
+                    const p = activeFieldersMap?.[pos] || fieldingRoster.find(x => x.pos === pos);
+                    return (
+                        <div 
+                            key={pos} 
+                            className="def-player" 
+                            style={{...coords, pointerEvents: inPlayMode ? 'none' : 'auto', cursor: inPlayMode ? 'default' : 'pointer', zIndex: pos === 'P' ? 15 : 5}}
+                            onClick={(e) => { if (!inPlayMode) { e.stopPropagation(); onChangeFielder(pos, p); } }}
+                        >
+                            <div className="dot" style={!p?.name ? {background: 'rgba(255,255,255,0.4)', boxShadow: 'none'} : {}} />
+                            <div className="name" style={!p?.name ? {background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.6)'} : {}}>
+                                {p?.name ? `${p.no ? `#${p.no} ` : ''}${p.name}` : pos}
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {zones.map(z => {
+                    const runner = bases[z.id];
+                    return (
+                        <div 
+                            key={z.id} 
+                            className={`base-zone ${z.cls}`}
+                            data-base-id={z.id}
+                        >
+                            {runner && (
+                                <>
+                                    <div 
+                                        className="runner"
+                                        style={{ borderColor: inPlayMode ? C.accent : C.text }}
+                                        onClick={(e) => { e.stopPropagation(); onOpenActionMenu(z.id); }}
+                                    >
+                                        {runner.no || '🏃'}
+                                    </div>
+                                    {z.id !== 'home' && (
+                                        <div onClick={(e) => { e.stopPropagation(); onQuickAdvance(z.id); }} 
+                                             style={{ position: 'absolute', right: -8, top: -8, background: inPlayMode ? C.accent : C.green, color: C.bg, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 25, fontSize: '14px', fontWeight: 'bold', boxShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                                            +1
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
+                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span></div>
+                <div style={{ textAlign: "right" }}>
+                    <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(onDeckIdx)}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(inHoleIdx)}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Setup Screen ──────────────────────────────────────────────────────────────
+function SetupScreen({ onStart, onImport, onOpenRoster }) {
+  const [league, setLeague]         = useState("hs");
+  const [away, setAway]             = useState("");
+  const [home, setHome]             = useState("");
+  const [innings, setInnings]       = useState(7);
+  const [mercyAfter, setMercyAfter] = useState(5);
+  const [mercyRuns, setMercyRuns]   = useState(10);
+  const [useMercy, setUseMercy]     = useState(true);
+  const [allowTies, setAllowTies]   = useState(false);
+  const [tieInningLimit, setTieInningLimit] = useState(7);
+  const [lateStart, setLateStart]   = useState(false);
+  const [useTimeLimit, setUseTimeLimit] = useState(false);
+  const [timeLimit, setTimeLimit]   = useState("120");
+  const [startTime, setStartTime]   = useState(nowTime());
+  const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    if (league === "custom") return;
+    const p = LEAGUES[league];
+    setInnings(p.innings);
+    setTieInningLimit(p.innings);
+    if (p.mercy) { setMercyRuns(p.mercy); setMercyAfter(p.mercyAfter); setUseMercy(true); } else setUseMercy(false);
+  }, [league]);
+  const preset = LEAGUES[league];
+  const valid  = away.trim() && home.trim();
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      {showImport && (
+        <ImportModal
+          hasActiveGame={false}
+          onImport={data => { setShowImport(false); onImport(data); }}
+          onCancel={() => setShowImport(false)}
+          onExportFirst={() => {}}
+        />
+      )}
+  
+      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center", position: "relative" }}>
+        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>ℹ️</button>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
+        <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
+      </div>
+    
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+        
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>LEAGUE / LEVEL</div>
+          <Sel value={league} onChange={setLeague} style={{ marginTop: "6px" }}>
+            {Object.entries(LEAGUES).map(([k, l]) => <option key={k} value={k}>{l.label}</option>)}
+          </Sel>
+          {league !== "custom" && <div style={{ marginTop: "10px", fontSize: "11px", color: C.muted, fontFamily: MONO }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
+        </div>
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>TEAMS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "6px" }}>
+            <div><Label>AWAY</Label><Inp value={away} onChange={setAway} placeholder="Visitors" /></div>
+            <div><Label>HOME</Label><Inp value={home} onChange={setHome} placeholder="Home" /></div>
+          </div>
+        </div>
+
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>RULES & SETUP</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px", marginTop: "6px" }}>
+            <div><Label>INNINGS</Label><Sel value={innings} onChange={v => setInnings(Number(v))}>{[5,6,7,9].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM:SS" /></div>
+          </div>
+          <Toggle on={useMercy} onToggle={() => setUseMercy(v => !v)} label="Mercy Rule Active" />
+          {useMercy && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px", marginBottom: "12px" }}>
+              <div><Label>AFTER INN</Label><Sel value={mercyAfter} onChange={v => setMercyAfter(Number(v))}>{[3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+              <div><Label>RUN DIFF</Label><Sel value={mercyRuns} onChange={v => setMercyRuns(Number(v))}>{[5,8,10,12,15,20].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            </div>
+          )}
+          <div style={{ marginTop: "12px" }}><Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" /></div>
+          {allowTies && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginTop: "12px" }}>
+              <div><Label>TIE AFTER INN</Label><Sel value={tieInningLimit} onChange={v => setTieInningLimit(Number(v))}>{[5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            </div>
+          )}
+          <div style={{ marginTop: "12px" }}><Toggle on={lateStart} onToggle={() => setLateStart(v => !v)} label="Late Start (Join in progress)" /></div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full disabled={!valid} onClick={() => {
+            const t = parseTime(startTime) ?? parseTime(nowTime());
+            onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, lateStart, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
+          }}>START GAME →</Btn>
+          <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Late Start Sub-Screen ─────────────────────────────────────────────────────
+function LateStartScreen({ config, onComplete, onCancel }) {
+  const [inning, setInning] = useState(1);
+  const [half, setHalf] = useState("top");
+  const [outs, setOuts] = useState(0);
+  const [runs, setRuns] = useState({});
+  const halvesToPlay = useMemo(() => {
+    const res = [];
+    for (let i = 1; i <= inning; i++) {
+      res.push({ inn: i, half: 'top', team: 'away' });
+      if (i < inning || half === 'bot') {
+        res.push({ inn: i, half: 'bot', team: 'home' });
+      }
+    }
+    return res;
+  }, [inning, half]);
+  const handleRunsChange = (inn, h, val) => {
+    setRuns(prev => ({ ...prev, [`${inn}-${h}`]: Math.max(0, parseInt(val) || 0) }));
+  };
+
+  const handleSubmit = () => {
+    const baseRunsLog = halvesToPlay.map(h => ({
+      team: h.team,
+      runs: runs[`${h.inn}-${h.half}`] || 0,
+      inning: h.inn,
+      half: h.half
+    }));
+    let awayScore = 0, homeScore = 0;
+    baseRunsLog.forEach(r => {
+      if (r.team === 'away') awayScore += r.runs;
+      else homeScore += r.runs;
+    });
+    const nowSecs = parseTime(nowTime());
+    const initialEvents = [
+      { id: Date.now(), batchId: Date.now(), type: 'phase', phase: half === 'top' ? EV.TOP : EV.BOT, inning, time: nowSecs }
+    ];
+    if (outs > 0) {
+      initialEvents.push({ id: Date.now() + 1, batchId: Date.now(), type: 'out', val: outs, inning, half, team: half === 'top' ? 'home' : 'away', time: nowSecs, pitcher: 'Unknown' });
+    }
+
+    onComplete({
+      baseScore: { away: awayScore, home: homeScore },
+      baseRunsLog,
+      events: initialEvents,
+      gameLog: [{ msg: `[${formatTime(nowSecs)}] Joined late in ${half === 'top' ? 'Top' : 'Bottom'} ${inning} with ${outs} outs.`, batchId: Date.now() }],
+      estimateHistory: []
+    });
+  };
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+      <div style={{ padding: "40px 20px 20px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
+        <div style={{ fontSize: "36px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>LATE START SETUP</div>
+      </div>
+      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+        
+        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px" }}>
+          <Label>CURRENT GAME STATUS</Label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "8px" }}>
+            <div><Label>INNING</Label><Sel value={inning} onChange={v => setInning(Number(v))}>{Array.from({length: (config?.totalInnings || 7) + 5}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
+            <div><Label>HALF</Label><Sel value={half} onChange={v => setHalf(v)}><option value="top">Top</option><option value="bot">Bottom</option></Sel></div>
+            <div><Label>OUTS</Label><Sel value={outs} onChange={v => setOuts(Number(v))}><option value={0}>0</option><option value={1}>1</option><option value={2}>2</option></Sel></div>
+          </div>
+        </div>
+
+        {halvesToPlay.length > 0 && (
+          <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+            <Label>RUNS SCORED PREVIOUSLY</Label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "12px" }}>
+              {halvesToPlay.map(h => (
+                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "6px", border: `1px solid ${C.borderBright}` }}>
+                  <div style={{ flex: 1, fontSize: "12px", fontFamily: MONO, fontWeight: "bold" }}>
+                    {h.half === 'top' ? 'Top' : 'Bot'} {h.inn} ({h.team === 'away' ? config?.away : config?.home})
+                  </div>
+                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "40px", padding: "4px", textAlign: "center", fontFamily: MONO, border: `1px solid ${C.border}`, background: C.card, outline: "none" }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Btn full variant="primary" onClick={handleSubmit}>FINISH SETUP & ENTER GAME →</Btn>
+          <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Summary Screen ────────────────────────────────────────────────────────────
+function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estimateHistory, rosterData, pitchData, onNewGame }) {
+  const { away, home, totalInnings } = config;
+  const phaseEvents = events.filter(e => e.type === 'phase' || !e.type);
+  const sorted = sortEvents(phaseEvents);
+  const startTime = sorted[0]?.time;
+  const actualDuration = endTime && startTime ? endTime - startTime : null;
+  const lastCompleted = sorted.filter(e => e.phase === EV.BOT).reduce((mx, e) => Math.max(mx, e.inning), 0);
+  
+  const halfDurs = [], warmupDurs = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const c = sorted[i], n = sorted[i + 1];
+    const d = n.time - c.time;
+    if (d < 0 || d > 5400) continue;
+    if (c.phase === EV.START && n.phase === EV.TOP  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.MID  && n.phase === EV.BOT  && n.inning === c.inning)      warmupDurs.push(d);
+    if (c.phase === EV.TOP  && n.phase === EV.MID  && n.inning === c.inning)      halfDurs.push(d);
+    if (c.phase === EV.BOT  && n.phase === EV.START && n.inning === c.inning + 1) halfDurs.push(d);
+  }
+
+  const score = { home: baseScore.home, away: baseScore.away };
+  events.filter(e => e.type === 'run').forEach(e => score[e.team] += e.val);
+  const combinedRunsLog = [...baseRunsLog, ...events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half }))];
+  const firstEst = estimateHistory.find(h => h.estimate != null);
+  const firstEstError = firstEst && endTime ? Math.round((firstEst.estimate - endTime) / 60) : null;
+  const winner = score.home > score.away ? home : score.away > score.home ? away : null;
+  
+  const [showCopy, setShowCopy] = useState(false);
+  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData);
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
+      {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
+
+      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
+        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
+        <div style={{ fontSize: "72px", fontFamily: DISPLAY, marginTop: "8px", lineHeight: 1 }}>{score.away} – {score.home}</div>
+        <div style={{ fontSize: "16px", color: C.text, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{away} @ {home}</div>
+        {winner ? <div style={{ marginTop: "12px", fontSize: "16px", color: C.accent, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>{winner.toUpperCase()} WINS</div>
+                : <div style={{ marginTop: "12px", fontSize: "16px", color: C.text, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>TIE GAME</div>}
+      </div>
+
+      <div style={{ padding: "20px 16px", maxWidth: "440px", margin: "0 auto" }}>
+        
+        <StatsTable events={events} rosterData={rosterData} config={config} pitchData={pitchData} />
+
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>FINAL LINESCORE</Label>
+          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} currentPhase={null} currentInning={lastCompleted} />
+        </div>
+
+        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+          <Label>GAME TIME & PACE</Label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+            <StatBox label="FIRST PITCH" value={formatTime(startTime)} />
+            <StatBox label="FINAL OUT"   value={formatTime(endTime)} />
+            <StatBox label="DURATION"    value={formatDur(actualDuration)} />
+            <StatBox label="INNINGS"     value={`${lastCompleted}`} sub={lastCompleted > totalInnings ? "EXTRA INNINGS" : "REGULATION"} />
+          </div>
+          <Divider label="Measured Pace" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <StatBox label="AVG ½-INN"  value={formatDur(avg(halfDurs))}   sub={`${halfDurs.length} measured`} />
+            <StatBox label="AVG WARMUP" value={formatDur(avg(warmupDurs))} sub={`${warmupDurs.length} measured`} />
+          </div>
+        </div>
+
+        {firstEstError !== null && (
+          <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+            <Label>FIRST ESTIMATE ACCURACY</Label>
+            <div style={{ fontSize: "40px", fontFamily: DISPLAY, color: Math.abs(firstEstError) <= 5 ? C.green : Math.abs(firstEstError) <= 15 ? C.yellow : C.red }}>
+              {firstEstError > 0 ? "+" : ""}{firstEstError}m
+            </div>
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginTop: "6px", fontWeight: "bold" }}>
+              {Math.abs(firstEstError) <= 5 ? "Excellent (within 5 min)" : Math.abs(firstEstError) <= 15 ? "Good (within 15 min)" : "Off pace (unusual game length)"}
+            </div>
+          </div>
+        )}
+
+        <AccuracyGraph estimateHistory={estimateHistory} endTime={endTime} config={config} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
+          <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData)}>⬇ Download JSON</Btn>
+            <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Game Tracker ──────────────────────────────────────────────────────────────
+function GameTracker({ config, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
+  const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
+  const [extraInningsAdded, setExtraInningsAdded] = useState(0);
+  const effTotalInnings = totalInnings + extraInningsAdded;
+  const [events,          setEvents]          = useState(initialState?.events          ?? []);
+  const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
+  const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
+  
+  const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
+  const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
+  const [entryTime, setEntryTime] = useState(nowTime());
+  const [isTypingTime, setIsTypingTime] = useState(false);
+  const [gameOverPrompt, setGameOverPrompt] = useState(false);
+  const [endTimeInput,   setEndTimeInput]   = useState(nowTime());
+  const [showSummary,    setShowSummary]    = useState(false);
+  const [finalEndTime,   setFinalEndTime]   = useState(null);
+  
+  const [inPlayMode, setInPlayMode] = useState(false);
+  const [playState, setPlayState] = useState(null);
+  
+  const [delayActive, setDelayActive] = useState(initialState?.weatherDelayState?.active ?? false);
+  const [delayStartTime, setDelayStartTime] = useState(initialState?.weatherDelayState?.startTime ?? null);
+  const [accumulatedDelaySec, setAccumulatedDelaySec] = useState(initialState?.weatherDelayState?.accumulatedSec ?? 0);
+  const [liveDelaySec, setLiveDelaySec] = useState(0);
+  const [showImport, setShowImport] = useState(false);
+  const [showCopy, setShowCopy]     = useState(false);
+  const [copyText, setCopyText]     = useState("");
+  
+  const lineupIdx = rosterData.lineupIdx || { away: 0, home: 0 };
+  const setLineupIdx = useCallback((updater) => {
+      setRosterData(prev => {
+          const oldIdx = prev.lineupIdx || { away: 0, home: 0 };
+          const nextIdx = typeof updater === 'function' ? updater(oldIdx) : updater;
+          return { ...prev, lineupIdx: nextIdx };
+      });
+  }, [setRosterData]);
+  const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
+  const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
+  const [offensiveSubModal, setOffensiveSubModal] = useState(null);
+  const [actionMenuState, setActionMenuState] = useState(null);
+  const [lineupEditModal, setLineupEditModal] = useState(null);
+  const [courtesyModal, setCourtesyModal] = useState(null);
+  const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
+  const defaultPitchers = {
+      away: rosterData?.fielders?.away?.['P'] || rosterData?.away.find(p => p.pos === 'P'),
+      home: rosterData?.fielders?.home?.['P'] || rosterData?.home.find(p => p.pos === 'P')
+  };
+  const [pitchData, setPitchData] = useState(initialState?.pitchData ?? { 
+      away: { [defaultPitchers.away?.id || 'unassigned']: 0 }, 
+      home: { [defaultPitchers.home?.id || 'unassigned']: 0 } 
+  });
+  const [atBatCount, setAtBatCount] = useState({ b: 0, s: 0 });
+
+  const logRef = useRef(null);
+  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
+  useEffect(() => {
+      if (!isTypingTime) {
+          const id = setInterval(() => setEntryTime(nowTime()), 1000);
+          return () => clearInterval(id);
+      }
+  }, [isTypingTime]);
+  useEffect(() => {
+      if (delayActive && delayStartTime) {
+          const id = setInterval(() => {
+              const cur = parseTime(nowTime());
+              setLiveDelaySec(Math.max(0, cur - delayStartTime));
+          }, 1000);
+          return () => clearInterval(id);
+      } else {
+          setLiveDelaySec(0);
+      }
+  }, [delayActive, delayStartTime]);
+
+  const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
+  const sortedPhaseEvents = sortEvents(phaseEvents);
+  const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
+  const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
+
+  let activeHalf = null, activeInningNum = null, battingTeam = null, fieldingTeam = null, currentOuts = 0;
+
+  if (lastPhase) {
+      activeInningNum = lastPhase.inning;
+      if (lastPhase.phase === EV.TOP || lastPhase.phase === EV.START) {
+          activeHalf = 'top';
+          battingTeam = 'away';
+          fieldingTeam = 'home';
+      } else {
+          activeHalf = 'bot';
+          battingTeam = 'home';
+          fieldingTeam = 'away';
+      }
+
+      if (inActiveInning) {
+          const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInningNum && e.half === activeHalf);
+          currentOuts = outEvents.reduce((s, e) => s + e.val, 0);
+      }
+  }
+
+  const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
+  const currentPitcher = activeFieldersMap?.['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
+  const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.id] ?? pitchData[fieldingTeam]?.[currentPitcher.name] ?? 0) : 0;
+  
+  useEffect(() => {
+      if (inActiveInning && !bases.home && currentOuts < 3 && !inPlayMode) {
+          let batter = rosterData[battingTeam][lineupIdx[battingTeam]];
+          if (!batter) {
+              batter = { id: `blank_${Date.now()}`, name: `Batter ${lineupIdx[battingTeam] + 1}`, no: '', pos: '' };
+              const newRoster = { ...rosterData };
+              if (!newRoster[battingTeam]) newRoster[battingTeam] = [];
+              newRoster[battingTeam][lineupIdx[battingTeam]] = batter;
+              setRosterData(newRoster);
+          }
+          setBases(prev => ({ ...prev, home: { ...batter, lineupIndex: lineupIdx[battingTeam] } }));
+      }
+  }, [inActiveInning, activeHalf, bases.home, currentOuts, lineupIdx, battingTeam, rosterData, inPlayMode]);
+  
+  useEffect(() => {
+      if (inActiveInning && bases.home) {
+          const currentBatterInLineup = rosterData[battingTeam][lineupIdx[battingTeam]];
+          if (currentBatterInLineup && (bases.home.id !== currentBatterInLineup.id || bases.home.name !== currentBatterInLineup.name)) {
+              setBases(prev => ({ ...prev, home: { ...currentBatterInLineup, lineupIndex: lineupIdx[battingTeam] } }));
+          }
+      }
+  }, [rosterData, battingTeam, lineupIdx, inActiveInning]);
+  
+  const advanceBatter = useCallback(() => {
+      if (!battingTeam) return;
+      setLineupIdx(prev => {
+          const currentIdx = prev[battingTeam];
+          const isClosed = rosterData.lineupClosed?.[battingTeam];
+          const lineupLen = rosterData[battingTeam].length;
+          let nextIdx = currentIdx + 1;
+          if (isClosed) {
+              nextIdx = nextIdx % lineupLen;
+          }
+          return { ...prev, [battingTeam]: nextIdx };
+      });
+  }, [battingTeam, rosterData]);
+  
+  const score = useMemo(() => {
+      const s = { home: baseScore.home, away: baseScore.away };
+      events.filter(e => e.type === 'run').forEach(e => s[e.team] += e.val);
+      return s;
+  }, [baseScore, events]);
+  const combinedRunsLog = useMemo(() => {
+      const activeRuns = events.filter(e => e.type === 'run').map(e => ({ team: e.team, runs: e.val, inning: e.inning, half: e.half, eventId: e.id, batchId: e.batchId }));
+      return [...baseRunsLog, ...activeRuns];
+  }, [baseRunsLog, events]);
+  const nextPhaseFallback = getNextPhase(phaseEvents);
+  const est = computeEstimate({ phaseEvents, allEvents: events, score, totalInnings: effTotalInnings, mercyAfter, mercyRuns, fallbackHalf, fallbackWarmup, runsLog: combinedRunsLog, allowTies, tieInningLimit, activeHalf, activeInningNum, currentOuts, lastPhase, accumulatedDelay: accumulatedDelaySec + liveDelaySec, config });
+  
+  useEffect(() => {
+    if (!est?.canEstimate || !events.length) return;
+    const lastEv = events[events.length - 1];
+    setEstimateHistory(prev => {
+      if (prev.length && prev[prev.length - 1].batchId === lastEv.batchId) return prev;
+      return [...prev, {
+        batchId:   lastEv.batchId,
+        eventId:   lastEv.id,
+        wallTime:  lastEv.time,
+        inning:    lastEv.inning || lastPhase?.inning || 1,
+        phase:     lastEv.phase || lastPhase?.phase || EV.START,
+        estimate:  est.estimatedEnd,
+        confidence: est.confidence,
+      }];
+    });
+  }, [events, est?.estimatedEnd]);
+  
+  useEffect(() => { 
+    if (isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit) && !gameOverPrompt && !showSummary) { 
+      setGameOverPrompt(true); setEndTimeInput(nowTime()); 
+    } else if (!isGamePotentiallyOver(phaseEvents, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit) && gameOverPrompt) {
+      setGameOverPrompt(false);
+    }
+  }, [phaseEvents, score, showSummary, effTotalInnings, gameOverPrompt]);
+  
+  const commitEventBatch = (newEvents, logs = [], incomingSnap = null) => {
+      const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
+      if (newEvents.length > 0) {
+          newEvents[0].snapshot = snap;
+          setEvents(p => [...p, ...newEvents]);
+      }
+      if (logs.length > 0) {
+          setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId }))]);
+      }
+      setIsTypingTime(false);
+      setEntryTime(nowTime());
+  };
+
+  const handleLogNextPhase = () => {
+      const t = getSafeTime(entryTime, events);
+      const batchId = Date.now();
+      const next = getNextPhase(phaseEvents);
+      const newEvents = [{ id: batchId, batchId, type: 'phase', phase: next.phase, inning: next.inning, time: t }];
+      const logs = [`[${formatTime(t)}] 📍 ${phaseLabel(next.inning, next.phase)}`];
+      commitEventBatch(newEvents, logs);
+      setBases({ home: null, '1b': null, '2b': null, '3b': null });
+      setAtBatCount({ b: 0, s: 0 }); 
+  };
+
+  const logPitch = (type) => {
+      if (!inActiveInning || currentOuts >= 3) return;
+      const t = getSafeTime(entryTime, events);
+      const pId = currentPitcher?.id || 'unassigned';
+      const pName = currentPitcher?.name || 'Unknown';
+      const batchId = Date.now();
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      
+      let newB = atBatCount.b;
+      let newS = atBatCount.s;
+      let autoAction = null;
+      
+      if (type === 'ball') { newB++; if (newB >= 4) autoAction = 'walk'; }
+      if (type === 'strike') { newS++; if (newS >= 3) autoAction = 'k'; }
+      if (type === 'foul') { newS = Math.min(newS + 1, 2); }
+      if (type === 'hbp') { autoAction = 'hbp'; }
+
+      const pitchLog = `[${formatTime(t)}] ⚾ Pitch: ${type.toUpperCase()} (${newB}-${newS})`;
+      const newPitchData = { ...pitchData, [fieldingTeam]: { ...(pitchData[fieldingTeam] || {}), [pId]: currentPitches + 1 } };
+      if (!autoAction) {
+          setPitchData(newPitchData);
+          setAtBatCount({ b: newB, s: newS });
+          const pitchEvent = { id: batchId, batchId, type: 'pitch', pitchType: type, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId };
+          commitEventBatch([pitchEvent], [pitchLog], snap);
+      } else {
+          setPitchData(newPitchData);
+          setAtBatCount({ b: 0, s: 0 });
+          if (autoAction === 'walk') executeAdvance('home', 'walk', null, false, pitchLog, snap, batchId);
+          else if (autoAction === 'hbp') executeAdvance('home', 'hbp', null, false, pitchLog, snap, batchId);
+          else if (autoAction === 'k') handleActionOut('home', 'K', 1, ['home'], pitchLog, snap, batchId);
+      }
+  };
+
+  const logBalk = () => {
+      if (!inActiveInning || currentOuts >= 3) return;
+      const t = getSafeTime(entryTime, events);
+      const batchId = Date.now();
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const pId = currentPitcher?.id || 'unassigned';
+      const pName = currentPitcher?.name || 'Unknown';
+
+      let newBases = { home: bases.home, '1b': null, '2b': null, '3b': null };
+      let logs = [`[${formatTime(t)}] ⚠ BALK by ${pName}. Runners advance.`];
+      let newEvents = [];
+
+      if (bases['3b']) {
+          newEvents.push({ id: batchId + 1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: null, scoredId: bases['3b'].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+      }
+      if (bases['2b']) {
+          newBases['3b'] = bases['2b'];
+          newEvents.push({ id: batchId + 2, batchId, type: 'advance', targetBase: '3b', isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+      }
+      if (bases['1b']) {
+          newBases['2b'] = bases['1b'];
+          newEvents.push({ id: batchId + 3, batchId, type: 'advance', targetBase: '2b', isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+      }
+
+      setBases(newBases);
+      commitEventBatch(newEvents, logs, snap);
+  };
+
+  const BASE_VAL = { home: 0, '1b': 1, '2b': 2, '3b': 3, score: 4 };
+  const VAL_BASE = { 0: 'home', 1: '1b', 2: '2b', 3: '3b', 4: 'score' };
+  
+  // Normal mode advance 
+  const executeAdvance = (sourceId, targetId, actionLabel = null, isError = false, extraLog = null, incomingSnap = null, incomingBatchId = null) => {
+      const sVal = BASE_VAL[sourceId];
+      const tVal = targetId === 'walk' || targetId === 'hbp' ? 1 : BASE_VAL[targetId];
+      if (tVal <= sVal && targetId !== 'walk' && targetId !== 'hbp') return; 
+
+      const t = getSafeTime(entryTime, events);
+      const batchId = incomingBatchId || Date.now();
+      const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const pId = currentPitcher?.id || 'unassigned';
+      const pName = currentPitcher?.name || 'Unknown';
+      
+      let pitchAdded = 0;
+      if (sourceId === 'home' && targetId !== 'walk' && targetId !== 'hbp' && !incomingBatchId) {
+          pitchAdded = 1;
+      }
+      if (pitchAdded > 0 && currentPitcher) {
+          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pId]: (prev[fieldingTeam]?.[pId] || 0) + 1 } }));
+      }
+      
+      let newBases = { ...bases };
+      let runsScored = 0;
+      let advanceLogs = extraLog ? [extraLog] : [];
+      let newEvents = [];
+      if (sourceId === 'home') {
+          setAtBatCount({ b: 0, s: 0 });
+          const has1B = !!bases['1b'];
+          const has2B = !!bases['2b'];
+          const has3B = !!bases['3b'];
+          const batter = bases['home'];
+          if (targetId === 'score') { 
+              if (has3B) { runsScored++;
+                  newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              if (has2B) { runsScored++;
+                  newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              if (has1B) { runsScored++;
+                  newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              runsScored++;
+              newEvents.push({ id: batchId+4, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: batter?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              newBases = { home: null, '1b': null, '2b': null, '3b': null };
+              advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Home Run!`);
+          } else if (targetId === 'walk' || targetId === 'hbp') {
+              advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} took a ${targetId === 'walk' ? 'Walk' : 'Hit By Pitch'}!`);
+              newBases = { home: null, '1b': batter, '2b': bases['2b'], '3b': bases['3b'] };
+              if (has1B) {
+                  newBases['2b'] = bases['1b'];
+                  if (has2B) {
+                      newBases['3b'] = bases['2b'];
+                      if (has3B) {
+                          runsScored++;
+                          newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+                      }
+                  }
+              }
+              newEvents.push({ id: batchId+2, batchId, type: 'advance', targetBase: targetId, isError: false, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          } else if (targetId === '3b') { 
+              advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Triple!`);
+              newBases = { home: null, '1b': null, '2b': null, '3b': batter };
+              if (has3B) { runsScored++;
+                  newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              if (has2B) { runsScored++;
+                  newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              if (has1B) { runsScored++;
+                  newEvents.push({ id: batchId+3, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['1b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+              }
+              newEvents.push({ id: batchId+4, batchId, type: 'advance', targetBase: '3b', isError, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          } else if (targetId === '2b') { 
+              advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Double!`);
+              newBases = { home: null, '1b': null, '2b': batter, '3b': null };
+              if (has3B) {
+                  if (has1B || has2B) { runsScored++;
+                      newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+                  }
+                  else newBases['3b'] = bases['3b'];
+              }
+              if (has2B) {
+                  if (has1B) { runsScored++;
+                      newEvents.push({ id: batchId+2, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['2b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+                  }
+                  else newBases['3b'] = bases['2b'];
+              }
+              if (has1B) {
+                  newBases['3b'] = bases['1b'];
+              }
+              newEvents.push({ id: batchId+4, batchId, type: 'advance', targetBase: '2b', isError, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          } else if (targetId === '1b') { 
+              advanceLogs.push(`[${formatTime(t)}] ⚾ ${actionLabel ? actionLabel + ' - ' : ''}${batter?.name || 'Batter'} hit a Single!`);
+              newBases = { home: null, '1b': batter, '2b': null, '3b': null };
+              if (has3B) {
+                  if (has1B && has2B) { runsScored++;
+                      newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+                  }
+                  else newBases['3b'] = bases['3b'];
+              }
+              if (has2B) {
+                  if (has1B) newBases['3b'] = bases['2b'];
+                  else newBases['2b'] = bases['2b'];
+              }
+              if (has1B) {
+                  newBases['2b'] = bases['1b'];
+              }
+              newEvents.push({ id: batchId+4, batchId, type: 'advance', targetBase: '1b', isError, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          }
+          
+          setBases(newBases);
+          advanceBatter();
+          if (newEvents.length === 0 && runsScored === 0) newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetId, isError, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          commitEventBatch(newEvents, advanceLogs, snap);
+      } else {
+          const N = tVal - sVal;
+          let displacements = { 1: 0, 2: 0, 3: 0 };
+          displacements[sVal] = N;
+          for (let i = sVal + 1; i <= 3; i++) {
+              if (bases[VAL_BASE[i]]) {
+                  let maxPosBehind = 0;
+                  for (let j = sVal; j < i; j++) {
+                      if (bases[VAL_BASE[j]]) {
+                          maxPosBehind = Math.max(maxPosBehind, j + displacements[j]);
+                      }
+                  }
+                  if (maxPosBehind >= i) {
+                      displacements[i] = N;
+                  }
+              }
+          }
+
+          let finalBases = { home: bases.home, '1b': null, '2b': null, '3b': null };
+          for (let i = 1; i <= 3; i++) {
+              const bId = VAL_BASE[i];
+              if (bases[bId]) {
+                  const d = displacements[i] || 0;
+                  const finalPos = i + d;
+                  if (finalPos >= 4) {
+                      runsScored++;
+                      newEvents.push({ id: batchId+i, batchId, type: 'run', targetBase: 'score', isError: false, batterId: bases.home?.id, scoredId: bases[bId]?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+                      advanceLogs.push(`[${formatTime(t)}] 🏃 ${bases[bId].name || 'Runner'} scored!`);
+                  } else {
+                      finalBases[VAL_BASE[finalPos]] = bases[bId];
+                      if (d > 0) {
+                          advanceLogs.push(`[${formatTime(t)}] 🏃 ${actionLabel ? actionLabel + ' - ' : ''}${bases[bId].name || 'Runner'} advanced to ${VAL_BASE[finalPos].toUpperCase()}`);
+                      }
+                  }
+              }
+          }
+          
+          setBases(finalBases);
+          if (newEvents.length === 0 && runsScored === 0) newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetId, isError, batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          commitEventBatch(newEvents, advanceLogs, snap);
+      }
+  };
+
+  const handleActionOut = (baseId, label, count, selectedBaseIds = [baseId], extraLog = null, incomingSnap = null, incomingBatchId = null) => {
+      const t = getSafeTime(entryTime, events);
+      const batchId = incomingBatchId || Date.now();
+      const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const pId = currentPitcher?.id || 'unassigned';
+      const pName = currentPitcher?.name || 'Unknown';
+
+      let pitchAdded = 0;
+      if (selectedBaseIds.includes('home') && !incomingBatchId) {
+          pitchAdded = 1;
+      }
+      if (pitchAdded > 0 && currentPitcher) {
+          setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pId]: (prev[fieldingTeam]?.[pId] || 0) + 1 } }));
+      }
+      
+      let newBases = { ...bases };
+      const logs = extraLog ? [extraLog] : [];
+      const newEvents = [];
+      selectedBaseIds.forEach((bId, idx) => {
+          newEvents.push({ id: batchId+idx, batchId, type: 'out', outType: label, batterId: bases[bId]?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, pitcherId: pId });
+          logs.push(`[${formatTime(t)}] ⚾ Out (${label}) recorded on ${bases[bId]?.name || 'Player'}`);
+          newBases[bId] = null;
+      });
+      setBases(newBases);
+      if (selectedBaseIds.includes('home')) {
+          setAtBatCount({ b: 0, s: 0 });
+          advanceBatter();
+      }
+
+      if (currentOuts + selectedBaseIds.length >= 3) {
+          setPendingPitchCountPrompt(true);
+      }
+
+      commitEventBatch(newEvents, logs, snap);
+      setActionMenuState(null);
+  };
+  
+  // ── IN PLAY MECHANICS ──────────────────────────────────────────────────────────
+  
+  const handleStartPlay = () => {
+      setPlayState({
+          initialBases: JSON.parse(JSON.stringify(bases)),
+          outs: [],
+          runs: [],
+          errors: []
+      });
+      setInPlayMode(true);
+  };
+  
+  const handleCancelPlay = () => {
+      setBases(playState.initialBases);
+      setPlayState(null);
+      setInPlayMode(false);
+  };
+  
+  const executeInPlayAdvance = (sourceId, targetId, isError) => {
+      let newBases = { ...bases };
+      let newPlayRuns = [...playState.runs];
+      let newErrors = [...playState.errors];
+
+      const runner = newBases[sourceId];
+      if (!runner) return;
+
+      if (isError) newErrors.push(runner.id);
+      newBases[sourceId] = null;
+
+      if (targetId === 'score') {
+          newPlayRuns.push({ player: runner, isError });
+      } else {
+          const pushRunner = (bId) => {
+              if (bId === 'score') return;
+              const nextMap = { '1b': '2b', '2b': '3b', '3b': 'score' };
+              const nextB = nextMap[bId];
+              if (nextB !== 'score' && newBases[nextB]) {
+                  pushRunner(nextB);
+              }
+              if (nextB === 'score') {
+                  newPlayRuns.push({ player: newBases[bId], isError: false });
+              } else {
+                  newBases[nextB] = newBases[bId];
+              }
+              newBases[bId] = null;
+          };
