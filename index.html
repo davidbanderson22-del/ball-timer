@@ -1104,6 +1104,24 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
     );
 }
 
+function WpPbModal({ onSelect, onCancel }) {
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>WILD PITCH / PASSED BALL</div>
+                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                    Was the pitch a ball or a strike?
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                    <Btn full variant="outline" onClick={() => onSelect('ball')}>BALL</Btn>
+                    <Btn full variant="outline" onClick={() => onSelect('strike')}>STRIKE</Btn>
+                </div>
+                <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
+            </div>
+        </div>
+    );
+}
+
 function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub, onCourtesy, onEditInfo, onClose }) {
     const [mode, setMode] = useState('main');
     const [editSelectedId, setEditSelectedId] = useState(runner?.id || "");
@@ -2247,6 +2265,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [courtesyModal, setCourtesyModal] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
+  const [wpPbModalVisible, setWpPbModalVisible] = useState(false);
+
   // IN PLAY STAGING STATES
   const [isResolvingPlay, setIsResolvingPlay] = useState(false);
   const [stagedPlay, setStagedPlay] = useState(null);
@@ -2283,7 +2303,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
   const sortedPhaseEvents = sortEvents(phaseEvents);
   const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
-  const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
+  const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.START);
 
   let activeHalf = null, activeInningNum = null, battingTeam = null, fieldingTeam = null, currentOuts = 0;
 
@@ -2645,7 +2665,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       let runsScored = 0;
       let outsRecorded = 0;
 
-      const pitchAdded = 1; // Updated: WP/PB now logs a pitch
+      const pitchAdded = 1; 
       if (currentPitcher) {
           setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + pitchAdded } }));
       }
@@ -2664,7 +2684,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               const dest = bState.dest;
               let actionLabel = "Advanced";
               if (playType === 'd3k') actionLabel = "Reached on D3K";
-              else if (playType === 'wp_pb') actionLabel = "Walked on WP/PB";
+              else if (playType === 'wp_pb') actionLabel = "Advanced on WP/PB";
               else if (dest === 'score') actionLabel = "Home Run";
               else if (bState.isError) actionLabel = "Reached on Error";
               else if (anyRunnerOut) actionLabel = "Fielder's Choice";
@@ -2994,6 +3014,21 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           />
       )}
 
+      {wpPbModalVisible && (
+          <WpPbModal 
+              onSelect={(type) => {
+                  setWpPbModalVisible(false);
+                  let newB = atBatCount.b;
+                  let newS = atBatCount.s;
+                  if (type === 'ball') newB++;
+                  if (type === 'strike') newS++;
+                  setAtBatCount({ b: newB, s: newS });
+                  startInPlay('wp_pb');
+              }}
+              onCancel={() => setWpPbModalVisible(false)}
+          />
+      )}
+
       {inPlayModalBaseId && (
           <InPlayModal 
               baseId={inPlayModalBaseId}
@@ -3169,7 +3204,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('hbp')}>HBP</Btn>
                                  <div style={{ flexBasis: '100%', height: '4px' }} />
                                  <Btn style={{flex: 2}} variant="success" onClick={() => startInPlay('regular')}>IN PLAY</Btn>
-                                 <Btn style={{flex: 1}} variant="outline" onClick={() => startInPlay('wp_pb')}>WP/PB</Btn>
+                                 <Btn style={{flex: 1}} variant="outline" onClick={() => setWpPbModalVisible(true)}>WP/PB</Btn>
                                  <Btn style={{flex: 1}} variant="outline" disabled={atBatCount.s < 2} onClick={() => startInPlay('d3k')}>D3K</Btn>
                                  <Btn style={{flex: 1}} variant="outline" onClick={handleBalk}>BALK</Btn>
                             </div>
