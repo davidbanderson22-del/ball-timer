@@ -822,6 +822,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 if (e.batterId && e.targetBase !== 'score' && e.targetBase !== 'home') {
                     if (e.targetBase === 'walk') { hStats[battingTeam][e.batterId].BB++; hStats[battingTeam][e.batterId].PA++; }
                     else if (e.targetBase === 'hbp') { hStats[battingTeam][e.batterId].HBP++; hStats[battingTeam][e.batterId].PA++; }
+                    else if (e.targetBase === 'd3k') { hStats[battingTeam][e.batterId].K++; hStats[battingTeam][e.batterId].AB++; hStats[battingTeam][e.batterId].PA++; }
                     else {
                         hStats[battingTeam][e.batterId].AB++;
                         hStats[battingTeam][e.batterId].PA++;
@@ -831,6 +832,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 if (e.pitcher && e.batterId) {
                     if (e.targetBase === 'walk') pStats[fieldingTeam][e.pitcher].BB++;
                     else if (e.targetBase === 'hbp') pStats[fieldingTeam][e.pitcher].HBP++;
+                    else if (e.targetBase === 'd3k') pStats[fieldingTeam][e.pitcher].K++;
                     else if (!e.isError && ['1b','2b','3b'].includes(e.targetBase)) pStats[fieldingTeam][e.pitcher].H++;
                 }
             } else if (e.type === 'run') {
@@ -1011,6 +1013,63 @@ function CopyModal({ text, onClose }) {
       </div>
     </div>
   );
+}
+
+function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose }) {
+    const pool = rosterData.pool?.[team] || [];
+    const lineup = rosterData[team] || [];
+    const leadoffId = lineup[0]?.id;
+    const isClosed = rosterData.lineupClosed?.[team];
+    const len = lineup.length;
+
+    const getIdx = (offset) => isClosed ? (currentIdx + offset) % len : currentIdx + offset;
+
+    const [slots, setSlots] = useState([
+        { idx: getIdx(0), id: lineup[getIdx(0)]?.id || "" },
+        { idx: getIdx(1), id: lineup[getIdx(1)]?.id || "" },
+        { idx: getIdx(2), id: lineup[getIdx(2)]?.id || "" }
+    ]);
+
+    const updateSlot = (i, val) => {
+        const newSlots = [...slots];
+        newSlots[i].id = val;
+        setSlots(newSlots);
+    };
+
+    const leadoffDetectedIn = slots.findIndex((s, i) => i > 0 && s.id === leadoffId);
+    const canClose = !isClosed && leadoffId && leadoffDetectedIn > 0;
+
+    return (
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>UPCOMING BATTERS</div>
+                <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Set the current and upcoming batters dynamically.</div>
+                
+                {slots.map((s, i) => (
+                    <div key={i} style={{ marginBottom: "12px" }}>
+                        <Label>{i === 0 ? "CURRENT BATTER" : i === 1 ? "ON DECK" : "IN HOLE"}</Label>
+                        <Sel value={s.id} onChange={v => updateSlot(i, v)}>
+                            <option value="" hidden>Select Player...</option>
+                            <option value="new">+ Add New Blank Batter</option>
+                            {pool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
+                        </Sel>
+                    </div>
+                ))}
+
+                {canClose && (
+                    <div style={{ background: C.greenDim, padding: "10px", marginBottom: "16px", border: `1px solid ${C.green}` }}>
+                        <div style={{ fontSize: "11px", color: C.green, fontFamily: MONO, fontWeight: "bold", marginBottom: "6px" }}>Leadoff hitter detected!</div>
+                        <Btn full variant="success" onClick={() => onSave(slots, slots[leadoffDetectedIn].idx)}>SAVE & CLOSE LINEUP</Btn>
+                    </div>
+                )}
+
+                <div style={{ display: "flex", gap: "10px", marginTop: canClose ? "0" : "16px" }}>
+                    <Btn full variant="primary" onClick={() => onSave(slots, null)}>SAVE CHANGES</Btn>
+                    <Btn full variant="ghost" onClick={onClose}>CANCEL</Btn>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, onCancel }) {
@@ -1727,7 +1786,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditLineupSlot }) {
+function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditUpcomingBatters }) {
     const zones = [
         { id: '2b', label: '', cls: 'pos-2b' },
         { id: '3b', label: '', cls: 'pos-3b' },
@@ -1746,18 +1805,18 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
         'RF': { top: '28%', left: '80%' }
     };
     const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
-    const onDeckIdx = (lineupIdx + 1) % (battingLineup?.length || 1);
-    const inHoleIdx = (lineupIdx + 2) % (battingLineup?.length || 1);
+    
+    // Updated robust logic for identifying on deck / in hole names
+    const getSlotName = (offset) => {
+        if (!battingLineup || !battingLineup.length) return '?';
+        const targetIdx = lineupClosed 
+            ? (lineupIdx + offset) % battingLineup.length 
+            : lineupIdx + offset;
+        return battingLineup[targetIdx]?.name || `Batter ${targetIdx + 1}`;
+    };
 
-    let onDeckName = '?';
-    let inHoleName = '?';
-    if (lineupClosed) {
-        onDeckName = battingLineup?.[onDeckIdx]?.name || '?';
-        inHoleName = battingLineup?.[inHoleIdx]?.name || '?';
-    } else {
-        onDeckName = battingLineup?.[lineupIdx + 1]?.name || `Batter ${lineupIdx + 2}`;
-        inHoleName = battingLineup?.[lineupIdx + 2]?.name || `Batter ${lineupIdx + 3}`;
-    }
+    const onDeckName = getSlotName(1);
+    const inHoleName = getSlotName(2);
 
     return (
         <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
@@ -1860,8 +1919,8 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                 <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span></div>
                 <div style={{ textAlign: "right" }}>
                     <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
-                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(onDeckIdx)}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
-                    <div style={{ cursor: 'pointer' }} onClick={() => onEditLineupSlot(inHoleIdx)}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
                 </div>
             </div>
         </div>
@@ -2184,12 +2243,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
   const [runnerMenuState, setRunnerMenuState] = useState(null);
   const [lineupEditModal, setLineupEditModal] = useState(null);
+  const [upcomingBattersModal, setUpcomingBattersModal] = useState(false);
   const [courtesyModal, setCourtesyModal] = useState(null);
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
   // IN PLAY STAGING STATES
   const [isResolvingPlay, setIsResolvingPlay] = useState(false);
   const [stagedPlay, setStagedPlay] = useState(null);
+  const [playType, setPlayType] = useState('regular'); // 'regular', 'd3k', 'wp_pb'
   const [inPlayModalBaseId, setInPlayModalBaseId] = useState(null);
 
   const defaultPitchers = {
@@ -2247,6 +2308,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const activeFieldersMap = rosterData.fielders?.[fieldingTeam] || {};
   const currentPitcher = activeFieldersMap?.['P'] || rosterData[fieldingTeam]?.find(p => p.pos === 'P');
   const currentPitches = currentPitcher ? (pitchData[fieldingTeam]?.[currentPitcher.name] || 0) : 0;
+  
   useEffect(() => {
       if (inActiveInning && !bases.home && currentOuts < 3 && !isResolvingPlay) {
           let batter = rosterData[battingTeam][lineupIdx[battingTeam]];
@@ -2315,7 +2377,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
     });
   }, [events, est?.estimatedEnd, est?.canEstimate, est?.confidence, lastPhase]);
 
-  // Bug fixed: Manual game over prompt works appropriately by removing immediate override
+  // Handle Game Over Prompt
   useEffect(() => { 
     const isOver = isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit);
     if (isOver && !gameOverPrompt && !showSummary) { 
@@ -2388,6 +2450,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       const pitchLog = `[${formatTime(t)}] ⚾ Pitch: ${type.toUpperCase()} (${newB}-${newS})`;
       const newPitchData = { ...pitchData, [fieldingTeam]: { ...(pitchData[fieldingTeam] || {}), [pName]: currentPitches + 1 } };
+      
       if (!autoAction) {
           setPitchData(newPitchData);
           setAtBatCount({ b: newB, s: newS });
@@ -2490,7 +2553,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setRunnerMenuState(null);
   };
 
-  // Add robust stealing functionally separate from ball-in-play logic 
   const handleSteal = (startBaseId, destId, isOut) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
@@ -2504,7 +2566,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       if (isOut) {
           newEvents.push({ id: batchId, batchId, type: 'out', outType: 'CS', batterId: null, runnerId: runner.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-          logs.push(`[${formatTime(t)}] 🏃 Out on Basepaths: ${runner.name} is out trying to advance/steal ${destId.toUpperCase()}.`);
+          logs.push(`[${formatTime(t)}] 🏃 Out on Basepaths: ${runner.name} caught stealing / out advancing to ${destId.toUpperCase()}.`);
           nextBases[startBaseId] = null;
       } else {
           nextBases[startBaseId] = null;
@@ -2527,13 +2589,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   };
 
   // ── IN PLAY STAGING LOGIC ──
-  const startInPlay = () => {
+  const startInPlay = (type = 'regular') => {
       const initialStaged = {};
       ['home', '1b', '2b', '3b'].forEach(b => {
           if (bases[b]) {
               initialStaged[b] = { ...bases[b], dest: b, isOut: false, isError: false, original: b };
           }
       });
+      setPlayType(type);
       setStagedPlay(initialStaged);
       setIsResolvingPlay(true);
   };
@@ -2544,21 +2607,28 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       nextStaged[baseId].isOut = dest === 'out';
       nextStaged[baseId].isError = isError;
 
-      // Auto Push Logic
+      // Smart Auto-Push Logic (Prevents runners from passing or stacking incorrectly)
+      const baseOrder = ['home', '1b', '2b', '3b', 'score'];
+      const movedOrigIdx = baseOrder.indexOf(nextStaged[baseId].original);
+      let minNextIdx = baseOrder.indexOf(dest);
+
       if (dest !== 'out' && dest !== 'score' && dest !== baseId) {
-          let currentDest = dest;
-          for (let i = 0; i < 3; i++) {
-              const occupantKey = Object.keys(nextStaged).find(k => k !== baseId && k !== 'home' && nextStaged[k].original === currentDest && nextStaged[k].dest === currentDest && !nextStaged[k].isOut);
-              if (occupantKey) {
-                  const baseOrder = ['1b', '2b', '3b', 'score'];
-                  const pushedDest = baseOrder[baseOrder.indexOf(currentDest) + 1];
-                  nextStaged[occupantKey].dest = pushedDest;
-                  currentDest = pushedDest;
-              } else {
-                  break;
+          ['1b', '2b', '3b'].forEach(aheadBase => {
+              if (nextStaged[aheadBase] && !nextStaged[aheadBase].isOut) {
+                  const aheadOrigIdx = baseOrder.indexOf(nextStaged[aheadBase].original);
+                  if (aheadOrigIdx > movedOrigIdx) {
+                      const currentDestIdx = baseOrder.indexOf(nextStaged[aheadBase].dest);
+                      minNextIdx = minNextIdx + 1; // Pushed at least one base ahead
+                      if (currentDestIdx < minNextIdx) {
+                          nextStaged[aheadBase].dest = baseOrder[Math.min(minNextIdx, 4)];
+                      } else {
+                          minNextIdx = currentDestIdx; // Update constraint for the next runner
+                      }
+                  }
               }
-          }
+          });
       }
+      
       setStagedPlay(nextStaged);
       setInPlayModalBaseId(null);
   };
@@ -2575,7 +2645,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       let runsScored = 0;
       let outsRecorded = 0;
 
-      const pitchAdded = 1; 
+      const pitchAdded = (playType === 'wp_pb') ? 0 : 1;
       if (currentPitcher) {
           setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + pitchAdded } }));
       }
@@ -2583,26 +2653,37 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       const anyRunnerOut = ['1b','2b','3b'].some(b => stagedPlay[b] && stagedPlay[b].isOut);
       const bState = stagedPlay['home'];
 
-      if (bState.dest === 'out') {
-          outsRecorded++;
-          newEvents.push({ id: batchId, batchId, type: 'out', outType: 'GO/FO', batterId: bases.home?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-          logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out.`);
-      } else if (bState.dest !== 'home') {
-          const dest = bState.dest;
-          let actionLabel = "Advanced";
-          if (dest === 'score') actionLabel = "Home Run";
-          else if (bState.isError) actionLabel = "Reached on Error";
-          else if (anyRunnerOut) actionLabel = "Fielder's Choice";
-          else actionLabel = dest === '1b' ? 'Single' : dest === '2b' ? 'Double' : 'Triple';
-          
-          logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) - ${actionLabel}`);
-          
-          if (dest === 'score') {
-              runsScored++;
-              newEvents.push({ id: batchId, batchId, type: 'run', targetBase: 'score', isError: bState.isError, batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+      if (bState) {
+          if (bState.dest === 'out' || (bState.dest === 'home' && playType === 'd3k')) {
+              outsRecorded++;
+              const outType = playType === 'd3k' ? 'K' : 'GO/FO';
+              newEvents.push({ id: batchId, batchId, type: 'out', outType, batterId: bases.home?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''}.`);
+              nextBases['home'] = null;
+          } else if (bState.dest !== 'home') {
+              const dest = bState.dest;
+              let actionLabel = "Advanced";
+              if (playType === 'd3k') actionLabel = "Reached on D3K";
+              else if (playType === 'wp_pb') actionLabel = "Walked on WP/PB";
+              else if (dest === 'score') actionLabel = "Home Run";
+              else if (bState.isError) actionLabel = "Reached on Error";
+              else if (anyRunnerOut) actionLabel = "Fielder's Choice";
+              else actionLabel = dest === '1b' ? 'Single' : dest === '2b' ? 'Double' : 'Triple';
+              
+              logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) - ${actionLabel}`);
+              const targetBaseStr = playType === 'd3k' ? 'd3k' : (playType === 'wp_pb' ? 'walk' : dest);
+              
+              if (dest === 'score') {
+                  runsScored++;
+                  newEvents.push({ id: batchId, batchId, type: 'run', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              } else {
+                  nextBases[dest] = bases.home;
+                  newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              }
+              nextBases['home'] = null;
           } else {
-              nextBases[dest] = bases.home;
-              newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: dest, isError: bState.isError, batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              // Batter stays home (WP/PB or aborted standard advancement).
+              nextBases['home'] = bases.home;
           }
       }
 
@@ -2627,11 +2708,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       });
 
       setBases(nextBases);
-      if (bState.dest !== 'home') {
+      
+      const batterIsDone = (bState && bState.dest !== 'home') || playType === 'd3k'; 
+      if (batterIsDone) {
           setAtBatCount({ b: 0, s: 0 });
           advanceBatter();
-      } else {
-          setAtBatCount({ b: 0, s: 0 }); 
       }
 
       if (currentOuts + outsRecorded >= 3) {
@@ -2641,6 +2722,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       commitEventBatch(newEvents, logs, snap);
       setIsResolvingPlay(false);
       setStagedPlay(null);
+      setPlayType('regular');
   };
 
   const handleRunnerClick = (baseId) => {
@@ -2794,6 +2876,43 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 setLineupEditModal(null);
             }} 
             onCancel={() => setLineupEditModal(null)} 
+          />
+      )}
+
+      {upcomingBattersModal && (
+          <UpcomingBattersModal 
+              team={battingTeam}
+              currentIdx={lineupIdx[battingTeam]}
+              rosterData={rosterData}
+              onSave={(slots, closeLineupAtIdx) => {
+                  const newRoster = { ...rosterData };
+                  let closed = rosterData.lineupClosed?.[battingTeam];
+                  
+                  slots.forEach(s => {
+                      if (s.id && s.id !== 'new') {
+                          const p = newRoster.pool[battingTeam].find(x => x.id === s.id);
+                          if (p) {
+                              newRoster[battingTeam][s.idx] = { ...p, lineupIndex: s.idx };
+                          }
+                      } else if (s.id === 'new') {
+                          const p = { id: `p_${Date.now()}_${s.idx}`, name: `Batter ${s.idx + 1}`, no: '', pos: '' };
+                          newRoster.pool[battingTeam].push(p);
+                          newRoster[battingTeam][s.idx] = { ...p, lineupIndex: s.idx };
+                      }
+                  });
+
+                  if (closeLineupAtIdx !== null && closeLineupAtIdx !== undefined) {
+                      newRoster.lineupClosed[battingTeam] = true;
+                      newRoster[battingTeam] = newRoster[battingTeam].slice(0, closeLineupAtIdx);
+                      closed = true;
+                  }
+                  setRosterData(newRoster);
+                  
+                  const updatedCurrent = newRoster[battingTeam][lineupIdx[battingTeam]];
+                  if (updatedCurrent) setBases(p => ({ ...p, home: updatedCurrent }));
+                  setUpcomingBattersModal(false);
+              }}
+              onClose={() => setUpcomingBattersModal(false)}
           />
       )}
 
@@ -3035,7 +3154,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       isResolvingPlay={isResolvingPlay}
                       onRunnerClick={inActiveInning ? handleRunnerClick : () => {}} 
                       onChangeFielder={(pos, player) => !isResolvingPlay && setActiveFielderSubModal({ team: fieldingTeam, pos, player })}
-                      onEditLineupSlot={(idx) => !isResolvingPlay && setLineupEditModal({ idx })}
+                      onEditUpcomingBatters={() => !isResolvingPlay && setUpcomingBattersModal(true)}
                   />
               )}
 
@@ -3049,13 +3168,15 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('foul')}>Foul</Btn>
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('hbp')}>HBP</Btn>
                                  <div style={{ flexBasis: '100%', height: '4px' }} />
-                                 <Btn style={{flex: 2}} variant="success" onClick={startInPlay}>IN PLAY</Btn>
+                                 <Btn style={{flex: 2}} variant="success" onClick={() => startInPlay('regular')}>IN PLAY</Btn>
+                                 <Btn style={{flex: 1}} variant="outline" onClick={() => startInPlay('wp_pb')}>WP/PB</Btn>
+                                 <Btn style={{flex: 1}} variant="outline" onClick={() => startInPlay('d3k')}>D3K</Btn>
                                  <Btn style={{flex: 1}} variant="outline" onClick={handleBalk}>BALK</Btn>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', background: C.greenDim, padding: '10px', border: `2px solid ${C.green}`, borderRadius: '4px' }}>
                                  <Btn full variant="primary" onClick={commitPlay}>END PLAY</Btn>
-                                 <Btn full variant="ghost" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); }}>CANCEL</Btn>
+                                 <Btn full variant="ghost" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); }}>CANCEL</Btn>
                             </div>
                         )
                     )}
