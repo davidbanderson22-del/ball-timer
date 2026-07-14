@@ -2645,7 +2645,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       let runsScored = 0;
       let outsRecorded = 0;
 
-      const pitchAdded = (playType === 'wp_pb') ? 0 : 1;
+      const pitchAdded = 1; // Updated: WP/PB now logs a pitch
       if (currentPitcher) {
           setPitchData(prev => ({ ...prev, [fieldingTeam]: { ...prev[fieldingTeam], [pName]: (prev[fieldingTeam]?.[pName] || 0) + pitchAdded } }));
       }
@@ -3170,7 +3170,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                                  <div style={{ flexBasis: '100%', height: '4px' }} />
                                  <Btn style={{flex: 2}} variant="success" onClick={() => startInPlay('regular')}>IN PLAY</Btn>
                                  <Btn style={{flex: 1}} variant="outline" onClick={() => startInPlay('wp_pb')}>WP/PB</Btn>
-                                 <Btn style={{flex: 1}} variant="outline" onClick={() => startInPlay('d3k')}>D3K</Btn>
+                                 <Btn style={{flex: 1}} variant="outline" disabled={atBatCount.s < 2} onClick={() => startInPlay('d3k')}>D3K</Btn>
                                  <Btn style={{flex: 1}} variant="outline" onClick={handleBalk}>BALK</Btn>
                             </div>
                         ) : (
