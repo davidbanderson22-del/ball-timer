@@ -1804,7 +1804,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditUpcomingBatters }) {
+function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, currentPitches, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditUpcomingBatters }) {
     const zones = [
         { id: '2b', label: '', cls: 'pos-2b' },
         { id: '3b', label: '', cls: 'pos-3b' },
@@ -1934,7 +1934,7 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
             </div>
             
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
-                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span></div>
+                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span> <span style={{color: C.muted, fontSize: '10px'}}>(Pitches: {currentPitches || 0})</span></div>
                 <div style={{ textAlign: "right" }}>
                     <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
                     <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
@@ -2303,7 +2303,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
   const phaseEvents = events.filter(e => e.type === 'phase' || !e.type); 
   const sortedPhaseEvents = sortEvents(phaseEvents);
   const lastPhase = sortedPhaseEvents.length ? sortedPhaseEvents[sortedPhaseEvents.length - 1] : null;
-  const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.START);
+  const inActiveInning = lastPhase && (lastPhase.phase === EV.TOP || lastPhase.phase === EV.BOT);
 
   let activeHalf = null, activeInningNum = null, battingTeam = null, fieldingTeam = null, currentOuts = 0;
 
@@ -3179,6 +3179,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                       awayName={away}
                       homeName={home}
                       currentOuts={inActiveInning ? currentOuts : 0} 
+                      currentPitches={currentPitches}
                       bases={bases} 
                       fieldingRoster={rosterData[fieldingTeam] || []}
                       activeFieldersMap={activeFieldersMap || {}}
