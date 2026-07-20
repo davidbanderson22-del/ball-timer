@@ -15,14 +15,15 @@
         body { 
             margin: 0;
             padding: 0; 
-            background-color: #F8FAFC; 
-            color: #0F172A;
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F4F1EA;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            color: #1A1A1A;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
         button {
-            transition: all 0.15s ease-in-out;
+            transition: all 0.1s ease-in-out;
         }
         button:active {
             transform: scale(0.97);
@@ -34,12 +35,12 @@
             max-width: 360px;
             aspect-ratio: 1 / 1;
             margin: 0 auto 16px;
-            background: #16A34A; 
-            border: 2px solid #CBD5E1;
+            background: #2D6A4F; 
+            border: 3px solid #1A1A1A;
             overflow: hidden;
             touch-action: none; 
-            border-radius: 12px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.25);
         }
 
         .foul-line-left, .foul-line-right {
@@ -68,10 +69,11 @@
             position: absolute;
             top: 65%; left: 50%;
             width: 33%; aspect-ratio: 1;
-            background: #22C55E; 
+            background: #40916C; 
             transform: translate(-50%, -50%) rotate(45deg);
-            border-radius: 6px;
+            border-radius: 4px;
             pointer-events: none;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
         .pitcher-mound {
@@ -91,6 +93,7 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             border-radius: 1px;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
         .base-visual {
@@ -99,8 +102,8 @@
             background: white;
             transform: translate(-50%, -50%) rotate(45deg);
             pointer-events: none;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-            border-radius: 2px;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            border-radius: 1px;
         }
         .base-visual.home {
             width: 18px;
@@ -123,34 +126,51 @@
             width: 28px;
             height: 28px;
             background: #FFFFFF;
-            border: 2px solid #0F172A;
+            border: 2px solid #1A1A1A;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Courier Prime', monospace;
-            font-weight: bold; font-size: 13px; color: #0F172A;
+            font-weight: bold; font-size: 13px; color: #1A1A1A;
             cursor: pointer;
             z-index: 20;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0px 3px 5px rgba(0,0,0,0.4);
             touch-action: none;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
             transform: translate(-50%, -50%);
         }
+
+        /* Animations delay color change until arrival */
+        @keyframes runnerOutAnim {
+            0%   { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
+            80%  { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
+            100% { background: #9B2226; border-color: #5A1416; color: #FFFFFF; }
+        }
+        @keyframes runnerScoreAnim {
+            0%   { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
+            80%  { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
+            100% { background: #2D6A4F; border-color: #143325; color: #FFFFFF; }
+        }
+        
+        .runner-out { animation: runnerOutAnim 0.6s forwards; }
+        .runner-scored { animation: runnerScoreAnim 0.6s forwards; }
 
         .staged-badge {
             position: absolute;
             top: -24px;
             left: 50%;
             transform: translateX(-50%);
-            background: #EAB308;
+            background: #D97706;
             color: #fff;
             font-size: 10px;
             padding: 3px 6px;
-            border-radius: 4px;
+            border-radius: 2px;
+            border: 1px solid #1A1A1A;
             white-space: nowrap;
             z-index: 30;
             font-weight: bold;
-            box-shadow: 0px 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.3);
             pointer-events: none;
+            font-family: 'Courier Prime', monospace;
         }
         
         .pos-home  { top: 88%; left: 50%; }
@@ -169,13 +189,13 @@
         .def-player .dot {
             width: 8px;
             height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
-            box-shadow: 0px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.6);
         }
         .def-player .name {
             font-size: 9px;
-            color: #fff; font-weight: 600;
-            background: rgba(15, 23, 42, 0.6); padding: 2px 6px; border-radius: 4px;
-            white-space: nowrap;
+            color: #fff; font-weight: bold;
+            background: rgba(26, 26, 26, 0.7); padding: 2px 5px; border-radius: 2px;
+            white-space: nowrap; font-family: 'Courier Prime', monospace;
         }
         
         .pos-pitcher { 
@@ -188,10 +208,10 @@
             pointer-events: auto;
         }
         
-        .stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .stats-table th { background: #F1F5F9; border-bottom: 2px solid #CBD5E1; padding: 6px; text-align: left; font-weight: 600; color: #475569;}
-        .stats-table td { border-bottom: 1px solid #E2E8F0; padding: 6px; text-align: center; font-family: 'Courier Prime', monospace;}
-        .stats-table td:first-child { text-align: left; font-family: inherit; font-weight: 500;}
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Courier Prime', monospace; }
+        .stats-table th { background: #E8E4D9; border-bottom: 2px solid #1A1A1A; padding: 6px; text-align: left; font-weight: bold; color: #1A1A1A;}
+        .stats-table td { border-bottom: 1px solid #D0C8B6; padding: 6px; text-align: center; }
+        .stats-table td:first-child { text-align: left; font-weight: bold;}
     </style>
 </head>
 <body>
@@ -203,19 +223,19 @@
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
 
 const C = {
-  bg: "#F8FAFC", card: "#FFFFFF", border: "#E2E8F0", borderBright: "#CBD5E1",
-  text: "#0F172A", muted: "#64748B", faint: "#94A3B8",
-  green: "#16A34A", greenDim: "#DCFCE7",
-  red: "#DC2626", redDim: "#FEE2E2",
-  yellow: "#D97706", yellowDim: "#FEF3C7",
-  blue: "#2563EB", blueDim: "#DBEAFE",
-  accent: "#2563EB", accentDim: "#DBEAFE",
-  orange: "#EA580C",
+  bg: "#F4F1EA", card: "#FFFFFF", border: "#1A1A1A", borderBright: "#D0C8B6",
+  text: "#1A1A1A", muted: "#5A5A5A", faint: "#8A8A8A",
+  green: "#2D6A4F", greenDim: "#D8E2DC",
+  red: "#9B2226", redDim: "#F8D7DA",
+  yellow: "#CA6702", yellowDim: "#FFEEDD",
+  blue: "#03045E", blueDim: "#CAF0F8",
+  accent: "#9B2226", accentDim: "#F8D7DA",
+  orange: "#BB3E03",
 };
 
-const DISPLAY = "system-ui, -apple-system, sans-serif";
+const DISPLAY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const MONO    = "'Courier Prime', monospace";
-const SERIF   = "system-ui, -apple-system, sans-serif";
+const SERIF   = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 const LEAGUES = {
   hs:       { label: "High School",         halfInning: 10,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
@@ -523,26 +543,26 @@ function parseImport(text) {
 
 // ── Micro components ──────────────────────────────────────────────────────────
 function Label({ children, style: s }) {
-  return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "600", marginBottom: "6px", ...s }}>{children}</div>;
+  return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "bold", marginBottom: "6px", fontFamily: MONO, ...s }}>{children}</div>;
 }
 function Inp({ value, onChange, placeholder, type = "text", style: s, autoFocus, disabled }) {
   return (
     <input disabled={disabled} autoFocus={autoFocus} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: disabled ? C.muted : C.text, padding: "10px 12px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }} />
+      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", color: disabled ? C.muted : C.text, padding: "8px 10px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, fontFamily: MONO, ...s }} />
   );
 }
 function Sel({ value, onChange, children, style: s, disabled }) {
   return (
     <select disabled={disabled} value={value} onChange={e => onChange(e.target.value)}
-      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: disabled ? C.muted : C.text, padding: "10px 12px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }}>
+      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", color: disabled ? C.muted : C.text, padding: "8px 10px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, fontFamily: MONO, ...s }}>
       {children}
     </select>
   );
 }
 function Btn({ children, onClick, variant = "primary", small, full, disabled, style: s }) {
   const vs = {
-    primary:   { background: C.accent, color: C.card, border: `1px solid transparent` },
-    outline:   { background: C.card, color: C.text, border: `1px solid ${C.borderBright}` },
+    primary:   { background: C.text, color: C.card, border: `1px solid transparent` },
+    outline:   { background: C.card, color: C.text, border: `1px solid ${C.text}` },
     ghost:     { background: "transparent", color: C.muted, border: `1px dashed ${C.borderBright}` },
     danger:    { background: C.red, color: C.card, border: `1px solid transparent` },
     success:   { background: C.green, color: C.card, border: `1px solid transparent` },
@@ -551,10 +571,11 @@ function Btn({ children, onClick, variant = "primary", small, full, disabled, st
   return (
     <button onClick={disabled ? undefined : onClick} style={{
       ...vs[variant], cursor: disabled ? "default" : "pointer",
-      fontWeight: "600", textTransform: "uppercase", borderRadius: "8px",
+      fontWeight: "bold", textTransform: "uppercase", borderRadius: "4px",
       fontSize: small ? "11px" : "13px", padding: small ? "8px 12px" : "12px 18px",
       width: full ? "100%" : undefined, opacity: disabled ? 0.4 : 1, 
-      boxShadow: (variant !== 'ghost' && variant !== 'outline') ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
+      boxShadow: (variant !== 'ghost' && variant !== 'outline') ? "2px 2px 0px rgba(0,0,0,0.15)" : "none",
+      fontFamily: MONO,
       ...s,
     }}>{children}</button>
   );
@@ -562,10 +583,10 @@ function Btn({ children, onClick, variant = "primary", small, full, disabled, st
 function Toggle({ on, onToggle, label, disabled }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px", opacity: disabled ? 0.5 : 1 }}>
-      <button disabled={disabled} onClick={onToggle} style={{ background: on ? C.accent : C.borderBright, border: `none`, width: "42px", height: "24px", borderRadius: "12px", cursor: disabled ? "default" : "pointer", position: "relative", transition: "background 0.2s" }}>
+      <button disabled={disabled} onClick={onToggle} style={{ background: on ? C.text : C.borderBright, border: `none`, width: "42px", height: "24px", borderRadius: "12px", cursor: disabled ? "default" : "pointer", position: "relative", transition: "background 0.2s" }}>
         <div style={{ position: "absolute", top: "2px", left: on ? "20px" : "2px", width: "20px", height: "20px", background: C.card, borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.2)" }} />
       </button>
-      <span style={{ fontSize: "13px", color: C.text, fontWeight: "600" }}>{label}</span>
+      <span style={{ fontSize: "13px", color: C.text, fontWeight: "bold", fontFamily: MONO }}>{label}</span>
     </div>
   );
 }
@@ -573,35 +594,35 @@ function ConfChip({ confidence }) {
   if (!confidence) return null;
   const map = { low: { label: "Low", color: C.red, bg: C.redDim }, fair: { label: "Fair", color: C.yellow, bg: C.yellowDim }, good: { label: "Good", color: C.blue, bg: C.blueDim }, strong: { label: "Strong", color: C.green, bg: C.greenDim } };
   const { label, color, bg } = map[confidence];
-  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, borderRadius: "4px", padding: "4px 8px" }}>{label} CONFIDENCE</span>;
+  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, borderRadius: "2px", padding: "2px 6px", border: `1px solid ${color}`, fontFamily: MONO }}>{label}</span>;
 }
 function StatBox({ label, value, sub, color, dim }) {
   return (
-    <div style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "10px 8px", textAlign: "center", opacity: dim ? 0.6 : 1, transition: "opacity 0.3s" }}>
-      <Label style={{ marginBottom: "4px" }}>{label}</Label>
+    <div style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", padding: "8px 6px", textAlign: "center", opacity: dim ? 0.6 : 1, transition: "opacity 0.3s" }}>
+      <Label style={{ marginBottom: "2px" }}>{label}</Label>
       <div style={{ fontSize: "22px", fontWeight: "bold", color: color ?? C.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: "10px", color: C.muted, marginTop: "6px" }}>{sub}</div>}
+      {sub && <div style={{ fontSize: "10px", color: C.muted, marginTop: "4px", fontFamily: MONO }}>{sub}</div>}
     </div>
   );
 }
 function Divider({ label }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 16px" }}>
-      <div style={{ flex: 1, borderTop: `1px solid ${C.borderBright}` }} />
-      {label && <span style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "600" }}>{label}</span>}
-      <div style={{ flex: 1, borderTop: `1px solid ${C.borderBright}` }} />
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "16px 0" }}>
+      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
+      {label && <span style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "bold", fontFamily: MONO }}>{label}</span>}
+      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
     </div>
   );
 }
 function Card({ children, style: s }) {
     return (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "16px", marginBottom: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", ...s }}>
+        <div style={{ background: C.card, border: `2px solid ${C.border}`, borderRadius: "4px", padding: "16px", marginBottom: "16px", boxShadow: "4px 4px 0px rgba(0,0,0,0.1)", ...s }}>
             {children}
         </div>
     );
 }
 
-function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning, currentPhase, currentInning }) {
+function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning, currentPhase, currentInning, activeHalf }) {
   const maxCols = Math.max(totalInnings, currentInning || lastCompletedInning || 1);
   const cols = Array.from({ length: maxCols }, (_, i) => i + 1);
   const getRuns = (team, inning) => {
@@ -622,23 +643,33 @@ function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInni
     }
     return played ? "0" : "·";
   };
-  const cell = val => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "8px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}` });
+  
+  const getHighlight = (team, inning) => {
+      if (currentPhase === null || currentPhase === undefined || !activeHalf) return 'transparent';
+      if (inning === currentInning) {
+          if (team === 'away' && activeHalf === 'top') return C.yellowDim;
+          if (team === 'home' && activeHalf === 'bot') return C.yellowDim;
+      }
+      return 'transparent';
+  };
+
+  const cell = (val, team, inn) => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "8px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}`, background: getHighlight(team, inn), transition: "background 0.3s" });
   return (
-    <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px", background: C.bg }}>
+    <div style={{ overflowX: "auto", border: `2px solid ${C.border}`, borderRadius: "4px", background: C.bg }}>
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
         <thead>
           <tr>
-            <td style={{ width: "64px", fontSize: "10px", padding: "6px 8px", borderBottom: `2px solid ${C.borderBright}` }} />
-            {cols.map(i => <td key={i} style={{ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "11px", fontWeight: "bold", color: C.muted, padding: "6px 2px", borderRight: `1px solid ${C.borderBright}`, borderBottom: `2px solid ${C.borderBright}` }}>{i}{i > totalInnings ? "x" : ""}</td>)}
-            <td style={{ width: "32px", textAlign: "center", fontSize: "11px", fontWeight: "bold", color: C.muted, padding: "6px 8px", borderBottom: `2px solid ${C.borderBright}`, borderLeft: `2px solid ${C.borderBright}` }}>R</td>
+            <td style={{ width: "64px", fontSize: "10px", padding: "6px 8px", borderBottom: `2px solid ${C.border}` }} />
+            {cols.map(i => <td key={i} style={{ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.muted, padding: "6px 2px", borderRight: `1px solid ${C.borderBright}`, borderBottom: `2px solid ${C.border}` }}>{i}{i > totalInnings ? "x" : ""}</td>)}
+            <td style={{ width: "32px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.muted, padding: "6px 8px", borderBottom: `2px solid ${C.border}`, borderLeft: `2px solid ${C.border}` }}>R</td>
           </tr>
         </thead>
         <tbody>
           {[["away", away], ["home", home]].map(([side, name]) => (
             <tr key={side}>
-              <td style={{ fontSize: "12px", fontWeight: "600", color: C.text, padding: "8px", maxWidth: "64px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderBottom: `1px solid ${C.borderBright}`, borderRight: `2px solid ${C.borderBright}` }}>{name}</td>
-              {cols.map(inn => { const v = getRuns(side, inn); return <td key={inn} style={cell(v)}>{v}</td>; })}
-              <td style={{ width: "32px", textAlign: "center", fontSize: "14px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "8px", borderBottom: `1px solid ${C.borderBright}`, borderLeft: `2px solid ${C.borderBright}` }}>{score[side]}</td>
+              <td style={{ fontSize: "12px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "8px", maxWidth: "64px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderBottom: `1px solid ${C.borderBright}`, borderRight: `2px solid ${C.border}` }}>{name}</td>
+              {cols.map(inn => { const v = getRuns(side, inn); return <td key={inn} style={cell(v, side, inn)}>{v}</td>; })}
+              <td style={{ width: "32px", textAlign: "center", fontSize: "14px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "8px", borderBottom: `1px solid ${C.borderBright}`, borderLeft: `2px solid ${C.border}` }}>{score[side]}</td>
             </tr>
           ))}
         </tbody>
@@ -717,19 +748,19 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <Label style={{ marginBottom: 0 }}>ESTIMATE ACCURACY</Label>
         <div style={{ display: "flex", gap: "6px" }}>
-          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>
+          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontWeight: "bold", fontFamily: MONO, borderRadius: "2px", cursor: "pointer" }}>
             {excludeEarly ? "SHOW ALL" : "HIDE EARLY"}
           </button>
           {[["signed", "±"], ["absolute", "|e|"]].map(([v, l]) => (
-            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>{l}</button>
+            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontWeight: "bold", fontFamily: MONO, borderRadius: "2px", cursor: "pointer" }}>{l}</button>
           ))}
           {[["inning", "INN"], ["time", "TIME"]].map(([v, l]) => (
-            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.accent : "transparent", border: `1px solid ${xMode === v ? C.accent : C.text}`, color: xMode === v ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>{l}</button>
+            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.accent : "transparent", border: `1px solid ${xMode === v ? C.accent : C.text}`, color: xMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontWeight: "bold", fontFamily: MONO, borderRadius: "2px", cursor: "pointer" }}>{l}</button>
           ))}
         </div>
       </div>
 
-      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "12px 0" }}>
+      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", padding: "12px 0" }}>
         <svg ref={svgRef} width={W} height={H} style={{ display: "block", margin: "0 auto" }}>
           {yMode === "signed" && <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke={C.borderBright} strokeWidth="2" strokeDasharray="4,4" />}
           {yTicks.map(v => {
@@ -862,7 +893,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} BATTING</Label>
-                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "4px" }}>
                     <table className="stats-table">
                         <thead>
                             <tr>
@@ -895,7 +926,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} PITCHING</Label>
-                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "4px" }}>
                     <table className="stats-table">
                         <thead>
                             <tr>
@@ -933,7 +964,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} DEFENSE (ERRORS)</Label>
-                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "4px" }}>
                     <table className="stats-table">
                         <thead>
                             <tr>
@@ -970,8 +1001,8 @@ function StatsTable({ events, rosterData, config, pitchData }) {
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────────
-const overlayStyle = { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", backdropFilter: "blur(2px)" };
-const modalStyle   = { background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "24px", width: "100%", maxWidth: "380px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)", maxHeight: "90vh", overflowY: "auto" };
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(26, 26, 26, 0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", backdropFilter: "blur(2px)" };
+const modalStyle   = { background: C.card, border: `2px solid ${C.border}`, borderRadius: "4px", padding: "24px", width: "100%", maxWidth: "380px", boxShadow: "4px 4px 0px rgba(0, 0, 0, 0.2)", maxHeight: "90vh", overflowY: "auto" };
 
 function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   const [text, setText] = useState("");
@@ -1013,15 +1044,15 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>IMPORT SAVED GAME</div>
-        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Upload a .json file or paste exported text.</div>
+        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Upload a .json file or paste exported text.</div>
         <input ref={fileRef} type="file" accept=".json,text/plain" onChange={handleFile} style={{ display: "none" }} />
         <Btn full variant="outline" small onClick={() => fileRef.current.click()} style={{ marginBottom: "12px" }}>📂 CHOOSE FILE</Btn>
         <textarea
           value={text} onChange={e => setText(e.target.value)}
           placeholder="Or paste exported text here..."
-          style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: C.text, padding: "12px", fontSize: "13px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }}
+          style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", color: C.text, padding: "12px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }}
         />
-        {error && <div style={{ fontSize: "13px", color: C.red, marginTop: "8px", fontWeight: "600" }}>{error}</div>}
+        {error && <div style={{ fontSize: "13px", color: C.red, marginTop: "8px", fontWeight: "bold", fontFamily: MONO }}>{error}</div>}
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn full variant="primary" onClick={handleImport} disabled={!text.trim()}>IMPORT →</Btn>
           <Btn full variant="ghost"   onClick={onCancel}>CANCEL</Btn>
@@ -1038,8 +1069,8 @@ function CopyModal({ text, onClose }) {
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>COPY SCORECARD</div>
-        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Copy this text to save your game anywhere.</div>
-        <textarea readOnly value={text} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: C.text, padding: "12px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }} />
+        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Copy this text to save your game anywhere.</div>
+        <textarea readOnly value={text} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", color: C.text, padding: "12px", fontSize: "11px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }} />
         <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn full variant={copied ? "success" : "primary"} onClick={copy}>{copied ? "COPIED ✓" : "COPY TEXT"}</Btn>
           <Btn full variant="ghost" onClick={onClose}>DONE</Btn>
@@ -1077,7 +1108,7 @@ function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose })
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>UPCOMING BATTERS</div>
-                <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Set the current and upcoming batters dynamically.</div>
+                <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Set the current and upcoming batters dynamically.</div>
                 
                 {slots.map((s, i) => (
                     <div key={i} style={{ marginBottom: "16px" }}>
@@ -1091,8 +1122,8 @@ function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose })
                 ))}
 
                 {canClose && (
-                    <div style={{ background: C.greenDim, padding: "12px", borderRadius: "8px", marginBottom: "16px", border: `1px solid ${C.green}` }}>
-                        <div style={{ fontSize: "12px", color: C.green, fontWeight: "600", marginBottom: "8px" }}>Leadoff hitter detected!</div>
+                    <div style={{ background: C.greenDim, padding: "12px", borderRadius: "4px", marginBottom: "16px", border: `1px solid ${C.green}` }}>
+                        <div style={{ fontSize: "12px", color: C.green, fontWeight: "bold", marginBottom: "8px", fontFamily: MONO }}>Leadoff hitter detected!</div>
                         <Btn full variant="success" onClick={() => onSave(slots, slots[leadoffDetectedIn].idx)}>SAVE & CLOSE LINEUP</Btn>
                     </div>
                 )}
@@ -1113,7 +1144,7 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>COURTESY RUNNER</div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     Running for: <strong>{runner?.name || 'Player'}</strong>
                 </div>
                 
@@ -1122,7 +1153,7 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
                     <option value="" disabled hidden>Select Player...</option>
                     {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
                 </Sel>
-                <div style={{ fontSize: "11px", color: C.muted, marginTop: "8px" }}>
+                <div style={{ fontSize: "11px", color: C.muted, marginTop: "8px", fontFamily: MONO }}>
                     * Defaults to the last batted out. Change this selection if the system defaulted to the wrong player.
                 </div>
 
@@ -1143,7 +1174,7 @@ function WpPbModal({ onSelect, onCancel }) {
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>WILD PITCH / PASSED BALL</div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "bold", fontFamily: MONO }}>
                     Was the pitch a ball or a strike?
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
@@ -1178,7 +1209,7 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>
                     {isBatter ? "BATTER MENU" : "RUNNER MENU"}
                 </div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "bold", fontFamily: MONO }}>
                     {runner?.name || 'Player'}
                 </div>
                 {mode === 'main' && (
@@ -1202,7 +1233,7 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
                             ))}
                         </div>
                         
-                        <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "8px", background: stealIsOut ? C.redDim : C.bg, border: `1px solid ${stealIsOut ? C.red : C.borderBright}` }}>
+                        <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "4px", background: stealIsOut ? C.redDim : C.bg, border: `1px solid ${stealIsOut ? C.red : C.borderBright}` }}>
                             <Toggle on={stealIsOut} onToggle={() => setStealIsOut(!stealIsOut)} label="Caught Stealing / Picked Off" />
                         </div>
                         
@@ -1278,7 +1309,7 @@ function InPlayModal({ baseId, stagedPlay, fieldingRoster, onSave, onCancel }) {
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.green, marginBottom: "8px" }}>PLAY ACTION</div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "bold", fontFamily: MONO }}>
                     {baseName}: <strong>{runnerState.name || 'Player'}</strong>
                 </div>
                 
@@ -1292,7 +1323,7 @@ function InPlayModal({ baseId, stagedPlay, fieldingRoster, onSave, onCancel }) {
                 <Btn full variant={dest === 'out' ? "danger" : "outline"} onClick={() => setDest('out')} style={{ marginBottom: "16px", borderColor: dest === 'out' ? C.red : C.borderBright, color: dest === 'out' ? C.card : C.red }}>OUT ON PLAY</Btn>
 
                 {dest === 'out' && (
-                    <div style={{ marginBottom: "20px", padding: "12px", background: C.redDim, borderRadius: "8px", border: `1px solid ${C.red}` }}>
+                    <div style={{ marginBottom: "20px", padding: "12px", background: C.redDim, borderRadius: "4px", border: `1px solid ${C.red}` }}>
                         <Label style={{color: C.red}}>OUT OCCURRENCE</Label>
                         <Sel value={outType} onChange={setOutType} style={{marginBottom: "12px"}}>
                             <option value="Groundout">Groundout</option>
@@ -1313,7 +1344,7 @@ function InPlayModal({ baseId, stagedPlay, fieldingRoster, onSave, onCancel }) {
                     </div>
                 )}
 
-                <div style={{ marginBottom: "20px", padding: "12px", borderRadius: "8px", background: safeDestSelected ? C.bg : C.card, border: `1px solid ${C.borderBright}`, display: dest === 'out' ? 'none' : 'block' }}>
+                <div style={{ marginBottom: "20px", padding: "12px", borderRadius: "4px", background: safeDestSelected ? C.bg : C.card, border: `1px solid ${C.borderBright}`, display: dest === 'out' ? 'none' : 'block' }}>
                     <Toggle disabled={!safeDestSelected} on={safeDestSelected && isError} onToggle={() => setIsError(!isError)} label="Reached on Error" />
                     {safeDestSelected && isError && (
                         <div style={{ marginTop: "12px" }}>
@@ -1368,7 +1399,7 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
             <div style={overlayStyle}>
                 <div style={modalStyle}>
                     <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>EDIT {pos} INFO</div>
-                    <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Changes will apply without resetting stats.</div>
+                    <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Changes will apply without resetting stats.</div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                         <Inp value={editName} onChange={setEditName} placeholder="Name" />
                         <div style={{ width: "90px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
@@ -1386,7 +1417,7 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>ASSIGN {pos}</div>
-                <div style={{ fontSize: "13px", color: C.text, marginBottom: "16px", fontWeight: "500", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: "13px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently assigned to ${pos}`}</span>
                 </div>
 
@@ -1448,7 +1479,7 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>{label}</div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently populated.`}
                 </div>
                 
@@ -1694,14 +1725,14 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
   const list = roster[activeTab];
   const poolList = roster.pool?.[activeTab] || [];
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 48px" }}>
       <div style={{ padding: "24px 20px 16px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
         <div style={{ fontSize: "24px", fontWeight: "bold", color: C.accent, lineHeight: 1 }}>ROSTER & LINEUP</div>
       </div>
       
       <div style={{ display: "flex", borderBottom: `1px solid ${C.borderBright}`, background: C.card }}>
-          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontWeight: "600", background: activeTab === 'away' ? C.bg : "transparent", color: activeTab === 'away' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'away' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{awayName || "AWAY"}</button>
-          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontWeight: "600", background: activeTab === 'home' ? C.bg : "transparent", color: activeTab === 'home' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'home' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{homeName || "HOME"}</button>
+          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontWeight: "bold", fontFamily: MONO, background: activeTab === 'away' ? C.bg : "transparent", color: activeTab === 'away' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'away' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{awayName || "AWAY"}</button>
+          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontWeight: "bold", fontFamily: MONO, background: activeTab === 'home' ? C.bg : "transparent", color: activeTab === 'home' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'home' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{homeName || "HOME"}</button>
       </div>
 
       <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
@@ -1709,7 +1740,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
         <Card style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
                 <Label>ENTRY MODE</Label>
-                <div style={{ fontSize: "12px", color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
+                <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
             </div>
             <Toggle on={mode === 'sub'} onToggle={() => setMode(mode === 'edit' ? 'sub' : 'edit')} label={mode === 'sub' ? '🔄 VIEW' : '✎ EDIT'} />
         </Card>
@@ -1718,7 +1749,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
              <Card>
                  <Label>FULL TEAM ROSTER</Label>
                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                    <div style={{ fontSize: "12px", color: C.muted }}>Add all players here to easily select them.</div>
+                    <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO }}>Add all players here to easily select them.</div>
                     <div style={{ display: "flex", gap: "6px" }}>
                         <Btn variant="outline" small onClick={() => handleSortPool(activeTab, 'name')}>A-Z ↓</Btn>
                         <Btn variant="outline" small onClick={() => handleSortPool(activeTab, 'no')}>1-9 ↓</Btn>
@@ -1731,7 +1762,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                             ref={importTextareaRef}
                             onChange={(e) => handlePastedRoster(e, activeTab)}
                             placeholder="Paste text list from GameChanger/Notes here..." 
-                            style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "12px", boxSizing: "border-box", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}
+                            style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "12px", boxSizing: "border-box", border: `1px solid ${C.borderBright}`, borderRadius: "4px" }}
                          />
                          <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
                              <Inp value={gcUrl} onChange={setGcUrl} placeholder="Or paste GC Roster URL..." style={{ flex: "1 1 100%" }} />
@@ -1768,11 +1799,11 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                 <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "12px", alignItems: "center" }}>
                     {mode === 'edit' && (
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "9px", padding: "6px", borderRadius: "4px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap" }}>↻ LEAD</button>
-                            {list.length > 1 && <button onClick={() => handleRemoveHitter(activeTab, i)} style={{ background: C.redDim, border: `1px solid ${C.red}`, cursor: "pointer", fontSize: "9px", padding: "6px", color: C.red, borderRadius: "4px", whiteSpace: "nowrap" }}>🗑 DEL</button>}
+                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "9px", padding: "6px", borderRadius: "2px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap", fontFamily: MONO, fontWeight: "bold" }}>↻ LEAD</button>
+                            {list.length > 1 && <button onClick={() => handleRemoveHitter(activeTab, i)} style={{ background: C.redDim, border: `1px solid ${C.red}`, cursor: "pointer", fontSize: "9px", padding: "6px", color: C.red, borderRadius: "2px", whiteSpace: "nowrap", fontFamily: MONO, fontWeight: "bold" }}>🗑 DEL</button>}
                         </div>
                     )}
-                    <div style={{ width: "24px", fontWeight: "600", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.muted }}>{i+1}.</div>
+                    <div style={{ width: "24px", fontWeight: "bold", fontFamily: MONO, textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.muted }}>{i+1}.</div>
                     {mode === 'edit' ? (
                         <>
                             <div style={{ flex: 2 }}>
@@ -1800,18 +1831,18 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                                     setRoster(newRoster);
                                 }}
                                 style={{
-                                    padding: "8px 6px", fontSize: "10px", fontWeight: "bold",
+                                    padding: "8px 6px", fontSize: "10px", fontWeight: "bold", fontFamily: MONO,
                                     background: roster.lineupIdx?.[activeTab] === i ? C.accent : C.bg,
                                     color: roster.lineupIdx?.[activeTab] === i ? C.card : C.muted,
                                     border: `1px solid ${roster.lineupIdx?.[activeTab] === i ? C.accent : C.borderBright}`,
-                                    cursor: "pointer", borderRadius: "6px", whiteSpace: "nowrap"
+                                    cursor: "pointer", borderRadius: "4px", whiteSpace: "nowrap"
                                 }}
                             >
                                 {roster.lineupIdx?.[activeTab] === i ? "CURRENT" : "SET ACTIVE"}
                             </button>
                         </>
                     ) : (
-                        <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, borderRadius: "8px", padding: "10px", fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
+                        <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, borderRadius: "4px", padding: "10px", fontSize: "13px", fontFamily: MONO, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
                             {player.name ? `${player.no ? `#${player.no} ` : ''}${player.name} (${player.pos || '?'})` : 'Empty Slot'}
                         </div>
                     )}
@@ -1823,10 +1854,10 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
         {mode === 'edit' && (
              <Card>
                  <Label>DEFENSIVE ASSIGNMENTS</Label>
-                 <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px" }}>Assign players to the field if they are not in the batting order.</div>
+                 <div style={{ fontSize: "11px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Assign players to the field if they are not in the batting order.</div>
                  {['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'].map(pos => (
                      <div key={pos} style={{ display: "flex", gap: "10px", marginBottom: "10px", alignItems: "center" }}>
-                         <div style={{ width: "24px", fontWeight: "bold", textAlign: "right" }}>{pos}</div>
+                         <div style={{ width: "24px", fontWeight: "bold", fontFamily: MONO, textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
                              <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
@@ -1854,7 +1885,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>INNING END / PITCH COUNT</div>
-                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     What is {pitcher?.name || "the pitcher"}'s TOTAL game pitch count right now?
                 </div>
                 <Inp value={count} onChange={setCount} placeholder="Total count..." type="number" autoFocus />
@@ -1863,7 +1894,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
                     <Btn full variant="ghost" onClick={onSkip}>SKIP</Btn>
                 </div>
                 {onUndo && (
-                    <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${C.borderBright}` }}>
+                    <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px dashed ${C.borderBright}` }}>
                         <Btn full variant="danger" onClick={onUndo}>↩ UNDO LAST OUT</Btn>
                     </div>
                 )}
@@ -1873,7 +1904,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
 }
 
 // ── Interactive Field Diagram ──────────────────────────────────────────────────
-function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, currentPitches, bases, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditUpcomingBatters }) {
+function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, currentOuts, currentPitches, bases, transientRunners, fieldingRoster, activeFieldersMap, battingLineup, lineupIdx, lineupClosed, stagedPlay, isResolvingPlay, onRunnerClick, onChangeFielder, onEditUpcomingBatters }) {
     const zones = [
         { id: '2b', label: '', cls: 'pos-2b' },
         { id: '3b', label: '', cls: 'pos-3b' },
@@ -1910,12 +1941,14 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
         bases['2b'] ? { ...bases['2b'], currentBase: '2b' } : null,
         bases['3b'] ? { ...bases['3b'], currentBase: '3b' } : null,
     ].filter(Boolean);
+    
+    const allRunners = [...activeRunners, ...(transientRunners || [])];
 
     return (
         <Card style={{ padding: "20px", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <div style={{ fontSize: "15px", color: C.accent, fontWeight: "bold", display: "flex", flexDirection: "column" }}>
-                    <span style={{ fontSize: "11px", color: C.muted, fontWeight: "600", letterSpacing: "1px" }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</span>
+                    <span style={{ fontSize: "11px", color: C.muted, fontWeight: "bold", letterSpacing: "1px", fontFamily: MONO }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</span>
                     <span>▶ {activeHalf === 'top' ? (awayName?.toUpperCase() || 'AWAY') : (homeName?.toUpperCase() || 'HOME')} BATTING</span>
                 </div>
                 <div>
@@ -1928,8 +1961,8 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                 </div>
             </div>
 
-            <div style={{ fontSize: "12px", color: C.muted, textAlign: "center", marginBottom: "16px", fontWeight: "500", padding: "0 10px" }}>
-                {isResolvingPlay ? <span style={{color: C.green, fontWeight: "bold"}}>Tap batter/runners to set destinations!</span> : "TAP runner or batter for Actions.\nTAP a defensive position to sub/assign."}
+            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "16px", fontWeight: "bold", padding: "0 10px" }}>
+                {isResolvingPlay ? <span style={{color: C.green}}>Tap batter/runners to set destinations!</span> : "TAP runner or batter for Actions.\nTAP a defensive position to sub/assign."}
             </div>
 
             <div className="field-container">
@@ -1956,7 +1989,7 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                             onClick={(e) => { e.stopPropagation(); onChangeFielder(pos, p); }}
                         >
                             <div className="dot" style={!p?.name ? {background: 'rgba(255,255,255,0.4)', boxShadow: 'none'} : {}} />
-                            <div className="name" style={!p?.name ? {background: 'rgba(15, 23, 42, 0.4)', color: 'rgba(255,255,255,0.8)'} : {}}>
+                            <div className="name" style={!p?.name ? {background: 'rgba(26, 26, 26, 0.4)', color: 'rgba(255,255,255,0.8)'} : {}}>
                                 {p?.name ? `${p.no ? `#${p.no} ` : ''}${p.name}` : pos}
                             </div>
                         </div>
@@ -1964,7 +1997,7 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                 })}
 
                 {/* Animated Runners Layer */}
-                {activeRunners.map(runner => {
+                {allRunners.map(runner => {
                     let isStagedOut = false;
                     let stagedDest = null;
                     let isStagedError = false;
@@ -1979,14 +2012,18 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                         }
                     }
 
+                    let runCls = `runner pos-${renderBase}`;
+                    if (runner.status === 'out') runCls += ' runner-out';
+                    if (runner.status === 'scored') runCls += ' runner-scored';
+
                     return (
                         <div 
                             key={runner.id} 
-                            className={`runner pos-${renderBase}`}
+                            className={runCls}
                             onClick={(e) => { e.stopPropagation(); onRunnerClick(runner.currentBase); }}
-                            style={isStagedOut ? { opacity: 0.5, borderColor: C.red, backgroundColor: C.redDim } : {}}
+                            style={(isStagedOut && !runner.status) ? { opacity: 0.5, borderColor: C.red, backgroundColor: C.redDim } : {}}
                         >
-                            {isResolvingPlay && (
+                            {isResolvingPlay && !runner.status && (
                                 <div className="staged-badge" style={{background: isStagedOut ? C.red : isStagedError ? C.orange : (stagedDest !== renderBase ? C.green : C.yellow)}}>
                                     {isStagedOut ? 'OUT' : stagedDest !== renderBase ? `-> ${stagedDest.toUpperCase()}` : 'STAY'} {isStagedError ? '(E)' : ''}
                                 </div>
@@ -1997,12 +2034,12 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                 })}
             </div>
             
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "600", color: C.text }}>
-                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span> <span style={{color: C.muted, fontSize: '11px', fontWeight: 'normal'}}>(Pitches: {currentPitches || 0})</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text }}>
+                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span> <span style={{color: C.muted}}>(Pitches: {currentPitches || 0})</span></div>
                 <div style={{ textAlign: "right" }}>
                     <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
-                    <div style={{ cursor: 'pointer', marginTop: '4px', fontSize: '11px' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
-                    <div style={{ cursor: 'pointer', fontSize: '11px' }} onClick={onEditUpcomingBatters}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
+                    <div style={{ cursor: 'pointer', marginTop: '4px' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
+                    <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
                 </div>
             </div>
         </Card>
@@ -2046,24 +2083,24 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
         />
       )}
   
-      <div style={{ padding: "48px 20px 32px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", position: "relative", background: C.card }}>
+      <div style={{ padding: "48px 20px 32px", borderBottom: `2px solid ${C.border}`, textAlign: "center", position: "relative", background: C.card }}>
         <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "20px", right: "20px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>📋</button>
-        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
         <div style={{ fontSize: "40px", fontWeight: "bold", color: C.accent, lineHeight: 1.1, marginTop: "12px", letterSpacing: "-1px" }}>GAME TIME<br/>ESTIMATOR</div>
       </div>
     
       <div style={{ padding: "24px 16px", maxWidth: "420px", margin: "0 auto" }}>
         
         <Card style={{ position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>LEAGUE / LEVEL</div>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.muted }}>LEAGUE / LEVEL</div>
           <Sel value={league} onChange={setLeague} style={{ marginTop: "6px" }}>
             {Object.entries(LEAGUES).map(([k, l]) => <option key={k} value={k}>{l.label}</option>)}
           </Sel>
-          {league !== "custom" && <div style={{ marginTop: "12px", fontSize: "12px", color: C.muted, fontWeight: "500" }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
+          {league !== "custom" && <div style={{ marginTop: "12px", fontSize: "11px", fontFamily: MONO, color: C.muted, fontWeight: "bold" }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
         </Card>
 
         <Card style={{ position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>TEAMS</div>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.muted }}>TEAMS</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "6px" }}>
             <div><Label>AWAY</Label><Inp value={away} onChange={setAway} placeholder="Visitors" /></div>
             <div><Label>HOME</Label><Inp value={home} onChange={setHome} placeholder="Home" /></div>
@@ -2071,7 +2108,7 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
         </Card>
 
         <Card style={{ position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>RULES & SETUP</div>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.muted }}>RULES & SETUP</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px", marginTop: "6px" }}>
             <div><Label>INNINGS</Label><Sel value={innings} onChange={v => setInnings(Number(v))}>{[5,6,7,9].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM:SS" /></div>
@@ -2155,8 +2192,8 @@ function LateStartScreen({ config, onComplete, onCancel }) {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 48px" }}>
-      <div style={{ padding: "48px 20px 24px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
-        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
+      <div style={{ padding: "48px 20px 24px", borderBottom: `2px solid ${C.border}`, textAlign: "center", background: C.card }}>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
         <div style={{ fontSize: "32px", fontWeight: "bold", color: C.accent, lineHeight: 1.1, marginTop: "12px" }}>LATE START SETUP</div>
       </div>
       <div style={{ padding: "24px 16px", maxWidth: "420px", margin: "0 auto" }}>
@@ -2175,11 +2212,11 @@ function LateStartScreen({ config, onComplete, onCancel }) {
             <Label>RUNS SCORED PREVIOUSLY</Label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "16px" }}>
               {halvesToPlay.map(h => (
-                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "8px", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
-                  <div style={{ flex: 1, fontSize: "12px", fontWeight: "bold" }}>
+                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "8px", border: `1px solid ${C.borderBright}`, borderRadius: "4px" }}>
+                  <div style={{ flex: 1, fontSize: "11px", fontWeight: "bold", fontFamily: MONO }}>
                     {h.half === 'top' ? 'Top' : 'Bot'} {h.inn} ({h.team === 'away' ? config?.away : config?.home})
                   </div>
-                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "48px", padding: "6px", textAlign: "center", border: `1px solid ${C.border}`, borderRadius: "6px", background: C.card, outline: "none" }} />
+                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "48px", padding: "6px", textAlign: "center", border: `1px solid ${C.border}`, borderRadius: "4px", background: C.card, outline: "none", fontFamily: MONO }} />
                 </div>
               ))}
             </div>
@@ -2228,12 +2265,12 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 60px" }}>
       {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
 
-      <div style={{ padding: "48px 20px 32px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
-        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
+      <div style={{ padding: "48px 20px 32px", borderBottom: `2px solid ${C.border}`, textAlign: "center", background: C.card }}>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
         <div style={{ fontSize: "64px", fontWeight: "bold", marginTop: "12px", lineHeight: 1 }}>{score.away} – {score.home}</div>
-        <div style={{ fontSize: "16px", color: C.text, marginTop: "12px", fontWeight: "600" }}>{away} @ {home}</div>
-        {winner ? <div style={{ marginTop: "16px", fontSize: "16px", color: C.accent, letterSpacing: "2px", fontWeight: "bold" }}>{winner.toUpperCase()} WINS</div>
-                : <div style={{ marginTop: "16px", fontSize: "16px", color: C.text, letterSpacing: "2px", fontWeight: "bold" }}>TIE GAME</div>}
+        <div style={{ fontSize: "16px", color: C.text, marginTop: "12px", fontWeight: "bold", fontFamily: MONO }}>{away} @ {home}</div>
+        {winner ? <div style={{ marginTop: "16px", fontSize: "16px", color: C.accent, letterSpacing: "2px", fontWeight: "bold", fontFamily: MONO }}>{winner.toUpperCase()} WINS</div>
+                : <div style={{ marginTop: "16px", fontSize: "16px", color: C.text, letterSpacing: "2px", fontWeight: "bold", fontFamily: MONO }}>TIE GAME</div>}
       </div>
 
       <div style={{ padding: "24px 16px", maxWidth: "440px", margin: "0 auto" }}>
@@ -2261,12 +2298,12 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
         </Card>
 
         {firstEstError !== null && (
-          <div style={{ background: C.bg, border: `2px dashed ${C.borderBright}`, borderRadius: "12px", padding: "20px", marginBottom: "16px", textAlign: "center" }}>
+          <div style={{ background: C.bg, border: `2px dashed ${C.borderBright}`, borderRadius: "4px", padding: "20px", marginBottom: "16px", textAlign: "center" }}>
             <Label>FIRST ESTIMATE ACCURACY</Label>
             <div style={{ fontSize: "40px", fontWeight: "bold", color: Math.abs(firstEstError) <= 5 ? C.green : Math.abs(firstEstError) <= 15 ? C.yellow : C.red }}>
               {firstEstError > 0 ? "+" : ""}{firstEstError}m
             </div>
-            <div style={{ fontSize: "12px", color: C.muted, marginTop: "8px", fontWeight: "500" }}>
+            <div style={{ fontSize: "11px", color: C.muted, marginTop: "8px", fontWeight: "bold", fontFamily: MONO }}>
               {Math.abs(firstEstError) <= 5 ? "Excellent (within 5 min)" : Math.abs(firstEstError) <= 15 ? "Good (within 15 min)" : "Off pace (unusual game length)"}
             </div>
           </div>
@@ -2330,6 +2367,16 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const [pendingPitchCountPrompt, setPendingPitchCountPrompt] = useState(false);
   
   const [wpPbModalVisible, setWpPbModalVisible] = useState(false);
+
+  // Transient Runners (for Out/Score Animations)
+  const [transientRunners, setTransientRunners] = useState([]);
+  
+  const pushTransientRunners = (newTransients) => {
+      setTransientRunners(prev => [...prev, ...newTransients]);
+      setTimeout(() => {
+          setTransientRunners(prev => prev.filter(r => !newTransients.find(n => n.id === r.id)));
+      }, 1500);
+  };
 
   // IN PLAY STAGING STATES
   const [isResolvingPlay, setIsResolvingPlay] = useState(false);
@@ -2554,6 +2601,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       let newBases = { ...bases };
       let runsScored = 0;
       let newEvents = [];
+      let transients = [];
       const batter = bases.home;
       
       const has1B = !!bases['1b'];
@@ -2571,12 +2619,15 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               if (has3B) {
                   runsScored++;
                   newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored' });
               }
           }
       }
       newEvents.push({ id: batchId+2, batchId, type: 'advance', targetBase: actionType, isError: false, batterId: batter?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
       
       setBases(newBases);
+      if (transients.length > 0) pushTransientRunners(transients);
+      
       advanceBatter();
       commitEventBatch(newEvents, logs, incomingSnap);
   }
@@ -2588,6 +2639,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       let logs = extraLog ? [extraLog] : [];
       logs.push(`[${formatTime(t)}] ⚾ Strikeout! ${bases.home?.name || 'Batter'} is out.`);
       
+      pushTransientRunners([{ id: bases.home.id, no: bases.home.no, currentBase: 'home', status: 'out' }]);
+
       let newBases = { ...bases, home: null };
       setBases(newBases);
       advanceBatter();
@@ -2604,10 +2657,12 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       
       let nextBases = { home: bases.home, '1b': null, '2b': null, '3b': null };
       let newEvents = [];
+      let transients = [];
       let logs = [`[${formatTime(t)}] ⚾ BALK! Runners advance.`];
       
       if (bases['3b']) {
            newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: null, scoredId: bases['3b'].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+           transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored' });
       }
       if (bases['2b']) {
            nextBases['3b'] = bases['2b'];
@@ -2618,6 +2673,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
            newEvents.push({ id: batchId+3, batchId, type: 'advance', targetBase: '2b', isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
       }
       setBases(nextBases);
+      if (transients.length > 0) pushTransientRunners(transients);
       commitEventBatch(newEvents, logs, snap);
   };
 
@@ -2630,6 +2686,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       let newEvents = [{ id: batchId, batchId, type: 'out', outType: 'Pickoff', batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }];
       let logs = [`[${formatTime(t)}] ⚾ Pickoff! ${bases[baseId]?.name || 'Runner'} is out at ${baseId.toUpperCase()}.`];
       
+      pushTransientRunners([{ id: bases[baseId].id, no: bases[baseId].no, currentBase: baseId, status: 'out' }]);
+
       setBases(prev => ({ ...prev, [baseId]: null }));
       if (currentOuts + 1 >= 3) setPendingPitchCountPrompt(true);
       commitEventBatch(newEvents, logs, snap);
@@ -2651,11 +2709,13 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           newEvents.push({ id: batchId, batchId, type: 'out', outType: 'CS', batterId: null, runnerId: runner.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
           logs.push(`[${formatTime(t)}] 🏃 Out on Basepaths: ${runner.name} caught stealing / out advancing to ${destId.toUpperCase()}.`);
           nextBases[startBaseId] = null;
+          pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: destId === 'score' ? 'home' : destId, status: 'out' }]);
       } else {
           nextBases[startBaseId] = null;
           if (destId === 'score') {
               newEvents.push({ id: batchId, batchId, type: 'run', targetBase: 'score', isError: false, batterId: null, scoredId: runner.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               logs.push(`[${formatTime(t)}] 🏃 Steal/Advance: ${runner.name} steals Home and scores!`);
+              pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: 'home', status: 'scored' }]);
           } else {
               nextBases[destId] = runner;
               newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: destId, isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
@@ -2725,6 +2785,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
 
       let newEvents = [];
       let logs = [];
+      let transients = [];
       let nextBases = { home: null, '1b': null, '2b': null, '3b': null };
       let runsScored = 0;
       let outsRecorded = 0;
@@ -2751,6 +2812,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               newEvents.push({ id: batchId, batchId, type: 'out', outType, batterId: bases.home?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, errorFielderId: null });
               logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''} (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
               nextBases['home'] = null;
+              
+              transients.push({ id: bases.home.id, no: bases.home.no, currentBase: playType === 'd3k' ? 'home' : '1b', status: 'out' });
           } else if (bState.dest !== 'home') {
               const dest = bState.dest;
               let actionLabel = "Advanced";
@@ -2769,6 +2832,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               if (dest === 'score') {
                   runsScored++;
                   newEvents.push({ id: batchId, batchId, type: 'run', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  transients.push({ id: bases.home.id, no: bases.home.no, currentBase: 'home', status: 'scored' });
               } else {
                   nextBases[dest] = bases.home;
                   newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
@@ -2787,12 +2851,16 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           if (rState.dest === 'out') {
               outsRecorded++;
               const outType = rState.outType || 'Tag/Force';
+              const nextBaseMap = { '1b': '2b', '2b': '3b', '3b': 'home' };
               newEvents.push({ id: batchId+1+idx, batchId, type: 'out', outType, batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, errorFielderId: null });
               logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) is Out (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
+              
+              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: nextBaseMap[baseId] || baseId, status: 'out' });
           } else if (rState.dest === 'score') {
               runsScored++;
               newEvents.push({ id: batchId+1+idx, batchId, type: 'run', targetBase: 'score', isError: rState.isError, errorFielderId: rState.isError ? rState.fielderId : null, batterId: null, scoredId: bases[baseId].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) Scored!${rState.isError ? ` (Error${fielderName ? ` by ${fielderName}` : ''})` : ''}`);
+              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: 'home', status: 'scored' });
           } else {
               nextBases[rState.dest] = bases[baseId];
               if (rState.dest !== baseId) {
@@ -2803,6 +2871,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       });
 
       setBases(nextBases);
+      if (transients.length > 0) pushTransientRunners(transients);
       
       const batterIsDone = (bState && bState.dest !== 'home') || playType === 'd3k'; 
       if (batterIsDone) {
@@ -2895,7 +2964,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   }
 
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, maxWidth: "460px", margin: "0 auto", paddingBottom: "48px", borderLeft: `1px solid ${C.borderBright}`, borderRight: `1px solid ${C.borderBright}` }}>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, maxWidth: "460px", margin: "0 auto", paddingBottom: "48px", borderLeft: `2px solid ${C.border}`, borderRight: `2px solid ${C.border}`, boxShadow: "0px 0px 20px rgba(0,0,0,0.1)" }}>
       {showCopy   && <CopyModal text={copyText} onClose={() => setShowCopy(false)} />}
       {showImport && (
         <ImportModal
@@ -3206,11 +3275,11 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           />
       )}
 
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.borderBright}`, padding: "24px 20px 16px", position: "relative" }}>
-        <button onClick={onOpenRoster} style={{ position: "absolute", top: "20px", left: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>📋</button>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingLeft: "32px" }}>
+      <div style={{ background: C.card, borderBottom: `2px solid ${C.border}`, padding: "24px 20px 16px", position: "relative" }}>
+        <button onClick={onOpenRoster} style={{ position: "absolute", top: "24px", left: "20px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>📋</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingLeft: "40px" }}>
           <div>
-            <div style={{ fontSize: "11px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>
+            <div style={{ fontSize: "11px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>
               {effTotalInnings} INN · {mercyAfter ? `M${mercyRuns}/${mercyAfter}` : "NO MERCY"}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3232,10 +3301,10 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "20px 0 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "24px 0 10px" }}>
           {[["away", away], ["home", home]].map(([side, name], i) => (
             <div key={side} style={{ textAlign: i === 0 ? "left" : "right" }}>
-              <div style={{ fontSize: "12px", color: C.muted, fontWeight: "bold", textTransform: "uppercase" }}>{name}</div>
+              <div style={{ fontSize: "12px", color: C.muted, fontWeight: "bold", textTransform: "uppercase", fontFamily: MONO }}>{name}</div>
               <div style={{ fontSize: "72px", fontWeight: "bold", lineHeight: 1, color: score[side] > score[side === "away" ? "home" : "away"] ? C.accent : C.text, letterSpacing: "-2px" }}>{score[side]}</div>
             </div>
           ))}
@@ -3243,7 +3312,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         </div>
       </div>
 
-      {est?.currentlyInWarmup && !delayActive && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "12px 20px", fontSize: "13px", color: C.blue, fontWeight: "600" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
+      {est?.currentlyInWarmup && !delayActive && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "12px 20px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
 
       <div style={{ padding: "20px 16px 0" }}>
 
@@ -3256,7 +3325,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         {gameOverPrompt && !delayActive && (
           <Card style={{ border: `2px solid ${C.yellow}` }}>
             <Label>GAME OVER?</Label>
-            <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px" }}>The game condition has been reached. Log end time to finalize.</div>
+            <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontFamily: MONO }}>The game condition has been reached. Log end time to finalize.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "end" }}>
               <div><Label>END TIME</Label><Inp value={endTimeInput} onChange={v => { setEndTimeInput(v); setIsTypingTime(true); }} placeholder="H:MM:SS" /></div>
               <Btn onClick={() => { setFinalEndTime(getSafeTime(endTimeInput, events)); setGameLog(p => [...p, { msg: `[${formatTime(getSafeTime(endTimeInput, events))}] 🏁 Final out logged`, batchId: Date.now() }]); setShowSummary(true); }} variant="highlight">END GAME</Btn>
@@ -3276,6 +3345,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                       currentOuts={inActiveInning ? currentOuts : 0} 
                       currentPitches={currentPitches}
                       bases={bases} 
+                      transientRunners={transientRunners}
                       fieldingRoster={rosterData[fieldingTeam] || []}
                       activeFieldersMap={activeFieldersMap || {}}
                       battingLineup={rosterData[battingTeam] || []}
@@ -3305,23 +3375,23 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                                  <Btn style={{flex: 1}} variant="outline" onClick={handleBalk}>BALK</Btn>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: C.greenDim, padding: '12px', border: `2px solid ${C.green}`, borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: C.greenDim, padding: '12px', border: `2px solid ${C.green}`, borderRadius: '4px' }}>
                                  <Btn full variant="primary" onClick={commitPlay}>END PLAY</Btn>
                                  <Btn full variant="outline" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); }}>CANCEL</Btn>
                             </div>
                         )
                     )}
                     {currentOuts >= 3 && !pendingPitchCountPrompt && (
-                        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(248, 250, 252, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(3px)", border: `1px solid ${C.borderBright}`, borderRadius: "12px" }}>
+                        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.85)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", border: `2px solid ${C.border}`, borderRadius: "4px" }}>
                             <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
                         </div>
                     )}
                 </>
               ) : (
-                <Card style={{ border: `2px dashed ${C.borderBright}`, textAlign: "center" }}>
+                <Card style={{ border: `2px dashed ${C.border}`, textAlign: "center" }}>
                   <Label>NEXT PHASE TO LOG</Label>
                   <div style={{ fontSize: "28px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
-                  <div style={{ fontSize: "14px", color: C.muted, marginBottom: "20px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
+                  <div style={{ fontSize: "12px", fontFamily: MONO, color: C.muted, marginBottom: "20px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
                   
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "end" }}>
                     <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
@@ -3336,8 +3406,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         <Card>
           {!est?.canEstimate ? (
             <div style={{ padding: "12px 0", textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: C.muted, fontWeight: "bold" }}>GATHERING PACE DATA...</div>
-              <div style={{ fontSize: "12px", color: C.faint, marginTop: "8px" }}>Log Pre-1 Warmup → Top 1 → Mid-1 Warmup</div>
+              <div style={{ fontSize: "14px", color: C.muted, fontWeight: "bold", fontFamily: MONO }}>GATHERING PACE DATA...</div>
+              <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, marginTop: "8px" }}>Log Pre-1 Warmup → Top 1 → Mid-1 Warmup</div>
             </div>
           ) : (
             <>
@@ -3345,7 +3415,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                 <div>
                   <Label>ESTIMATED END</Label>
                   <div style={{ fontSize: "48px", fontWeight: "bold", color: C.accent, lineHeight: 1 }}>{formatTime(est.estimatedEnd)}</div>
-                  {est.inExtra && <div style={{ fontSize: "12px", color: C.orange, marginTop: "8px", fontWeight: "bold" }}>EXTRA INNINGS EXPECTED</div>}
+                  {est.inExtra && <div style={{ fontSize: "11px", color: C.orange, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>EXTRA INNINGS EXPECTED</div>}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <ConfChip confidence={est.confidence} />
@@ -3365,7 +3435,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         <Card>
           <Label>PREDICTED WINNER</Label>
           {!est?.probs ? (
-            <div style={{ fontSize: "12px", color: C.faint, textAlign: "center", padding: "12px 0" }}>
+            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "12px 0" }}>
               Need at least 2 logged half-innings to simulate outcomes.
             </div>
           ) : (
@@ -3382,12 +3452,12 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         <Card>
           <Label>OUTCOME PROBABILITIES</Label>
           {!est?.probs ? (
-            <div style={{ fontSize: "12px", color: C.faint, textAlign: "center", padding: "12px 0" }}>
+            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "12px 0" }}>
               Need at least 2 logged half-innings to simulate outcomes.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "13px", background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "12px", fontFamily: MONO, background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", padding: "16px" }}>
                 {mercyAfter && <div>⚡ Mercy: <strong style={{color: C.accent}}>{Math.round(est.probs.mercy * 100)}%</strong></div>}
                 <div>🔝 Top {effTotalInnings} End: <strong>{Math.round(est.probs.endTop * 100)}%</strong></div>
                 <div>🔚 Bot {effTotalInnings} End: <strong>{Math.round(est.probs.endBot * 100)}%</strong></div>
@@ -3398,12 +3468,12 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
         </Card>
 
         <div style={{ marginBottom: "20px" }}>
-          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={effTotalInnings} lastCompletedInning={est?.lastCompletedInning} currentPhase={lastPhase?.phase} currentInning={activeInningNum || lastPhase?.inning} />
+          <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={effTotalInnings} lastCompletedInning={est?.lastCompletedInning} currentPhase={lastPhase?.phase} currentInning={activeInningNum || lastPhase?.inning} activeHalf={activeHalf} />
         </div>
 
         <Card>
           <Label>GAME LOG</Label>
-          <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "12px", maxHeight: "200px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
+          <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", padding: "12px", maxHeight: "200px", overflowY: "auto", fontFamily: MONO, fontSize: "11px", lineHeight: "1.8" }}>
             {gameLog.length === 0 ? <span style={{ color: C.faint }}>No events logged yet.</span>
               : gameLog.map((e, i) => <div key={i} style={{ color: i === gameLog.length - 1 ? C.text : C.muted }}>{e.msg}</div>)}
           </div>
