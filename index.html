@@ -1,3 +1,4 @@
+Here is the fully merged output code with the runner animations tracking the baseline and the logic fix for the batter completing their at-bat on fielder's choices.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,8 +152,40 @@
             100% { background: #2D6A4F; border-color: #143325; color: #FFFFFF; }
         }
         
-        .runner-out { animation: runnerOutAnim 0.6s forwards; }
-        .runner-scored { animation: runnerScoreAnim 0.6s forwards; }
+        @keyframes run-home-2b {
+            0% { top: 88%; left: 50%; }
+            50% { top: 65%; left: 73%; }
+            100% { top: 42%; left: 50%; }
+        }
+        @keyframes run-home-3b {
+            0% { top: 88%; left: 50%; }
+            33.3% { top: 65%; left: 73%; }
+            66.6% { top: 42%; left: 50%; }
+            100% { top: 65%; left: 27%; }
+        }
+        @keyframes run-home-score {
+            0% { top: 88%; left: 50%; }
+            25% { top: 65%; left: 73%; }
+            50% { top: 42%; left: 50%; }
+            75% { top: 65%; left: 27%; }
+            100% { top: 88%; left: 50%; }
+        }
+        @keyframes run-1b-3b {
+            0% { top: 65%; left: 73%; }
+            50% { top: 42%; left: 50%; }
+            100% { top: 65%; left: 27%; }
+        }
+        @keyframes run-1b-score {
+            0% { top: 65%; left: 73%; }
+            33.3% { top: 42%; left: 50%; }
+            66.6% { top: 65%; left: 27%; }
+            100% { top: 88%; left: 50%; }
+        }
+        @keyframes run-2b-score {
+            0% { top: 42%; left: 50%; }
+            50% { top: 65%; left: 27%; }
+            100% { top: 88%; left: 50%; }
+        }
 
         .staged-badge {
             position: absolute;
@@ -2013,15 +2046,39 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                     }
 
                     let runCls = `runner pos-${renderBase}`;
-                    if (runner.status === 'out') runCls += ' runner-out';
-                    if (runner.status === 'scored') runCls += ' runner-scored';
+                    
+                    // Construct dynamic animation string
+                    let animationStr = "";
+                    if (runner.status === 'out') animationStr += "runnerOutAnim 0.6s forwards";
+                    if (runner.status === 'scored') animationStr += "runnerScoreAnim 1.5s forwards";
+
+                    // Trigger baseline tracking for multi-base hits
+                    if (runner.fromBase && runner.toBase && runner.fromBase !== runner.toBase) {
+                         const route = `${runner.fromBase}-${runner.toBase}`;
+                         const routeDurations = {
+                             'home-2b': '1s', 'home-3b': '1.5s', 'home-score': '2s',
+                             '1b-3b': '1s', '1b-score': '1.5s', '2b-score': '1s'
+                         };
+                         if (routeDurations[route]) {
+                             if (animationStr) animationStr += ", ";
+                             animationStr += `run-${route} ${routeDurations[route]} linear forwards`;
+                         }
+                    }
+
+                    // Apply inline style safely to override transitions
+                    const dynamicStyle = (isStagedOut && !runner.status) 
+                        ? { opacity: 0.5, borderColor: C.red, backgroundColor: C.redDim } 
+                        : {};
+                    if (animationStr) {
+                        dynamicStyle.animation = animationStr;
+                    }
 
                     return (
                         <div 
                             key={runner.id} 
                             className={runCls}
                             onClick={(e) => { e.stopPropagation(); onRunnerClick(runner.currentBase); }}
-                            style={(isStagedOut && !runner.status) ? { opacity: 0.5, borderColor: C.red, backgroundColor: C.redDim } : {}}
+                            style={dynamicStyle}
                         >
                             {isResolvingPlay && !runner.status && (
                                 <div className="staged-badge" style={{background: isStagedOut ? C.red : isStagedError ? C.orange : (stagedDest !== renderBase ? C.green : C.yellow)}}>
@@ -2611,15 +2668,15 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       let logs = extraLog ? [extraLog] : [];
       logs.push(`[${formatTime(t)}] ⚾ ${batter?.name || 'Batter'} took a ${actionType === 'walk' ? 'Walk' : 'Hit By Pitch'}!`);
       
-      newBases = { home: null, '1b': batter, '2b': bases['2b'], '3b': bases['3b'] };
+      newBases = { home: null, '1b': { ...batter, fromBase: 'home', toBase: '1b' }, '2b': bases['2b'], '3b': bases['3b'] };
       if (has1B) {
-          newBases['2b'] = bases['1b'];
+          newBases['2b'] = { ...bases['1b'], fromBase: '1b', toBase: '2b' };
           if (has2B) {
-              newBases['3b'] = bases['2b'];
+              newBases['3b'] = { ...bases['2b'], fromBase: '2b', toBase: '3b' };
               if (has3B) {
                   runsScored++;
                   newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: batter?.id, scoredId: bases['3b']?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-                  transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored' });
+                  transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored', fromBase: '3b', toBase: 'score' });
               }
           }
       }
@@ -2662,14 +2719,14 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       
       if (bases['3b']) {
            newEvents.push({ id: batchId+1, batchId, type: 'run', targetBase: 'score', isError: false, batterId: null, scoredId: bases['3b'].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-           transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored' });
+           transients.push({ id: bases['3b'].id, no: bases['3b'].no, currentBase: 'home', status: 'scored', fromBase: '3b', toBase: 'score' });
       }
       if (bases['2b']) {
-           nextBases['3b'] = bases['2b'];
+           nextBases['3b'] = { ...bases['2b'], fromBase: '2b', toBase: '3b' };
            newEvents.push({ id: batchId+2, batchId, type: 'advance', targetBase: '3b', isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
       }
       if (bases['1b']) {
-           nextBases['2b'] = bases['1b'];
+           nextBases['2b'] = { ...bases['1b'], fromBase: '1b', toBase: '2b' };
            newEvents.push({ id: batchId+3, batchId, type: 'advance', targetBase: '2b', isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
       }
       setBases(nextBases);
@@ -2709,15 +2766,15 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           newEvents.push({ id: batchId, batchId, type: 'out', outType: 'CS', batterId: null, runnerId: runner.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
           logs.push(`[${formatTime(t)}] 🏃 Out on Basepaths: ${runner.name} caught stealing / out advancing to ${destId.toUpperCase()}.`);
           nextBases[startBaseId] = null;
-          pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: destId === 'score' ? 'home' : destId, status: 'out' }]);
+          pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: destId === 'score' ? 'home' : destId, status: 'out', fromBase: startBaseId, toBase: destId === 'score' ? 'home' : destId }]);
       } else {
           nextBases[startBaseId] = null;
           if (destId === 'score') {
               newEvents.push({ id: batchId, batchId, type: 'run', targetBase: 'score', isError: false, batterId: null, scoredId: runner.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               logs.push(`[${formatTime(t)}] 🏃 Steal/Advance: ${runner.name} steals Home and scores!`);
-              pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: 'home', status: 'scored' }]);
+              pushTransientRunners([{ id: runner.id, no: runner.no, currentBase: 'home', status: 'scored', fromBase: startBaseId, toBase: 'score' }]);
           } else {
-              nextBases[destId] = runner;
+              nextBases[destId] = { ...runner, fromBase: startBaseId, toBase: destId };
               newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: destId, isError: false, batterId: null, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               logs.push(`[${formatTime(t)}] 🏃 Steal/Advance: ${runner.name} advances to ${destId.toUpperCase()}.`);
           }
@@ -2813,7 +2870,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''} (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
               nextBases['home'] = null;
               
-              transients.push({ id: bases.home.id, no: bases.home.no, currentBase: playType === 'd3k' ? 'home' : '1b', status: 'out' });
+              transients.push({ id: bases.home.id, no: bases.home.no, currentBase: playType === 'd3k' ? 'home' : '1b', status: 'out', fromBase: 'home', toBase: playType === 'd3k' ? 'home' : '1b' });
           } else if (bState.dest !== 'home') {
               const dest = bState.dest;
               let actionLabel = "Advanced";
@@ -2832,9 +2889,9 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               if (dest === 'score') {
                   runsScored++;
                   newEvents.push({ id: batchId, batchId, type: 'run', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-                  transients.push({ id: bases.home.id, no: bases.home.no, currentBase: 'home', status: 'scored' });
+                  transients.push({ id: bases.home.id, no: bases.home.no, currentBase: 'home', status: 'scored', fromBase: 'home', toBase: 'score' });
               } else {
-                  nextBases[dest] = bases.home;
+                  nextBases[dest] = { ...bases.home, fromBase: 'home', toBase: dest };
                   newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               }
               nextBases['home'] = null;
@@ -2855,14 +2912,14 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               newEvents.push({ id: batchId+1+idx, batchId, type: 'out', outType, batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, errorFielderId: null });
               logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) is Out (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
               
-              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: nextBaseMap[baseId] || baseId, status: 'out' });
+              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: nextBaseMap[baseId] || baseId, status: 'out', fromBase: baseId, toBase: nextBaseMap[baseId] || baseId });
           } else if (rState.dest === 'score') {
               runsScored++;
               newEvents.push({ id: batchId+1+idx, batchId, type: 'run', targetBase: 'score', isError: rState.isError, errorFielderId: rState.isError ? rState.fielderId : null, batterId: null, scoredId: bases[baseId].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) Scored!${rState.isError ? ` (Error${fielderName ? ` by ${fielderName}` : ''})` : ''}`);
-              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: 'home', status: 'scored' });
+              transients.push({ id: bases[baseId].id, no: bases[baseId].no, currentBase: 'home', status: 'scored', fromBase: baseId, toBase: 'score' });
           } else {
-              nextBases[rState.dest] = bases[baseId];
+              nextBases[rState.dest] = { ...bases[baseId], fromBase: baseId, toBase: rState.dest };
               if (rState.dest !== baseId) {
                   let errStr = rState.isError ? ` (Error${fielderName ? ` by ${fielderName}` : ''})` : '';
                   logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) advanced to ${rState.dest.toUpperCase()}${errStr}.`);
@@ -2873,7 +2930,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       setBases(nextBases);
       if (transients.length > 0) pushTransientRunners(transients);
       
-      const batterIsDone = (bState && bState.dest !== 'home') || playType === 'd3k'; 
+      // LOGIC FIX: If the ball was hit "in play", the batter's AB is inherently finished.
+      const batterIsDone = playType === 'regular' || playType === 'd3k'; 
       if (batterIsDone) {
           setAtBatCount({ b: 0, s: 0 });
           advanceBatter();
