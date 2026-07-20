@@ -15,15 +15,17 @@
         body { 
             margin: 0;
             padding: 0; 
-            background-color: #f4f1ea; 
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
-            color: #2c2c2c;
+            background-color: #F8FAFC; 
+            color: #0F172A;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
+        button {
+            transition: all 0.15s ease-in-out;
+        }
         button:active {
-            transform: translate(2px, 2px);
-            box-shadow: 0px 0px 0px rgba(0,0,0,0) !important;
+            transform: scale(0.97);
         }
         
         .field-container {
@@ -32,19 +34,19 @@
             max-width: 360px;
             aspect-ratio: 1 / 1;
             margin: 0 auto 16px;
-            background: #3c5e3c; 
-            border: 2px solid #2c2c2c;
+            background: #16A34A; 
+            border: 2px solid #CBD5E1;
             overflow: hidden;
             touch-action: none; 
-            border-radius: 8px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
         }
 
         .foul-line-left, .foul-line-right {
             position: absolute;
             bottom: 12%; left: 50%;
             width: 2px; height: 120%;
-            background: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.7);
             transform-origin: bottom center;
             pointer-events: none;
         }
@@ -55,20 +57,20 @@
             position: absolute;
             top: 65%; left: 50%;
             width: 75%; aspect-ratio: 1;
-            background: #b37b59; 
+            background: #D97706; 
             transform: translate(-50%, -50%);
             border-radius: 50%;
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
         }
 
         .infield-grass {
             position: absolute;
             top: 65%; left: 50%;
             width: 33%; aspect-ratio: 1;
-            background: #3c5e3c; 
+            background: #22C55E; 
             transform: translate(-50%, -50%) rotate(45deg);
-            border-radius: 4px;
+            border-radius: 6px;
             pointer-events: none;
         }
 
@@ -76,7 +78,7 @@
             position: absolute;
             top: 65%; left: 50%;
             width: 15%; aspect-ratio: 1;
-            background: #a06a4b;
+            background: #B45309;
             transform: translate(-50%, -50%);
             border-radius: 50%;
             pointer-events: none;
@@ -84,23 +86,25 @@
         .pitcher-plate {
             position: absolute;
             top: 65%; left: 50%;
-            width: 8px; height: 4px;
+            width: 10px; height: 4px;
             background: white;
             transform: translate(-50%, -50%);
             pointer-events: none;
+            border-radius: 1px;
         }
 
         .base-visual {
             position: absolute;
-            width: 14px; height: 14px;
+            width: 16px; height: 16px;
             background: white;
             transform: translate(-50%, -50%) rotate(45deg);
             pointer-events: none;
-            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            border-radius: 2px;
         }
         .base-visual.home {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             clip-path: polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%); 
             transform: translate(-50%, -50%);
         }
@@ -115,38 +119,41 @@
         }
         
         .runner {
-            width: 30px;
-            height: 30px;
-            background: #eae4d3;
-            border: 2px solid #2c2c2c;
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            background: #FFFFFF;
+            border: 2px solid #0F172A;
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Courier Prime', monospace;
-            font-weight: bold; font-size: 13px; color: #2c2c2c;
+            font-weight: bold; font-size: 13px; color: #0F172A;
             cursor: pointer;
             z-index: 20;
-            box-shadow: 2px 2px 0px rgba(0,0,0,0.4);
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
             touch-action: none;
-            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translate(-50%, -50%);
         }
 
         .staged-badge {
             position: absolute;
-            top: -18px;
-            background: #b89030;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #EAB308;
             color: #fff;
             font-size: 10px;
-            padding: 2px 6px;
+            padding: 3px 6px;
             border-radius: 4px;
-            border: 1px solid #2c2c2c;
             white-space: nowrap;
             z-index: 30;
-            font-family: 'Courier Prime', monospace;
             font-weight: bold;
-            box-shadow: 1px 1px 0px rgba(0,0,0,0.4);
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
         }
         
-        .pos-home  { top: 88%; left: 50%; width: 64px; height: 64px; }
+        .pos-home  { top: 88%; left: 50%; }
         .pos-1b    { top: 65%; left: 73%; }
         .pos-2b    { top: 42%; left: 50%; }
         .pos-3b    { top: 65%; left: 27%; }
@@ -157,17 +164,17 @@
             text-align: center;
             pointer-events: none;
             z-index: 5;
-            opacity: 0.9;
+            opacity: 0.95;
         }
         .def-player .dot {
             width: 8px;
             height: 8px; background: #fff; border-radius: 50%; margin: 0 auto 2px;
-            box-shadow: 1px 1px 0 #000;
+            box-shadow: 0px 1px 2px rgba(0,0,0,0.5);
         }
         .def-player .name {
             font-size: 9px;
-            color: #fff; font-family: 'Courier Prime', monospace; font-weight: bold;
-            background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 2px;
+            color: #fff; font-weight: 600;
+            background: rgba(15, 23, 42, 0.6); padding: 2px 6px; border-radius: 4px;
             white-space: nowrap;
         }
         
@@ -181,10 +188,10 @@
             pointer-events: auto;
         }
         
-        .stats-table { width: 100%; border-collapse: collapse; font-family: 'Courier Prime', monospace; font-size: 11px; }
-        .stats-table th { background: #eae4d3; border-bottom: 2px solid #2c2c2c; padding: 4px; text-align: left; }
-        .stats-table td { border-bottom: 1px solid #b8af9b; padding: 4px; text-align: center; }
-        .stats-table td:first-child { text-align: left; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .stats-table th { background: #F1F5F9; border-bottom: 2px solid #CBD5E1; padding: 6px; text-align: left; font-weight: 600; color: #475569;}
+        .stats-table td { border-bottom: 1px solid #E2E8F0; padding: 6px; text-align: center; font-family: 'Courier Prime', monospace;}
+        .stats-table td:first-child { text-align: left; font-family: inherit; font-weight: 500;}
     </style>
 </head>
 <body>
@@ -194,19 +201,21 @@
 /** @jsx React.createElement */
 /** @jsxFrag React.Fragment */
 const { useState, useCallback, useEffect, useRef, useMemo } = React;
+
 const C = {
-  bg: "#f4f1ea", card: "#eae4d3", border: "#d0c8b6", borderBright: "#b8af9b",
-  text: "#2c2c2c", muted: "#5a5a5a", faint: "#8a8a8a",
-  green: "#4a6b4a", greenDim: "#d4dbd4",
-  red: "#8b3a3a", redDim: "#ebd6d6",
-  yellow: "#b89030", yellowDim: "#e8dfc8",
-  blue: "#4a6b8c", blueDim: "#d2dce6",
-  accent: "#8b3a3a", accentDim: "#e0caca",
-  orange: "#b3592d",
+  bg: "#F8FAFC", card: "#FFFFFF", border: "#E2E8F0", borderBright: "#CBD5E1",
+  text: "#0F172A", muted: "#64748B", faint: "#94A3B8",
+  green: "#16A34A", greenDim: "#DCFCE7",
+  red: "#DC2626", redDim: "#FEE2E2",
+  yellow: "#D97706", yellowDim: "#FEF3C7",
+  blue: "#2563EB", blueDim: "#DBEAFE",
+  accent: "#2563EB", accentDim: "#DBEAFE",
+  orange: "#EA580C",
 };
-const DISPLAY = "sans-serif";
+
+const DISPLAY = "system-ui, -apple-system, sans-serif";
 const MONO    = "'Courier Prime', monospace";
-const SERIF   = "'Courier Prime', monospace";
+const SERIF   = "system-ui, -apple-system, sans-serif";
 
 const LEAGUES = {
   hs:       { label: "High School",         halfInning: 10,  warmup: 3.0, innings: 7, mercy: 10, mercyAfter: 5 },
@@ -219,6 +228,7 @@ const LEAGUES = {
 const EV = { START: "start", TOP: "top", MID: "mid", BOT: "bot" };
 const PHASE_ORDER = [EV.START, EV.TOP, EV.MID, EV.BOT];
 const isWarmup = p => p === EV.START || p === EV.MID;
+
 function phaseLabel(inning, phase) {
   const m = { start: `Pre-${inning} Warmup`, top: `Top ${inning}`, mid: `Mid-${inning} Warmup`, bot: `Bot ${inning}` };
   return m[phase] ?? "";
@@ -285,7 +295,6 @@ function getNextPhase(phaseEvents) {
   return { inning: last.inning + 1, phase: EV.START };
 }
 
-// Improved Game Over Condition Check
 function isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit) {
     const phaseEvents = events.filter(e => e.type === 'phase');
     if (!phaseEvents.length) return false;
@@ -296,16 +305,10 @@ function isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, merc
     const outEvents = events.filter(e => e.type === 'out' && e.inning === activeInning && e.half === activeHalf);
     const outs = outEvents.reduce((s, e) => s + e.val, 0);
 
-    // 1. Walk-off: Home takes lead in bottom of final or extra inning
     if (activeHalf === 'bot' && activeInning >= effTotalInnings && score.home > score.away) return true;
-
-    // 2. Regulation End: Away finishes batting in final inning, Home is already winning
     if (activeHalf === 'top' && activeInning >= effTotalInnings && outs >= 3 && score.home > score.away) return true;
-
-    // 3. Regular End: Bottom of final inning completes
     if (activeHalf === 'bot' && activeInning >= effTotalInnings && outs >= 3 && score.home !== score.away) return true;
 
-    // 4. Mercy Rule
     if (mercyAfter && mercyRuns && Math.abs(score.home - score.away) >= mercyRuns) {
         if (score.home > score.away) {
             if (activeHalf === 'bot' && activeInning >= mercyAfter) return true;
@@ -315,9 +318,7 @@ function isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, merc
         }
     }
 
-    // 5. Ties
     if (allowTies && activeHalf === 'bot' && activeInning >= tieInningLimit && outs >= 3 && score.home === score.away) return true;
-
     return false;
 }
 
@@ -387,8 +388,7 @@ function computeProbs({ score, runsLog, totalInnings, mercyAfter, mercyRuns, las
       a += poissonSample(awayRate);
       h += poissonSample(homeRate);
       currentInningResolution++;
-      if (currentInningResolution > 50) { tieCount++;
-        break; }
+      if (currentInningResolution > 50) { tieCount++; break; }
     }
 
     if (a > h) awayWin++;
@@ -523,47 +523,49 @@ function parseImport(text) {
 
 // ── Micro components ──────────────────────────────────────────────────────────
 function Label({ children, style: s }) {
-  return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontFamily: MONO, marginBottom: "5px", fontWeight: "bold", ...s }}>{children}</div>;
+  return <div style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "600", marginBottom: "6px", ...s }}>{children}</div>;
 }
 function Inp({ value, onChange, placeholder, type = "text", style: s, autoFocus, disabled }) {
   return (
     <input disabled={disabled} autoFocus={autoFocus} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: disabled ? C.muted : C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }} />
+      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: disabled ? C.muted : C.text, padding: "10px 12px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }} />
   );
 }
 function Sel({ value, onChange, children, style: s, disabled }) {
   return (
     <select disabled={disabled} value={value} onChange={e => onChange(e.target.value)}
-      style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: "0px", color: disabled ? C.muted : C.text, padding: "9px 11px", fontSize: "14px", fontFamily: MONO, width: "100%", boxSizing: "border-box", outline: "none", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }}>
+      style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: disabled ? C.muted : C.text, padding: "10px 12px", fontSize: "14px", width: "100%", boxSizing: "border-box", outline: "none", transition: "border 0.2s", WebkitAppearance: "none", opacity: disabled ? 0.6 : 1, ...s }}>
       {children}
     </select>
   );
 }
 function Btn({ children, onClick, variant = "primary", small, full, disabled, style: s }) {
   const vs = {
-    primary:   { background: C.text, color: C.bg, border: `2px solid ${C.text}`, boxShadow: `2px 2px 0px ${C.text}` },
-    outline:   { background: "transparent", color: C.text, border: `2px solid ${C.text}`, boxShadow: `2px 2px 0px ${C.text}` },
+    primary:   { background: C.accent, color: C.card, border: `1px solid transparent` },
+    outline:   { background: C.card, color: C.text, border: `1px solid ${C.borderBright}` },
     ghost:     { background: "transparent", color: C.muted, border: `1px dashed ${C.borderBright}` },
-    danger:    { background: C.red, color: C.bg, border: `2px solid ${C.red}`, boxShadow: `2px 2px 0px ${C.red}` },
-    success:   { background: C.green, color: C.bg, border: `2px solid ${C.green}`, boxShadow: `2px 2px 0px ${C.green}` },
-    highlight: { background: C.yellow, color: C.bg, border: `2px solid ${C.yellow}`, boxShadow: `2px 2px 0px ${C.yellow}` },
+    danger:    { background: C.red, color: C.card, border: `1px solid transparent` },
+    success:   { background: C.green, color: C.card, border: `1px solid transparent` },
+    highlight: { background: C.yellow, color: C.card, border: `1px solid transparent` },
   };
   return (
     <button onClick={disabled ? undefined : onClick} style={{
       ...vs[variant], cursor: disabled ? "default" : "pointer",
-      fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase",
-      fontSize: small ? "11px" : "14px", padding: small ? "7px 10px" : "11px 16px",
-      width: full ? "100%" : undefined, opacity: disabled ? 0.35 : 1, transition: "transform 0.1s, box-shadow 0.1s", ...s,
+      fontWeight: "600", textTransform: "uppercase", borderRadius: "8px",
+      fontSize: small ? "11px" : "13px", padding: small ? "8px 12px" : "12px 18px",
+      width: full ? "100%" : undefined, opacity: disabled ? 0.4 : 1, 
+      boxShadow: (variant !== 'ghost' && variant !== 'outline') ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
+      ...s,
     }}>{children}</button>
   );
 }
 function Toggle({ on, onToggle, label, disabled }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px", opacity: disabled ? 0.5 : 1 }}>
-      <button disabled={disabled} onClick={onToggle} style={{ background: on ? C.text : "transparent", border: `2px solid ${C.text}`, width: "38px", height: "22px", cursor: disabled ? "default" : "pointer", position: "relative", transition: "background 0.2s" }}>
-        <div style={{ position: "absolute", top: "2px", left: on ? "18px" : "2px", width: "14px", height: "14px", background: on ? C.bg : C.text, transition: "left 0.2s" }} />
+      <button disabled={disabled} onClick={onToggle} style={{ background: on ? C.accent : C.borderBright, border: `none`, width: "42px", height: "24px", borderRadius: "12px", cursor: disabled ? "default" : "pointer", position: "relative", transition: "background 0.2s" }}>
+        <div style={{ position: "absolute", top: "2px", left: on ? "20px" : "2px", width: "20px", height: "20px", background: C.card, borderRadius: "50%", transition: "left 0.2s", boxShadow: "0 1px 2px rgba(0,0,0,0.2)" }} />
       </button>
-      <span style={{ fontSize: "12px", color: C.text, fontFamily: MONO, fontWeight: "bold" }}>{label}</span>
+      <span style={{ fontSize: "13px", color: C.text, fontWeight: "600" }}>{label}</span>
     </div>
   );
 }
@@ -571,25 +573,32 @@ function ConfChip({ confidence }) {
   if (!confidence) return null;
   const map = { low: { label: "Low", color: C.red, bg: C.redDim }, fair: { label: "Fair", color: C.yellow, bg: C.yellowDim }, good: { label: "Good", color: C.blue, bg: C.blueDim }, strong: { label: "Strong", color: C.green, bg: C.greenDim } };
   const { label, color, bg } = map[confidence];
-  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, border: `1px dashed ${color}`, padding: "2px 7px", fontFamily: MONO }}>{label}</span>;
+  return <span style={{ fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", color, background: bg, borderRadius: "4px", padding: "4px 8px" }}>{label} CONFIDENCE</span>;
 }
 function StatBox({ label, value, sub, color, dim }) {
   return (
-    <div style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "8px 6px", textAlign: "center", opacity: dim ? 0.6 : 1, transition: "opacity 0.3s" }}>
-      <Label style={{ marginBottom: "3px" }}>{label}</Label>
-      <div style={{ fontSize: "22px", fontFamily: DISPLAY, color: color ?? C.text, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, marginTop: "4px" }}>{sub}</div>}
+    <div style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "10px 8px", textAlign: "center", opacity: dim ? 0.6 : 1, transition: "opacity 0.3s" }}>
+      <Label style={{ marginBottom: "4px" }}>{label}</Label>
+      <div style={{ fontSize: "22px", fontWeight: "bold", color: color ?? C.text, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: "10px", color: C.muted, marginTop: "6px" }}>{sub}</div>}
     </div>
   );
 }
 function Divider({ label }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "14px 0 12px" }}>
-      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
-      {label && <span style={{ fontSize: "10px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontFamily: MONO }}>{label}</span>}
-      <div style={{ flex: 1, borderTop: `1px dashed ${C.borderBright}` }} />
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 16px" }}>
+      <div style={{ flex: 1, borderTop: `1px solid ${C.borderBright}` }} />
+      {label && <span style={{ fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", color: C.muted, fontWeight: "600" }}>{label}</span>}
+      <div style={{ flex: 1, borderTop: `1px solid ${C.borderBright}` }} />
     </div>
   );
+}
+function Card({ children, style: s }) {
+    return (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "16px", marginBottom: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", ...s }}>
+            {children}
+        </div>
+    );
 }
 
 function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInning, currentPhase, currentInning }) {
@@ -613,23 +622,23 @@ function Linescore({ away, home, score, runsLog, totalInnings, lastCompletedInni
     }
     return played ? "0" : "·";
   };
-  const cell = val => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "5px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}` });
+  const cell = val => ({ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "13px", fontFamily: MONO, padding: "8px 2px", color: val === "·" ? C.faint : C.text, borderRight: `1px solid ${C.borderBright}`, borderBottom: `1px solid ${C.borderBright}` });
   return (
-    <div style={{ overflowX: "auto", border: `2px solid ${C.text}`, background: C.bg }}>
+    <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px", background: C.bg }}>
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
         <thead>
           <tr>
-            <td style={{ width: "64px", fontSize: "10px", fontFamily: MONO, color: C.muted, padding: "3px 4px", borderBottom: `2px solid ${C.text}` }} />
-            {cols.map(i => <td key={i} style={{ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "3px 2px", borderRight: `1px solid ${C.borderBright}`, borderBottom: `2px solid ${C.text}` }}>{i}{i > totalInnings ? "x" : ""}</td>)}
-            <td style={{ width: "28px", textAlign: "center", fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "3px 4px", borderBottom: `2px solid ${C.text}`, borderLeft: `2px solid ${C.text}` }}>R</td>
+            <td style={{ width: "64px", fontSize: "10px", padding: "6px 8px", borderBottom: `2px solid ${C.borderBright}` }} />
+            {cols.map(i => <td key={i} style={{ width: "26px", minWidth: "26px", textAlign: "center", fontSize: "11px", fontWeight: "bold", color: C.muted, padding: "6px 2px", borderRight: `1px solid ${C.borderBright}`, borderBottom: `2px solid ${C.borderBright}` }}>{i}{i > totalInnings ? "x" : ""}</td>)}
+            <td style={{ width: "32px", textAlign: "center", fontSize: "11px", fontWeight: "bold", color: C.muted, padding: "6px 8px", borderBottom: `2px solid ${C.borderBright}`, borderLeft: `2px solid ${C.borderBright}` }}>R</td>
           </tr>
         </thead>
         <tbody>
           {[["away", away], ["home", home]].map(([side, name]) => (
             <tr key={side}>
-              <td style={{ fontSize: "11px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "5px 4px", maxWidth: "64px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderBottom: `1px solid ${C.borderBright}`, borderRight: `2px solid ${C.text}` }}>{name}</td>
+              <td style={{ fontSize: "12px", fontWeight: "600", color: C.text, padding: "8px", maxWidth: "64px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderBottom: `1px solid ${C.borderBright}`, borderRight: `2px solid ${C.borderBright}` }}>{name}</td>
               {cols.map(inn => { const v = getRuns(side, inn); return <td key={inn} style={cell(v)}>{v}</td>; })}
-              <td style={{ width: "28px", textAlign: "center", fontSize: "14px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "5px 4px", borderBottom: `1px solid ${C.borderBright}`, borderLeft: `2px solid ${C.text}` }}>{score[side]}</td>
+              <td style={{ width: "32px", textAlign: "center", fontSize: "14px", fontWeight: "bold", fontFamily: MONO, color: C.text, padding: "8px", borderBottom: `1px solid ${C.borderBright}`, borderLeft: `2px solid ${C.borderBright}` }}>{score[side]}</td>
             </tr>
           ))}
         </tbody>
@@ -704,23 +713,23 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
     ? Array.from({ length: maxInn }, (_, i) => i + 1).filter(v => v >= Math.floor(xMin) && v <= Math.ceil(xMax))
     : validPoints.map(p => p.xVal);
   return (
-    <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "14px", marginBottom: "16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <Label style={{ marginBottom: 0 }}>ESTIMATE ACCURACY</Label>
         <div style={{ display: "flex", gap: "6px" }}>
-          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>
+          <button onClick={() => setExcludeEarly(!excludeEarly)} style={{ background: excludeEarly ? C.text : "transparent", border: `1px solid ${C.text}`, color: excludeEarly ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>
             {excludeEarly ? "SHOW ALL" : "HIDE EARLY"}
           </button>
           {[["signed", "±"], ["absolute", "|e|"]].map(([v, l]) => (
-            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+            <button key={v} onClick={() => setYMode(v)} style={{ background: yMode === v ? C.text : "transparent", border: `1px solid ${C.text}`, color: yMode === v ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>{l}</button>
           ))}
           {[["inning", "INN"], ["time", "TIME"]].map(([v, l]) => (
-            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.blue : "transparent", border: `1px solid ${xMode === v ? C.blue : C.text}`, color: xMode === v ? C.bg : C.text, padding: "2px 6px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold", cursor: "pointer" }}>{l}</button>
+            <button key={v} onClick={() => setXMode(v)} style={{ background: xMode === v ? C.accent : "transparent", border: `1px solid ${xMode === v ? C.accent : C.text}`, color: xMode === v ? C.bg : C.text, padding: "4px 8px", fontSize: "10px", fontWeight: "bold", borderRadius: "4px", cursor: "pointer" }}>{l}</button>
           ))}
         </div>
       </div>
 
-      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px 0" }}>
+      <div style={{ overflowX: "auto", background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "12px 0" }}>
         <svg ref={svgRef} width={W} height={H} style={{ display: "block", margin: "0 auto" }}>
           {yMode === "signed" && <line x1={PL} y1={zeroY} x2={W - PR} y2={zeroY} stroke={C.borderBright} strokeWidth="2" strokeDasharray="4,4" />}
           {yTicks.map(v => {
@@ -754,23 +763,7 @@ function AccuracyGraph({ estimateHistory, endTime, config }) {
           <text x={10} y={PT + IH / 2} textAnchor="middle" fontSize="10" fill={C.muted} fontFamily={MONO} fontWeight="bold" transform={`rotate(-90,10,${PT + IH / 2})`}>ERROR (MIN)</text>
         </svg>
       </div>
-
-      <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "12px" }}>
-        {yMode === "signed"
-          ? [["Long", C.yellow], ["Short", C.blue], ["Exact", C.green]].map(([l, c]) => (
-            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
-              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
-            </div>
-          ))
-          : [["≤5m", C.green], ["≤15m", C.yellow], [">15m", C.red]].map(([l, c]) => (
-            <div key={l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: c, border: `1px solid ${C.text}` }} />
-              <span style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, fontWeight: "bold", textTransform: "uppercase" }}>{l}</span>
-            </div>
-          ))}
-      </div>
-    </div>
+    </Card>
   );
 }
 
@@ -778,20 +771,23 @@ function StatsTable({ events, rosterData, config, pitchData }) {
     const stats = useMemo(() => {
         const hStats = { away: {}, home: {} };
         const pStats = { away: {}, home: {} };
+        const dStats = { away: {}, home: {} }; // Defensive stats
 
         ['away', 'home'].forEach(team => {
             (rosterData.pool?.[team] || []).forEach(p => {
                 hStats[team][p.id] = { id: p.id, name: p.name, no: p.no, PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
+                dStats[team][p.id] = { id: p.id, name: p.name, no: p.no, E: 0 };
             });
             (rosterData[team] || []).forEach(p => {
                 if (p.id && !hStats[team][p.id]) {
                     hStats[team][p.id] = { id: p.id, name: p.name, no: p.no, PA: 0, AB: 0, H: 0, R: 0, BB: 0, K: 0, HBP: 0 };
+                    dStats[team][p.id] = { id: p.id, name: p.name, no: p.no, E: 0 };
                 }
             });
         });
 
         events.forEach(e => {
-            if (!e.team && !e.pitcher) return;
+            if (!e.team && !e.pitcher && !e.errorFielderId) return;
             
             const isTop = e.half === 'top';
             const battingTeam = isTop ? 'away' : 'home';
@@ -804,6 +800,11 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             
             if (e.pitcher) {
                 if (!pStats[fieldingTeam][e.pitcher]) pStats[fieldingTeam][e.pitcher] = { name: e.pitcher, outs: 0, H: 0, R: 0, ER: 0, BB: 0, K: 0, HBP: 0 };
+            }
+
+            // Track Defensive Errors
+            if (e.isError && e.errorFielderId && dStats[fieldingTeam][e.errorFielderId]) {
+                dStats[fieldingTeam][e.errorFielderId].E++;
             }
 
             if (e.type === 'out') {
@@ -851,7 +852,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 }
             }
         });
-        return { hStats, pStats };
+        return { hStats, pStats, dStats };
     }, [events, rosterData]);
 
     const renderBatting = (teamName, teamKey) => {
@@ -861,7 +862,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} BATTING</Label>
-                <div style={{ overflowX: "auto", border: `2px solid ${C.text}` }}>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
                     <table className="stats-table">
                         <thead>
                             <tr>
@@ -886,6 +887,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             </div>
         );
     };
+    
     const renderPitching = (teamName, teamKey) => {
         const pitchers = Object.values(stats.pStats[teamKey]);
         if (!pitchers.length) return null;
@@ -893,7 +895,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         return (
             <div style={{ marginBottom: "16px" }}>
                 <Label>{teamName} PITCHING</Label>
-                <div style={{ overflowX: "auto", border: `2px solid ${C.text}` }}>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
                     <table className="stats-table">
                         <thead>
                             <tr>
@@ -925,20 +927,52 @@ function StatsTable({ events, rosterData, config, pitchData }) {
         );
     };
 
+    const renderDefense = (teamName, teamKey) => {
+        const errPlayers = Object.values(stats.dStats[teamKey]).filter(p => p.E > 0);
+        if (!errPlayers.length) return null;
+        return (
+            <div style={{ marginBottom: "16px" }}>
+                <Label>{teamName} DEFENSE (ERRORS)</Label>
+                <div style={{ overflowX: "auto", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
+                    <table className="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>E</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {errPlayers.map(p => (
+                                <tr key={p.id}>
+                                    <td>{p.no ? `#${p.no} ` : ''}{p.name || 'Unknown'}</td>
+                                    <td>{p.E}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )
+    };
+
     return (
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
             {renderBatting(config.away, 'away')}
             {renderBatting(config.home, 'home')}
             <Divider label="Pitching" />
             {renderPitching(config.away, 'away')}
             {renderPitching(config.home, 'home')}
-        </div>
+            <Divider label="Defense" />
+            {renderDefense(config.away, 'away')}
+            {renderDefense(config.home, 'home')}
+        </Card>
     );
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────────
-const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" };
-const modalStyle   = { background: C.bg, border: `4px solid ${C.text}`, padding: "20px", width: "100%", maxWidth: "360px", boxShadow: `6px 6px 0px rgba(0,0,0,0.2)`, maxHeight: "90vh", overflowY: "auto" };
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", backdropFilter: "blur(2px)" };
+const modalStyle   = { background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "24px", width: "100%", maxWidth: "380px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)", maxHeight: "90vh", overflowY: "auto" };
+
 function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   const [text, setText] = useState("");
   const [error, setError] = useState(null);
@@ -961,8 +995,8 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
     return (
       <div style={overlayStyle}>
         <div style={modalStyle}>
-          <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>GAME IN PROGRESS</div>
-          <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "18px", lineHeight: "1.6", fontWeight: "bold" }}>
+          <div style={{ fontSize: "20px", fontWeight: "bold", color: C.red, marginBottom: "10px" }}>GAME IN PROGRESS</div>
+          <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", lineHeight: "1.6" }}>
             You have an active game. Importing will overwrite it.<br />Save the current game first?
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -978,17 +1012,17 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>IMPORT SAVED GAME</div>
-        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Upload a .json file or paste exported text.</div>
+        <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>IMPORT SAVED GAME</div>
+        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Upload a .json file or paste exported text.</div>
         <input ref={fileRef} type="file" accept=".json,text/plain" onChange={handleFile} style={{ display: "none" }} />
         <Btn full variant="outline" small onClick={() => fileRef.current.click()} style={{ marginBottom: "12px" }}>📂 CHOOSE FILE</Btn>
         <textarea
           value={text} onChange={e => setText(e.target.value)}
           placeholder="Or paste exported text here..."
-          style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }}
+          style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: C.text, padding: "12px", fontSize: "13px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }}
         />
-        {error && <div style={{ fontSize: "12px", color: C.red, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{error}</div>}
-        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+        {error && <div style={{ fontSize: "13px", color: C.red, marginTop: "8px", fontWeight: "600" }}>{error}</div>}
+        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn full variant="primary" onClick={handleImport} disabled={!text.trim()}>IMPORT →</Btn>
           <Btn full variant="ghost"   onClick={onCancel}>CANCEL</Btn>
         </div>
@@ -1003,10 +1037,10 @@ function CopyModal({ text, onClose }) {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>COPY SCORECARD</div>
-        <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Copy this text to save your game anywhere.</div>
-        <textarea readOnly value={text} style={{ background: C.card, border: `2px solid ${C.borderBright}`, color: C.text, padding: "10px", fontSize: "11px", fontFamily: MONO, width: "100%", height: "100px", boxSizing: "border-box", resize: "none", outline: "none" }} />
-        <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+        <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>COPY SCORECARD</div>
+        <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Copy this text to save your game anywhere.</div>
+        <textarea readOnly value={text} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", color: C.text, padding: "12px", fontSize: "12px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }} />
+        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
           <Btn full variant={copied ? "success" : "primary"} onClick={copy}>{copied ? "COPIED ✓" : "COPY TEXT"}</Btn>
           <Btn full variant="ghost" onClick={onClose}>DONE</Btn>
         </div>
@@ -1042,11 +1076,11 @@ function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose })
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>UPCOMING BATTERS</div>
-                <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Set the current and upcoming batters dynamically.</div>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>UPCOMING BATTERS</div>
+                <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Set the current and upcoming batters dynamically.</div>
                 
                 {slots.map((s, i) => (
-                    <div key={i} style={{ marginBottom: "12px" }}>
+                    <div key={i} style={{ marginBottom: "16px" }}>
                         <Label>{i === 0 ? "CURRENT BATTER" : i === 1 ? "ON DECK" : "IN HOLE"}</Label>
                         <Sel value={s.id} onChange={v => updateSlot(i, v)}>
                             <option value="" hidden>Select Player...</option>
@@ -1057,13 +1091,13 @@ function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose })
                 ))}
 
                 {canClose && (
-                    <div style={{ background: C.greenDim, padding: "10px", marginBottom: "16px", border: `1px solid ${C.green}` }}>
-                        <div style={{ fontSize: "11px", color: C.green, fontFamily: MONO, fontWeight: "bold", marginBottom: "6px" }}>Leadoff hitter detected!</div>
+                    <div style={{ background: C.greenDim, padding: "12px", borderRadius: "8px", marginBottom: "16px", border: `1px solid ${C.green}` }}>
+                        <div style={{ fontSize: "12px", color: C.green, fontWeight: "600", marginBottom: "8px" }}>Leadoff hitter detected!</div>
                         <Btn full variant="success" onClick={() => onSave(slots, slots[leadoffDetectedIn].idx)}>SAVE & CLOSE LINEUP</Btn>
                     </div>
                 )}
 
-                <div style={{ display: "flex", gap: "10px", marginTop: canClose ? "0" : "16px" }}>
+                <div style={{ display: "flex", gap: "10px", marginTop: canClose ? "0" : "20px" }}>
                     <Btn full variant="primary" onClick={() => onSave(slots, null)}>SAVE CHANGES</Btn>
                     <Btn full variant="ghost" onClick={onClose}>CANCEL</Btn>
                 </div>
@@ -1078,9 +1112,9 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>COURTESY RUNNER</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
-                    Running for: {runner?.name || 'Player'}
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>COURTESY RUNNER</div>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
+                    Running for: <strong>{runner?.name || 'Player'}</strong>
                 </div>
                 
                 <Label>SELECT RUNNER</Label>
@@ -1088,11 +1122,11 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
                     <option value="" disabled hidden>Select Player...</option>
                     {rosterPool.map(p => <option key={p.id} value={p.id}>{p.no ? `#${p.no} ` : ''}{p.name || `Player ${p.id}`}</option>)}
                 </Sel>
-                <div style={{ fontSize: "10px", color: C.muted, fontFamily: MONO, marginTop: "6px" }}>
+                <div style={{ fontSize: "11px", color: C.muted, marginTop: "8px" }}>
                     * Defaults to the last batted out. Change this selection if the system defaulted to the wrong player.
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                     <Btn full variant="primary" onClick={() => {
                         const p = rosterPool.find(x => x.id === selectedId);
                         if (p) onSave(p);
@@ -1108,11 +1142,11 @@ function WpPbModal({ onSelect, onCancel }) {
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>WILD PITCH / PASSED BALL</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>WILD PITCH / PASSED BALL</div>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
                     Was the pitch a ball or a strike?
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                     <Btn full variant="outline" onClick={() => onSelect('ball')}>BALL</Btn>
                     <Btn full variant="outline" onClick={() => onSelect('strike')}>STRIKE</Btn>
                 </div>
@@ -1141,14 +1175,14 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>
                     {isBatter ? "BATTER MENU" : "RUNNER MENU"}
                 </div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
                     {runner?.name || 'Player'}
                 </div>
                 {mode === 'main' && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {!isBatter && <Btn full variant="success" onClick={() => setMode('steal')}>STEAL BASE / ADVANCE</Btn>}
                         {!isBatter && <Btn full variant="danger" onClick={() => onPickoff(baseId)}>PICKOFF</Btn>}
                         <Btn full variant="primary" onClick={onSub}>SUBSTITUTE</Btn>
@@ -1160,15 +1194,15 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
                     </div>
                 )}
                 {mode === 'steal' && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <Label>SELECT TARGET BASE</Label>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "8px" }}>
                             {stealOptions.map(o => (
                                 <Btn key={o.v} full variant={stealDest === o.v ? "primary" : "outline"} onClick={() => setStealDest(o.v)}>{o.l}</Btn>
                             ))}
                         </div>
                         
-                        <div style={{ marginBottom: "16px", padding: "10px", background: stealIsOut ? C.redDim : C.card, border: `1px solid ${stealIsOut ? C.red : C.borderBright}` }}>
+                        <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "8px", background: stealIsOut ? C.redDim : C.bg, border: `1px solid ${stealIsOut ? C.red : C.borderBright}` }}>
                             <Toggle on={stealIsOut} onToggle={() => setStealIsOut(!stealIsOut)} label="Caught Stealing / Picked Off" />
                         </div>
                         
@@ -1177,7 +1211,7 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
                     </div>
                 )}
                 {mode === 'edit_info' && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <Label>SELECT OR ADD PLAYER</Label>
                         <Sel value={editSelectedId} onChange={v => {
                             setEditSelectedId(v);
@@ -1197,9 +1231,9 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
                             <option value="add_new">+ Add New Player</option>
                         </Sel>
                         {editSelectedId === 'add_new' && (
-                            <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                                 <Inp value={editName} onChange={setEditName} placeholder="Name" />
-                                <div style={{ width: "80px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
+                                <div style={{ width: "90px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
                             </div>
                         )}
                         <Btn full variant="primary" onClick={() => {
@@ -1222,11 +1256,13 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
     )
 }
 
-function InPlayModal({ baseId, stagedPlay, onSave, onCancel }) {
+function InPlayModal({ baseId, stagedPlay, fieldingRoster, onSave, onCancel }) {
     const runnerState = stagedPlay[baseId];
     if (!runnerState) return null;
     const [dest, setDest] = useState(runnerState.dest);
     const [isError, setIsError] = useState(runnerState.isError);
+    const [outType, setOutType] = useState('Groundout');
+    const [fielderId, setFielderId] = useState('');
 
     const baseName = baseId === 'home' ? 'Batter' : `Runner on ${baseId.toUpperCase()}`;
 
@@ -1241,26 +1277,59 @@ function InPlayModal({ baseId, stagedPlay, onSave, onCancel }) {
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.green, marginBottom: "10px" }}>PLAY ACTION</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
-                    {baseName}: {runnerState.name || 'Player'}
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.green, marginBottom: "8px" }}>PLAY ACTION</div>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "500" }}>
+                    {baseName}: <strong>{runnerState.name || 'Player'}</strong>
                 </div>
                 
                 <Label>SELECT DESTINATION</Label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
                     {options.map(o => (
                         <Btn key={o.v} full variant={dest === o.v ? "primary" : "outline"} onClick={() => setDest(o.v)}>{o.l}</Btn>
                     ))}
                 </div>
 
-                <Btn full variant={dest === 'out' ? "danger" : "outline"} onClick={() => setDest('out')} style={{ marginBottom: "16px", borderColor: dest === 'out' ? C.red : C.text, color: dest === 'out' ? C.bg : C.red }}>OUT ON PLAY</Btn>
+                <Btn full variant={dest === 'out' ? "danger" : "outline"} onClick={() => setDest('out')} style={{ marginBottom: "16px", borderColor: dest === 'out' ? C.red : C.borderBright, color: dest === 'out' ? C.card : C.red }}>OUT ON PLAY</Btn>
 
-                <div style={{ marginBottom: "20px", padding: "10px", background: safeDestSelected ? C.bg : C.card, border: `1px solid ${C.borderBright}` }}>
+                {dest === 'out' && (
+                    <div style={{ marginBottom: "20px", padding: "12px", background: C.redDim, borderRadius: "8px", border: `1px solid ${C.red}` }}>
+                        <Label style={{color: C.red}}>OUT OCCURRENCE</Label>
+                        <Sel value={outType} onChange={setOutType} style={{marginBottom: "12px"}}>
+                            <option value="Groundout">Groundout</option>
+                            <option value="Flyout">Flyout</option>
+                            <option value="Lineout">Lineout</option>
+                            <option value="Popout">Popout</option>
+                            <option value="Force Out">Force Out</option>
+                            <option value="Tag Out">Tag Out</option>
+                        </Sel>
+                        
+                        <Label style={{color: C.red}}>FIELDER INVOLVED</Label>
+                        <Sel value={fielderId} onChange={setFielderId}>
+                            <option value="" disabled hidden>Select Position/Player...</option>
+                            {fieldingRoster.filter(p => p.pos).map(p => (
+                                <option key={p.id} value={p.id}>{p.pos} - {p.name}</option>
+                            ))}
+                        </Sel>
+                    </div>
+                )}
+
+                <div style={{ marginBottom: "20px", padding: "12px", borderRadius: "8px", background: safeDestSelected ? C.bg : C.card, border: `1px solid ${C.borderBright}`, display: dest === 'out' ? 'none' : 'block' }}>
                     <Toggle disabled={!safeDestSelected} on={safeDestSelected && isError} onToggle={() => setIsError(!isError)} label="Reached on Error" />
+                    {safeDestSelected && isError && (
+                        <div style={{ marginTop: "12px" }}>
+                            <Label>FIELDER WHO COMMITTED ERROR</Label>
+                            <Sel value={fielderId} onChange={setFielderId}>
+                                <option value="" disabled hidden>Select Position/Player...</option>
+                                {fieldingRoster.filter(p => p.pos).map(p => (
+                                    <option key={p.id} value={p.id}>{p.pos} - {p.name}</option>
+                                ))}
+                            </Sel>
+                        </div>
+                    )}
                 </div>
 
                 <div style={{ display: "flex", gap: "10px" }}>
-                    <Btn full variant="success" onClick={() => onSave(dest, safeDestSelected ? isError : false)}>UPDATE</Btn>
+                    <Btn full variant="success" onClick={() => onSave(dest, safeDestSelected ? isError : false, outType, fielderId)}>UPDATE</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
             </div>
@@ -1276,7 +1345,6 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
     const [newName, setNewName] = useState("");
     const [newNo, setNewNo] = useState("");
     
-    // Edit info state
     const [editName, setEditName] = useState(currentPlayer?.name || "");
     const [editNo, setEditNo] = useState(currentPlayer?.no || "");
 
@@ -1299,13 +1367,13 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
         return (
             <div style={overlayStyle}>
                 <div style={modalStyle}>
-                    <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>EDIT {pos} INFO</div>
-                    <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Changes will apply without resetting stats.</div>
-                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                    <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>EDIT {pos} INFO</div>
+                    <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px" }}>Changes will apply without resetting stats.</div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                         <Inp value={editName} onChange={setEditName} placeholder="Name" />
-                        <div style={{ width: "80px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
+                        <div style={{ width: "90px" }}><Inp value={editNo} onChange={setEditNo} placeholder="No." /></div>
                     </div>
-                    <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                         <Btn full variant="primary" onClick={() => onEditInfo({ ...currentPlayer, name: editName, no: editNo })}>SAVE INFO</Btn>
                         <Btn full variant="ghost" onClick={() => setMode('main')}>BACK</Btn>
                     </div>
@@ -1317,13 +1385,13 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>ASSIGN {pos}</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>ASSIGN {pos}</div>
+                <div style={{ fontSize: "13px", color: C.text, marginBottom: "16px", fontWeight: "500", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently assigned to ${pos}`}</span>
                 </div>
 
                 {currentPlayer && (
-                    <Btn full variant="outline" small onClick={() => setMode('edit_info')} style={{ marginBottom: "12px" }}>✎ Edit Current Player Info</Btn>
+                    <Btn full variant="outline" small onClick={() => setMode('edit_info')} style={{ marginBottom: "16px" }}>✎ Edit Current Player Info</Btn>
                 )}
                 
                 <Label>SELECT FROM FULL ROSTER</Label>
@@ -1337,20 +1405,20 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
                 </Sel>
 
                 {selectedId === 'add_new' && (
-                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                         <Inp value={newName} onChange={setNewName} placeholder="Name" />
-                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
+                        <div style={{ width: "90px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
                     </div>
                 )}
 
                 {pos === 'P' && currentPlayer?.name && selectedId !== 'add_new' && selectedId !== currentPlayer.id && (
-                    <div style={{ marginTop: "12px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "12px" }}>
+                    <div style={{ marginTop: "16px", borderTop: `1px dashed ${C.borderBright}`, paddingTop: "16px" }}>
                         <Label>TOTAL GAME PITCHES BY OUTGOING PITCHER ({currentPlayer.name})</Label>
                         <Inp value={pitches} onChange={setPitches} placeholder="Total count..." type="number" />
                     </div>
                 )}
 
-                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                     <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
@@ -1379,8 +1447,8 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.accent, marginBottom: "10px" }}>{label}</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>{label}</div>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
                     {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently populated.`}
                 </div>
                 
@@ -1392,13 +1460,13 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
                 </Sel>
 
                 {selectedId === 'add_new' && (
-                    <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                         <Inp value={newName} onChange={setNewName} placeholder="Name" />
-                        <div style={{ width: "80px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
+                        <div style={{ width: "90px" }}><Inp value={newNo} onChange={setNewNo} placeholder="No." /></div>
                     </div>
                 )}
 
-                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                     <Btn full variant="primary" onClick={handleConfirm} disabled={!selectedId && !currentPlayer}>CONFIRM</Btn>
                     <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
                 </div>
@@ -1416,6 +1484,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
   const [showImportTextarea, setShowImportTextarea] = useState(false);
   const [gcUrl, setGcUrl] = useState("");
   const [loadingGc, setLoadingGc] = useState(false);
+  
   const updatePlayer = (team, id, field, value) => {
       const newRoster = { ...roster };
       const poolIdx = newRoster.pool[team].findIndex(p => p.id === id);
@@ -1626,33 +1695,33 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
   const poolList = roster.pool?.[activeTab] || [];
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
-      <div style={{ padding: "20px 20px 10px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
-        <div style={{ fontSize: "28px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1 }}>ROSTER & LINEUP</div>
+      <div style={{ padding: "24px 20px 16px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
+        <div style={{ fontSize: "24px", fontWeight: "bold", color: C.accent, lineHeight: 1 }}>ROSTER & LINEUP</div>
       </div>
       
-      <div style={{ display: "flex", borderBottom: `2px solid ${C.text}`, background: C.card }}>
-          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'away' ? C.text : "transparent", color: activeTab === 'away' ? C.bg : C.text, border: "none" }}>{awayName || "AWAY"}</button>
-          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontFamily: MONO, fontWeight: "bold", background: activeTab === 'home' ? C.text : "transparent", color: activeTab === 'home' ? C.bg : C.text, border: "none" }}>{homeName || "HOME"}</button>
+      <div style={{ display: "flex", borderBottom: `1px solid ${C.borderBright}`, background: C.card }}>
+          <button onClick={() => setActiveTab('away')} style={{ flex: 1, padding: "12px", fontWeight: "600", background: activeTab === 'away' ? C.bg : "transparent", color: activeTab === 'away' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'away' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{awayName || "AWAY"}</button>
+          <button onClick={() => setActiveTab('home')} style={{ flex: 1, padding: "12px", fontWeight: "600", background: activeTab === 'home' ? C.bg : "transparent", color: activeTab === 'home' ? C.accent : C.muted, border: "none", borderBottom: activeTab === 'home' ? `3px solid ${C.accent}` : "3px solid transparent" }}>{homeName || "HOME"}</button>
       </div>
 
       <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
           
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Card style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
                 <Label>ENTRY MODE</Label>
-                <div style={{ fontSize: "11px", fontFamily: MONO, color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
+                <div style={{ fontSize: "12px", color: C.muted }}>{mode === 'edit' ? 'Setup Mode (No Logs)' : 'Lineup Display'}</div>
             </div>
             <Toggle on={mode === 'sub'} onToggle={() => setMode(mode === 'edit' ? 'sub' : 'edit')} label={mode === 'sub' ? '🔄 VIEW' : '✎ EDIT'} />
-        </div>
+        </Card>
 
         {mode === 'edit' && (
-             <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+             <Card>
                  <Label>FULL TEAM ROSTER</Label>
-                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO }}>Add all players here to easily select them.</div>
+                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <div style={{ fontSize: "12px", color: C.muted }}>Add all players here to easily select them.</div>
                     <div style={{ display: "flex", gap: "6px" }}>
-                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'name')}>A-Z ↓</Btn>
-                        <Btn variant="ghost" small onClick={() => handleSortPool(activeTab, 'no')}>1-9 ↓</Btn>
+                        <Btn variant="outline" small onClick={() => handleSortPool(activeTab, 'name')}>A-Z ↓</Btn>
+                        <Btn variant="outline" small onClick={() => handleSortPool(activeTab, 'no')}>1-9 ↓</Btn>
                     </div>
                  </div>
                  
@@ -1662,9 +1731,9 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                             ref={importTextareaRef}
                             onChange={(e) => handlePastedRoster(e, activeTab)}
                             placeholder="Paste text list from GameChanger/Notes here..." 
-                            style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "8px", boxSizing: "border-box", border: `1px solid ${C.borderBright}` }}
+                            style={{ width: "100%", height: "80px", marginBottom: "8px", fontFamily: MONO, fontSize: "12px", padding: "12px", boxSizing: "border-box", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}
                          />
-                         <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
+                         <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
                              <Inp value={gcUrl} onChange={setGcUrl} placeholder="Or paste GC Roster URL..." style={{ flex: "1 1 100%" }} />
                              <Btn variant="primary" small full onClick={() => handleGcImport(activeTab)} disabled={!gcUrl || loadingGc}>
                                  {loadingGc ? "FETCHING..." : "📥 IMPORT FROM URL"}
@@ -1673,37 +1742,37 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                      </>
                  )}
                  
-                 <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "12px", paddingRight: "4px" }}>
+                 <div style={{ maxHeight: "240px", overflowY: "auto", marginBottom: "16px", paddingRight: "4px" }}>
                      {poolList.map((p, i) => (
-                         <div key={p.id} style={{ display: "flex", gap: "6px", marginBottom: "6px", alignItems: "center" }}>
+                         <div key={p.id} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
                              <Inp value={p.name} onChange={v => handlePoolChange(activeTab, i, 'name', v)} placeholder="Name" />
                              <div style={{ width: "80px" }}>
                                  <Inp value={p.no} onChange={v => handlePoolChange(activeTab, i, 'no', v)} placeholder="No." />
                              </div>
-                             <button onClick={() => handleRemovePoolPlayer(activeTab, p.id)} style={{ background: "transparent", border: "none", color: C.red, fontWeight: "bold", cursor: "pointer", fontSize: "16px", padding: "0 4px" }}>×</button>
+                             <button onClick={() => handleRemovePoolPlayer(activeTab, p.id)} style={{ background: "transparent", border: "none", color: C.red, fontWeight: "bold", cursor: "pointer", fontSize: "18px", padding: "0 8px" }}>×</button>
                          </div>
                      ))}
                  </div>
-                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                      <Btn variant="outline" small style={{ flex: 1 }} onClick={() => handleAddPoolPlayer(activeTab)}>+ Add Player</Btn>
                      <Btn variant="outline" small style={{ flex: 1 }} onClick={() => fileInputRef.current.click()}>+ Import .txt</Btn>
                      <Btn variant="outline" small style={{ flex: 1 }} onClick={() => setShowImportTextarea(!showImportTextarea)}>📋 Paste/Link</Btn>
                      <input type="file" ref={fileInputRef} accept=".txt" style={{ display: "none" }} onChange={e => handleFileImport(e, activeTab)} />
                  </div>
-             </div>
+             </Card>
         )}
 
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+        <Card>
             <Label>BATTING ORDER</Label>
             {list.map((player, i) => (
-                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
+                <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "12px", alignItems: "center" }}>
                     {mode === 'edit' && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "8px", padding: "4px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap" }}>↻ LEADOFF</button>
-                            {list.length > 1 && <button onClick={() => handleRemoveHitter(activeTab, i)} style={{ background: "transparent", border: `1px solid ${C.borderBright}`, cursor: "pointer", fontSize: "8px", padding: "4px", color: C.red, whiteSpace: "nowrap" }}>🗑 DEL</button>}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <button disabled={i === 0} onClick={() => rotateLineup(activeTab, i)} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, cursor: i === 0 ? "default" : "pointer", fontSize: "9px", padding: "6px", borderRadius: "4px", opacity: i === 0 ? 0.3 : 1, whiteSpace: "nowrap" }}>↻ LEAD</button>
+                            {list.length > 1 && <button onClick={() => handleRemoveHitter(activeTab, i)} style={{ background: C.redDim, border: `1px solid ${C.red}`, cursor: "pointer", fontSize: "9px", padding: "6px", color: C.red, borderRadius: "4px", whiteSpace: "nowrap" }}>🗑 DEL</button>}
                         </div>
                     )}
-                    <div style={{ width: "20px", fontFamily: MONO, fontWeight: "bold", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.text }}>{i+1}.</div>
+                    <div style={{ width: "24px", fontWeight: "600", textAlign: "right", color: roster.lineupIdx?.[activeTab] === i ? C.accent : C.muted }}>{i+1}.</div>
                     {mode === 'edit' ? (
                         <>
                             <div style={{ flex: 2 }}>
@@ -1731,33 +1800,33 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                                     setRoster(newRoster);
                                 }}
                                 style={{
-                                    padding: "4px", fontSize: "10px", fontFamily: MONO, fontWeight: "bold",
-                                    background: roster.lineupIdx?.[activeTab] === i ? C.accent : "transparent",
-                                    color: roster.lineupIdx?.[activeTab] === i ? C.bg : C.muted,
+                                    padding: "8px 6px", fontSize: "10px", fontWeight: "bold",
+                                    background: roster.lineupIdx?.[activeTab] === i ? C.accent : C.bg,
+                                    color: roster.lineupIdx?.[activeTab] === i ? C.card : C.muted,
                                     border: `1px solid ${roster.lineupIdx?.[activeTab] === i ? C.accent : C.borderBright}`,
-                                    cursor: "pointer", borderRadius: "2px", whiteSpace: "nowrap"
+                                    cursor: "pointer", borderRadius: "6px", whiteSpace: "nowrap"
                                 }}
                             >
                                 {roster.lineupIdx?.[activeTab] === i ? "CURRENT" : "SET ACTIVE"}
                             </button>
                         </>
                     ) : (
-                        <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, padding: "9px", fontFamily: MONO, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
+                        <div style={{ flex: 1, border: `1px solid ${C.borderBright}`, background: C.bg, borderRadius: "8px", padding: "10px", fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", opacity: player.name ? 1 : 0.5 }}>
                             {player.name ? `${player.no ? `#${player.no} ` : ''}${player.name} (${player.pos || '?'})` : 'Empty Slot'}
                         </div>
                     )}
                 </div>
             ))}
-            {mode === 'edit' && <Btn variant="outline" small full onClick={() => handleAddHitter(activeTab)} style={{ marginTop: "8px" }}>+ Add Hitter</Btn>}
-        </div>
+            {mode === 'edit' && <Btn variant="outline" small full onClick={() => handleAddHitter(activeTab)} style={{ marginTop: "12px" }}>+ Add Hitter</Btn>}
+        </Card>
 
         {mode === 'edit' && (
-             <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+             <Card>
                  <Label>DEFENSIVE ASSIGNMENTS</Label>
-                 <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginBottom: "12px" }}>Assign players to the field if they are not in the batting order.</div>
+                 <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px" }}>Assign players to the field if they are not in the batting order.</div>
                  {['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF'].map(pos => (
-                     <div key={pos} style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center" }}>
-                         <div style={{ width: "24px", fontFamily: MONO, fontWeight: "bold", textAlign: "right" }}>{pos}</div>
+                     <div key={pos} style={{ display: "flex", gap: "10px", marginBottom: "10px", alignItems: "center" }}>
+                         <div style={{ width: "24px", fontWeight: "bold", textAlign: "right" }}>{pos}</div>
                          <div style={{ flex: 1 }}>
                              <Sel value={roster.fielders[activeTab][pos]?.id || ""} onChange={v => handleDefensiveChange(activeTab, pos, v)}>
                                  <option value="" disabled hidden>Unassigned</option>
@@ -1767,7 +1836,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
                          </div>
                      </div>
                  ))}
-             </div>
+             </Card>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -1784,17 +1853,17 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
-                <div style={{ fontSize: "20px", fontFamily: DISPLAY, color: C.text, marginBottom: "10px" }}>INNING END / PITCH COUNT</div>
-                <div style={{ fontSize: "12px", color: C.text, fontFamily: MONO, marginBottom: "12px", fontWeight: "bold" }}>
+                <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>INNING END / PITCH COUNT</div>
+                <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "500" }}>
                     What is {pitcher?.name || "the pitcher"}'s TOTAL game pitch count right now?
                 </div>
                 <Inp value={count} onChange={setCount} placeholder="Total count..." type="number" autoFocus />
-                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                     <Btn full variant="primary" onClick={() => onSave(parseInt(count) || 0)}>LOG PITCHES</Btn>
                     <Btn full variant="ghost" onClick={onSkip}>SKIP</Btn>
                 </div>
                 {onUndo && (
-                    <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px dashed ${C.borderBright}` }}>
+                    <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${C.borderBright}` }}>
                         <Btn full variant="danger" onClick={onUndo}>↩ UNDO LAST OUT</Btn>
                     </div>
                 )}
@@ -1824,7 +1893,6 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
     };
     const activePitcher = activeFieldersMap?.['P'] || fieldingRoster.find(p => p.pos === 'P');
     
-    // Updated robust logic for identifying on deck / in hole names
     const getSlotName = (offset) => {
         if (!battingLineup || !battingLineup.length) return '?';
         const targetIdx = lineupClosed 
@@ -1836,25 +1904,32 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
     const onDeckName = getSlotName(1);
     const inHoleName = getSlotName(2);
 
+    const activeRunners = [
+        bases.home ? { ...bases.home, currentBase: 'home' } : null,
+        bases['1b'] ? { ...bases['1b'], currentBase: '1b' } : null,
+        bases['2b'] ? { ...bases['2b'], currentBase: '2b' } : null,
+        bases['3b'] ? { ...bases['3b'], currentBase: '3b' } : null,
+    ].filter(Boolean);
+
     return (
-        <div style={{ marginBottom: "16px", background: C.card, border: `2px solid ${C.text}`, padding: "16px", position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div style={{ fontSize: "14px", fontFamily: MONO, color: C.accent, fontWeight: "bold", display: "flex", flexDirection: "column" }}>
-                    <span style={{ fontSize: "10px", color: C.muted }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</span>
+        <Card style={{ padding: "20px", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ fontSize: "15px", color: C.accent, fontWeight: "bold", display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: "11px", color: C.muted, fontWeight: "600", letterSpacing: "1px" }}>{activeHalf === 'top' ? 'TOP' : 'BOT'} {activeInningNum}</span>
                     <span>▶ {activeHalf === 'top' ? (awayName?.toUpperCase() || 'AWAY') : (homeName?.toUpperCase() || 'HOME')} BATTING</span>
                 </div>
                 <div>
-                   <Label style={{ textAlign: "right", marginBottom: "4px" }}>OUTS</Label>
-                   <div style={{ display: "flex", gap: "6px" }}>
+                   <Label style={{ textAlign: "right", marginBottom: "6px" }}>OUTS</Label>
+                   <div style={{ display: "flex", gap: "8px" }}>
                       {[1,2,3].map(i => (
-                          <div key={i} style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
+                          <div key={i} style={{ width: "14px", height: "14px", borderRadius: "50%", border: `2px solid ${C.text}`, background: currentOuts >= i ? C.text : "transparent" }} />
                       ))}
                    </div>
                 </div>
             </div>
 
-            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, textAlign: "center", marginBottom: "12px", fontWeight: "bold", padding: "0 10px" }}>
-                {isResolvingPlay ? <span style={{color: C.green}}>Tap batter/runners to set destinations!</span> : "TAP runner or batter for Actions.\nTAP a defensive position to sub/assign."}
+            <div style={{ fontSize: "12px", color: C.muted, textAlign: "center", marginBottom: "16px", fontWeight: "500", padding: "0 10px" }}>
+                {isResolvingPlay ? <span style={{color: C.green, fontWeight: "bold"}}>Tap batter/runners to set destinations!</span> : "TAP runner or batter for Actions.\nTAP a defensive position to sub/assign."}
             </div>
 
             <div className="field-container">
@@ -1881,67 +1956,56 @@ function FieldDiagram({ activeHalf, activeInningNum, awayName, homeName, current
                             onClick={(e) => { e.stopPropagation(); onChangeFielder(pos, p); }}
                         >
                             <div className="dot" style={!p?.name ? {background: 'rgba(255,255,255,0.4)', boxShadow: 'none'} : {}} />
-                            <div className="name" style={!p?.name ? {background: 'rgba(0,0,0,0.3)', color: 'rgba(255,255,255,0.6)'} : {}}>
+                            <div className="name" style={!p?.name ? {background: 'rgba(15, 23, 42, 0.4)', color: 'rgba(255,255,255,0.8)'} : {}}>
                                 {p?.name ? `${p.no ? `#${p.no} ` : ''}${p.name}` : pos}
                             </div>
                         </div>
                     );
                 })}
 
-                {zones.map(z => {
-                    let runner = null;
+                {/* Animated Runners Layer */}
+                {activeRunners.map(runner => {
                     let isStagedOut = false;
                     let stagedDest = null;
                     let isStagedError = false;
+                    let renderBase = runner.currentBase;
 
                     if (isResolvingPlay && stagedPlay) {
-                        const originalKey = Object.keys(stagedPlay).find(k => stagedPlay[k].original === z.id);
+                        const originalKey = Object.keys(stagedPlay).find(k => stagedPlay[k].original === runner.currentBase);
                         if (originalKey) {
-                            runner = bases[z.id];
                             isStagedOut = stagedPlay[originalKey].isOut;
                             stagedDest = stagedPlay[originalKey].dest;
                             isStagedError = stagedPlay[originalKey].isError;
                         }
-                    } else {
-                        runner = bases[z.id];
                     }
 
                     return (
                         <div 
-                            key={z.id} 
-                            className={`base-zone ${z.cls}`}
-                            data-base-id={z.id}
+                            key={runner.id} 
+                            className={`runner pos-${renderBase}`}
+                            onClick={(e) => { e.stopPropagation(); onRunnerClick(runner.currentBase); }}
+                            style={isStagedOut ? { opacity: 0.5, borderColor: C.red, backgroundColor: C.redDim } : {}}
                         >
-                            {runner && (
-                                <div style={{position: 'relative'}}>
-                                    {isResolvingPlay && (
-                                        <div className="staged-badge" style={{background: isStagedOut ? C.red : isStagedError ? C.orange : (stagedDest !== z.id ? C.green : C.yellow)}}>
-                                            {isStagedOut ? 'OUT' : stagedDest !== z.id ? `-> ${stagedDest.toUpperCase()}` : 'STAY'} {isStagedError ? '(E)' : ''}
-                                        </div>
-                                    )}
-                                    <div 
-                                        className="runner"
-                                        onClick={(e) => { e.stopPropagation(); onRunnerClick(z.id); }}
-                                        style={isStagedOut ? { opacity: 0.5, borderColor: C.red } : {}}
-                                    >
-                                        {runner.no || '🏃'}
-                                    </div>
+                            {isResolvingPlay && (
+                                <div className="staged-badge" style={{background: isStagedOut ? C.red : isStagedError ? C.orange : (stagedDest !== renderBase ? C.green : C.yellow)}}>
+                                    {isStagedOut ? 'OUT' : stagedDest !== renderBase ? `-> ${stagedDest.toUpperCase()}` : 'STAY'} {isStagedError ? '(E)' : ''}
                                 </div>
                             )}
+                            {runner.no || '🏃'}
                         </div>
-                    );
+                    )
                 })}
             </div>
             
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontFamily: MONO, fontWeight: "bold", color: C.text }}>
-                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span> <span style={{color: C.muted, fontSize: '10px'}}>(Pitches: {currentPitches || 0})</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "600", color: C.text }}>
+                <div>PITCHER: <span style={{color: C.blue}}>{activePitcher?.name || 'Unassigned'}</span> <span style={{color: C.muted, fontSize: '11px', fontWeight: 'normal'}}>(Pitches: {currentPitches || 0})</span></div>
                 <div style={{ textAlign: "right" }}>
                     <div>BATTER: <span style={{color: C.accent}}>{bases.home?.name || 'Waiting...'}</span></div>
-                    <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
-                    <div style={{ cursor: 'pointer' }} onClick={onEditUpcomingBatters}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
+                    <div style={{ cursor: 'pointer', marginTop: '4px', fontSize: '11px' }} onClick={onEditUpcomingBatters}>ON DECK: <span style={{color: C.muted}}>{onDeckName} ✎</span></div>
+                    <div style={{ cursor: 'pointer', fontSize: '11px' }} onClick={onEditUpcomingBatters}>IN HOLE: <span style={{color: C.muted}}>{inHoleName} ✎</span></div>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -1972,7 +2036,7 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
   const preset = LEAGUES[league];
   const valid  = away.trim() && home.trim();
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 48px" }}>
       {showImport && (
         <ImportModal
           hasActiveGame={false}
@@ -1982,58 +2046,58 @@ function SetupScreen({ onStart, onImport, onOpenRoster }) {
         />
       )}
   
-      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center", position: "relative" }}>
-        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>ℹ️</button>
-        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
-        <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>GAME TIME<br/>ESTIMATOR</div>
+      <div style={{ padding: "48px 20px 32px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", position: "relative", background: C.card }}>
+        <button onClick={() => onOpenRoster(away, home)} style={{ position: "absolute", top: "20px", right: "20px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>📋</button>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>Official Scorecard</div>
+        <div style={{ fontSize: "40px", fontWeight: "bold", color: C.accent, lineHeight: 1.1, marginTop: "12px", letterSpacing: "-1px" }}>GAME TIME<br/>ESTIMATOR</div>
       </div>
     
-      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+      <div style={{ padding: "24px 16px", maxWidth: "420px", margin: "0 auto" }}>
         
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>LEAGUE / LEVEL</div>
+        <Card style={{ position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>LEAGUE / LEVEL</div>
           <Sel value={league} onChange={setLeague} style={{ marginTop: "6px" }}>
             {Object.entries(LEAGUES).map(([k, l]) => <option key={k} value={k}>{l.label}</option>)}
           </Sel>
-          {league !== "custom" && <div style={{ marginTop: "10px", fontSize: "11px", color: C.muted, fontFamily: MONO }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
-        </div>
+          {league !== "custom" && <div style={{ marginTop: "12px", fontSize: "12px", color: C.muted, fontWeight: "500" }}>{preset.innings} inn · {preset.halfInning}m half · {preset.warmup}m warmup</div>}
+        </Card>
 
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px", position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>TEAMS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "6px" }}>
+        <Card style={{ position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>TEAMS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "6px" }}>
             <div><Label>AWAY</Label><Inp value={away} onChange={setAway} placeholder="Visitors" /></div>
             <div><Label>HOME</Label><Inp value={home} onChange={setHome} placeholder="Home" /></div>
           </div>
-        </div>
+        </Card>
 
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px", position: "relative" }}>
-          <div style={{ position: "absolute", top: "-10px", left: "12px", background: C.bg, padding: "0 6px", fontSize: "12px", fontWeight: "bold", fontFamily: MONO }}>RULES & SETUP</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px", marginTop: "6px" }}>
+        <Card style={{ position: "relative" }}>
+          <div style={{ position: "absolute", top: "-10px", left: "16px", background: C.card, padding: "0 8px", fontSize: "12px", fontWeight: "bold", color: C.muted }}>RULES & SETUP</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px", marginTop: "6px" }}>
             <div><Label>INNINGS</Label><Sel value={innings} onChange={v => setInnings(Number(v))}>{[5,6,7,9].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             <div><Label>FIRST PITCH</Label><Inp value={startTime} onChange={setStartTime} placeholder="H:MM:SS" /></div>
           </div>
           <Toggle on={useMercy} onToggle={() => setUseMercy(v => !v)} label="Mercy Rule Active" />
           {useMercy && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px", marginBottom: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px", marginBottom: "16px" }}>
               <div><Label>AFTER INN</Label><Sel value={mercyAfter} onChange={v => setMercyAfter(Number(v))}>{[3,4,5,6,7,8].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
               <div><Label>RUN DIFF</Label><Sel value={mercyRuns} onChange={v => setMercyRuns(Number(v))}>{[5,8,10,12,15,20].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             </div>
           )}
-          <div style={{ marginTop: "12px" }}><Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" /></div>
+          <div style={{ marginTop: "16px" }}><Toggle on={allowTies} onToggle={() => setAllowTies(v => !v)} label="Allow Ties" /></div>
           {allowTies && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginTop: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", marginTop: "16px" }}>
               <div><Label>TIE AFTER INN</Label><Sel value={tieInningLimit} onChange={v => setTieInningLimit(Number(v))}>{[5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             </div>
           )}
-          <div style={{ marginTop: "12px" }}><Toggle on={lateStart} onToggle={() => setLateStart(v => !v)} label="Late Start (Join in progress)" /></div>
-        </div>
+          <div style={{ marginTop: "16px" }}><Toggle on={lateStart} onToggle={() => setLateStart(v => !v)} label="Late Start (Join in progress)" /></div>
+        </Card>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <Btn full disabled={!valid} onClick={() => {
             const t = parseTime(startTime) ?? parseTime(nowTime());
             onStart({ away: away.trim(), home: home.trim(), totalInnings: innings, mercyAfter: useMercy ? mercyAfter : null, mercyRuns: useMercy ? mercyRuns : null, allowTies, tieInningLimit, lateStart, timeLimit: useTimeLimit ? Number(timeLimit) : null, gameStartTime: t, fallbackHalf: LEAGUES[league].halfInning, fallbackWarmup: LEAGUES[league].warmup, league });
           }}>START GAME →</Btn>
-          <Btn full variant="ghost" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
+          <Btn full variant="outline" onClick={() => setShowImport(true)}>⬆ IMPORT SAVED GAME</Btn>
         </div>
       </div>
     </div>
@@ -2090,39 +2154,39 @@ function LateStartScreen({ config, onComplete, onCancel }) {
   };
 
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 48px" }}>
-      <div style={{ padding: "40px 20px 20px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
-        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
-        <div style={{ fontSize: "36px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1, marginTop: "8px" }}>LATE START SETUP</div>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 48px" }}>
+      <div style={{ padding: "48px 20px 24px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>Join In Progress</div>
+        <div style={{ fontSize: "32px", fontWeight: "bold", color: C.accent, lineHeight: 1.1, marginTop: "12px" }}>LATE START SETUP</div>
       </div>
-      <div style={{ padding: "20px 16px", maxWidth: "420px", margin: "0 auto" }}>
+      <div style={{ padding: "24px 16px", maxWidth: "420px", margin: "0 auto" }}>
         
-        <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           <Label>CURRENT GAME STATUS</Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "8px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginTop: "12px" }}>
             <div><Label>INNING</Label><Sel value={inning} onChange={v => setInning(Number(v))}>{Array.from({length: (config?.totalInnings || 7) + 5}, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</Sel></div>
             <div><Label>HALF</Label><Sel value={half} onChange={v => setHalf(v)}><option value="top">Top</option><option value="bot">Bottom</option></Sel></div>
             <div><Label>OUTS</Label><Sel value={outs} onChange={v => setOuts(Number(v))}><option value={0}>0</option><option value={1}>1</option><option value={2}>2</option></Sel></div>
           </div>
-        </div>
+        </Card>
 
         {halvesToPlay.length > 0 && (
-          <div style={{ border: `2px solid ${C.text}`, background: C.card, padding: "16px", marginBottom: "20px" }}>
+          <Card>
             <Label>RUNS SCORED PREVIOUSLY</Label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "16px" }}>
               {halvesToPlay.map(h => (
-                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "6px", border: `1px solid ${C.borderBright}` }}>
-                  <div style={{ flex: 1, fontSize: "12px", fontFamily: MONO, fontWeight: "bold" }}>
+                <div key={`${h.inn}-${h.half}`} style={{ display: "flex", alignItems: "center", gap: "8px", background: C.bg, padding: "8px", border: `1px solid ${C.borderBright}`, borderRadius: "8px" }}>
+                  <div style={{ flex: 1, fontSize: "12px", fontWeight: "bold" }}>
                     {h.half === 'top' ? 'Top' : 'Bot'} {h.inn} ({h.team === 'away' ? config?.away : config?.home})
                   </div>
-                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "40px", padding: "4px", textAlign: "center", fontFamily: MONO, border: `1px solid ${C.border}`, background: C.card, outline: "none" }} />
+                  <input type="number" min="0" value={runs[`${h.inn}-${h.half}`] || ""} placeholder="0" onChange={e => handleRunsChange(h.inn, h.half, e.target.value)} style={{ width: "48px", padding: "6px", textAlign: "center", border: `1px solid ${C.border}`, borderRadius: "6px", background: C.card, outline: "none" }} />
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <Btn full variant="primary" onClick={handleSubmit}>FINISH SETUP & ENTER GAME →</Btn>
           <Btn full variant="ghost" onClick={onCancel}>CANCEL</Btn>
         </div>
@@ -2161,48 +2225,48 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   const [showCopy, setShowCopy] = useState(false);
   const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData);
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, padding: "0 0 60px" }}>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 60px" }}>
       {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
 
-      <div style={{ padding: "40px 20px 30px", borderBottom: `2px solid ${C.text}`, textAlign: "center" }}>
-        <div style={{ fontSize: "14px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
-        <div style={{ fontSize: "72px", fontFamily: DISPLAY, marginTop: "8px", lineHeight: 1 }}>{score.away} – {score.home}</div>
-        <div style={{ fontSize: "16px", color: C.text, fontFamily: MONO, marginTop: "8px", fontWeight: "bold" }}>{away} @ {home}</div>
-        {winner ? <div style={{ marginTop: "12px", fontSize: "16px", color: C.accent, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>{winner.toUpperCase()} WINS</div>
-                : <div style={{ marginTop: "12px", fontSize: "16px", color: C.text, fontFamily: MONO, letterSpacing: "2px", fontWeight: "bold" }}>TIE GAME</div>}
+      <div style={{ padding: "48px 20px 32px", borderBottom: `1px solid ${C.borderBright}`, textAlign: "center", background: C.card }}>
+        <div style={{ fontSize: "12px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>FINAL SCORE</div>
+        <div style={{ fontSize: "64px", fontWeight: "bold", marginTop: "12px", lineHeight: 1 }}>{score.away} – {score.home}</div>
+        <div style={{ fontSize: "16px", color: C.text, marginTop: "12px", fontWeight: "600" }}>{away} @ {home}</div>
+        {winner ? <div style={{ marginTop: "16px", fontSize: "16px", color: C.accent, letterSpacing: "2px", fontWeight: "bold" }}>{winner.toUpperCase()} WINS</div>
+                : <div style={{ marginTop: "16px", fontSize: "16px", color: C.text, letterSpacing: "2px", fontWeight: "bold" }}>TIE GAME</div>}
       </div>
 
-      <div style={{ padding: "20px 16px", maxWidth: "440px", margin: "0 auto" }}>
+      <div style={{ padding: "24px 16px", maxWidth: "440px", margin: "0 auto" }}>
         
         <StatsTable events={events} rosterData={rosterData} config={config} pitchData={pitchData} />
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           <Label>FINAL LINESCORE</Label>
           <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={totalInnings} lastCompletedInning={lastCompleted} currentPhase={null} currentInning={lastCompleted} />
-        </div>
+        </Card>
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           <Label>GAME TIME & PACE</Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
             <StatBox label="FIRST PITCH" value={formatTime(startTime)} />
             <StatBox label="FINAL OUT"   value={formatTime(endTime)} />
             <StatBox label="DURATION"    value={formatDur(actualDuration)} />
             <StatBox label="INNINGS"     value={`${lastCompleted}`} sub={lastCompleted > totalInnings ? "EXTRA INNINGS" : "REGULATION"} />
           </div>
           <Divider label="Measured Pace" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <StatBox label="AVG ½-INN"  value={formatDur(avg(halfDurs))}   sub={`${halfDurs.length} measured`} />
             <StatBox label="AVG WARMUP" value={formatDur(avg(warmupDurs))} sub={`${warmupDurs.length} measured`} />
           </div>
-        </div>
+        </Card>
 
         {firstEstError !== null && (
-          <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+          <div style={{ background: C.bg, border: `2px dashed ${C.borderBright}`, borderRadius: "12px", padding: "20px", marginBottom: "16px", textAlign: "center" }}>
             <Label>FIRST ESTIMATE ACCURACY</Label>
-            <div style={{ fontSize: "40px", fontFamily: DISPLAY, color: Math.abs(firstEstError) <= 5 ? C.green : Math.abs(firstEstError) <= 15 ? C.yellow : C.red }}>
+            <div style={{ fontSize: "40px", fontWeight: "bold", color: Math.abs(firstEstError) <= 5 ? C.green : Math.abs(firstEstError) <= 15 ? C.yellow : C.red }}>
               {firstEstError > 0 ? "+" : ""}{firstEstError}m
             </div>
-            <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, marginTop: "6px", fontWeight: "bold" }}>
+            <div style={{ fontSize: "12px", color: C.muted, marginTop: "8px", fontWeight: "500" }}>
               {Math.abs(firstEstError) <= 5 ? "Excellent (within 5 min)" : Math.abs(firstEstError) <= 15 ? "Good (within 15 min)" : "Off pace (unusual game length)"}
             </div>
           </div>
@@ -2210,9 +2274,9 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
 
         <AccuracyGraph estimateHistory={estimateHistory} endTime={endTime} config={config} />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "32px" }}>
           <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData)}>⬇ Download JSON</Btn>
             <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
           </div>
@@ -2223,7 +2287,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
 }
 
 // ── Game Tracker ──────────────────────────────────────────────────────────────
-function GameTracker({ config, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
+function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
   const [extraInningsAdded, setExtraInningsAdded] = useState(0);
   const effTotalInnings = totalInnings + extraInningsAdded;
@@ -2397,7 +2461,6 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
     });
   }, [events, est?.estimatedEnd, est?.canEstimate, est?.confidence, lastPhase]);
 
-  // Handle Game Over Prompt
   useEffect(() => { 
     const isOver = isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit);
     if (isOver && !gameOverPrompt && !showSummary) { 
@@ -2621,13 +2684,14 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setIsResolvingPlay(true);
   };
 
-  const handleStagedAction = (baseId, dest, isError) => {
+  const handleStagedAction = (baseId, dest, isError, outType, fielderId) => {
       let nextStaged = JSON.parse(JSON.stringify(stagedPlay));
       nextStaged[baseId].dest = dest;
       nextStaged[baseId].isOut = dest === 'out';
       nextStaged[baseId].isError = isError;
+      nextStaged[baseId].outType = outType;
+      nextStaged[baseId].fielderId = fielderId;
 
-      // Smart Auto-Push Logic (Prevents runners from passing or stacking incorrectly)
       const baseOrder = ['home', '1b', '2b', '3b', 'score'];
       const movedOrigIdx = baseOrder.indexOf(nextStaged[baseId].original);
       let minNextIdx = baseOrder.indexOf(dest);
@@ -2638,11 +2702,11 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                   const aheadOrigIdx = baseOrder.indexOf(nextStaged[aheadBase].original);
                   if (aheadOrigIdx > movedOrigIdx) {
                       const currentDestIdx = baseOrder.indexOf(nextStaged[aheadBase].dest);
-                      minNextIdx = minNextIdx + 1; // Pushed at least one base ahead
+                      minNextIdx = minNextIdx + 1; 
                       if (currentDestIdx < minNextIdx) {
                           nextStaged[aheadBase].dest = baseOrder[Math.min(minNextIdx, 4)];
                       } else {
-                          minNextIdx = currentDestIdx; // Update constraint for the next runner
+                          minNextIdx = currentDestIdx; 
                       }
                   }
               }
@@ -2672,21 +2736,30 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
 
       const anyRunnerOut = ['1b','2b','3b'].some(b => stagedPlay[b] && stagedPlay[b].isOut);
       const bState = stagedPlay['home'];
+      
+      const getFielderName = (id) => {
+          if (!id) return '';
+          const p = rosterData.pool?.[fieldingTeam]?.find(x => x.id === id);
+          return p ? p.name : '';
+      };
 
       if (bState) {
           if (bState.dest === 'out' || (bState.dest === 'home' && playType === 'd3k')) {
               outsRecorded++;
-              const outType = playType === 'd3k' ? 'K' : 'GO/FO';
-              newEvents.push({ id: batchId, batchId, type: 'out', outType, batterId: bases.home?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-              logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''}.`);
+              const outType = playType === 'd3k' ? 'K' : (bState.outType || 'GO/FO');
+              const fielderName = getFielderName(bState.fielderId);
+              newEvents.push({ id: batchId, batchId, type: 'out', outType, batterId: bases.home?.id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, errorFielderId: null });
+              logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''} (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
               nextBases['home'] = null;
           } else if (bState.dest !== 'home') {
               const dest = bState.dest;
               let actionLabel = "Advanced";
+              const fielderName = getFielderName(bState.fielderId);
+              
               if (playType === 'd3k') actionLabel = "Reached on D3K";
               else if (playType === 'wp_pb') actionLabel = "Advanced on WP/PB";
               else if (dest === 'score') actionLabel = "Home Run";
-              else if (bState.isError) actionLabel = "Reached on Error";
+              else if (bState.isError) actionLabel = `Reached on Error${fielderName ? ` by ${fielderName}` : ''}`;
               else if (anyRunnerOut) actionLabel = "Fielder's Choice";
               else actionLabel = dest === '1b' ? 'Single' : dest === '2b' ? 'Double' : 'Triple';
               
@@ -2695,14 +2768,13 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               
               if (dest === 'score') {
                   runsScored++;
-                  newEvents.push({ id: batchId, batchId, type: 'run', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  newEvents.push({ id: batchId, batchId, type: 'run', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, scoredId: bases.home?.id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               } else {
                   nextBases[dest] = bases.home;
-                  newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+                  newEvents.push({ id: batchId, batchId, type: 'advance', targetBase: targetBaseStr, isError: bState.isError || playType === 'd3k', errorFielderId: bState.isError ? bState.fielderId : null, batterId: bases.home?.id, val: 0, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
               }
               nextBases['home'] = null;
           } else {
-              // Batter stays home (WP/PB or aborted standard advancement).
               nextBases['home'] = bases.home;
           }
       }
@@ -2710,19 +2782,22 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       ['3b', '2b', '1b'].forEach((baseId, idx) => {
           const rState = stagedPlay[baseId];
           if (!rState || !bases[baseId]) return;
+          const fielderName = getFielderName(rState.fielderId);
           
           if (rState.dest === 'out') {
               outsRecorded++;
-              newEvents.push({ id: batchId+1+idx, batchId, type: 'out', outType: 'Tag/Force', batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-              logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) is Out.`);
+              const outType = rState.outType || 'Tag/Force';
+              newEvents.push({ id: batchId+1+idx, batchId, type: 'out', outType, batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName, errorFielderId: null });
+              logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) is Out (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
           } else if (rState.dest === 'score') {
               runsScored++;
-              newEvents.push({ id: batchId+1+idx, batchId, type: 'run', targetBase: 'score', isError: rState.isError, batterId: null, scoredId: bases[baseId].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
-              logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) Scored!`);
+              newEvents.push({ id: batchId+1+idx, batchId, type: 'run', targetBase: 'score', isError: rState.isError, errorFielderId: rState.isError ? rState.fielderId : null, batterId: null, scoredId: bases[baseId].id, val: 1, time: t, team: battingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName });
+              logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) Scored!${rState.isError ? ` (Error${fielderName ? ` by ${fielderName}` : ''})` : ''}`);
           } else {
               nextBases[rState.dest] = bases[baseId];
               if (rState.dest !== baseId) {
-                  logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) advanced to ${rState.dest.toUpperCase()}.`);
+                  let errStr = rState.isError ? ` (Error${fielderName ? ` by ${fielderName}` : ''})` : '';
+                  logs.push(`[${formatTime(t)}] 🏃 Runner (${bases[baseId].name}) advanced to ${rState.dest.toUpperCase()}${errStr}.`);
               }
           }
       });
@@ -2800,18 +2875,32 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
       setGameOverPrompt(false);
       setPendingPitchCountPrompt(false);
   };
+
+  const handleSwapTeams = () => {
+      onUpdateConfig({ ...config, away: config.home, home: config.away });
+      setRosterData(prev => ({
+          ...prev,
+          away: prev.home,
+          home: prev.away,
+          pool: { away: prev.pool.home, home: prev.pool.away },
+          fielders: { away: prev.fielders.home, home: prev.fielders.away },
+          lineupLocks: { away: prev.lineupLocks.home, home: prev.lineupLocks.away },
+          lineupClosed: { away: prev.lineupClosed.home, home: prev.lineupClosed.away },
+          lineupIdx: { away: prev.lineupIdx.home, home: prev.lineupIdx.away }
+      }));
+  }
   
   if (showSummary) {
     return <SummaryScreen config={config} events={events} baseScore={baseScore} baseRunsLog={baseRunsLog} endTime={finalEndTime} estimateHistory={estimateHistory} rosterData={rosterData} pitchData={pitchData} onNewGame={onNewGame} />;
   }
 
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: SERIF, maxWidth: "440px", margin: "0 auto", paddingBottom: "48px" }}>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, maxWidth: "460px", margin: "0 auto", paddingBottom: "48px", borderLeft: `1px solid ${C.borderBright}`, borderRight: `1px solid ${C.borderBright}` }}>
       {showCopy   && <CopyModal text={copyText} onClose={() => setShowCopy(false)} />}
       {showImport && (
         <ImportModal
           hasActiveGame={events.length > 0}
-          onImport={handleImport}
+          onImport={data => { /* Add logic if parent passes handler */ }}
           onCancel={() => setShowImport(false)}
           onExportFirst={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}
         />
@@ -3033,7 +3122,8 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           <InPlayModal 
               baseId={inPlayModalBaseId}
               stagedPlay={stagedPlay}
-              onSave={(dest, isError) => handleStagedAction(inPlayModalBaseId, dest, isError)}
+              fieldingRoster={rosterData[fieldingTeam] || []}
+              onSave={(dest, isError, outType, fielderId) => handleStagedAction(inPlayModalBaseId, dest, isError, outType, fielderId)}
               onCancel={() => setInPlayModalBaseId(null)}
           />
       )}
@@ -3116,18 +3206,23 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           />
       )}
 
-      <div style={{ background: C.card, borderBottom: `2px solid ${C.text}`, padding: "16px 16px 12px", position: "relative" }}>
-        <button onClick={onOpenRoster} style={{ position: "absolute", top: "16px", left: "12px", background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>ℹ️</button>
+      <div style={{ background: C.card, borderBottom: `1px solid ${C.borderBright}`, padding: "24px 20px 16px", position: "relative" }}>
+        <button onClick={onOpenRoster} style={{ position: "absolute", top: "20px", left: "16px", background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>📋</button>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingLeft: "32px" }}>
           <div>
-            <div style={{ fontSize: "10px", letterSpacing: "2px", color: C.muted, fontFamily: MONO, textTransform: "uppercase", fontWeight: "bold" }}>
+            <div style={{ fontSize: "11px", letterSpacing: "2px", color: C.muted, textTransform: "uppercase", fontWeight: "bold" }}>
               {effTotalInnings} INN · {mercyAfter ? `M${mercyRuns}/${mercyAfter}` : "NO MERCY"}
             </div>
-            <div style={{ fontSize: "28px", fontFamily: DISPLAY, marginTop: "4px", lineHeight: 1 }}>
-              {away} <span style={{ color: C.faint, fontSize: "20px" }}>@</span> {home}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: "24px", fontWeight: "bold", marginTop: "4px", lineHeight: 1 }}>
+                  {away} <span style={{ color: C.faint, fontSize: "18px", fontWeight: "400" }}>@</span> {home}
+                </div>
+                {events.length === 0 && (
+                    <Btn small variant="outline" onClick={handleSwapTeams} style={{ marginTop: '4px', padding: '4px 8px', fontSize: '10px' }}>🔁 Swap</Btn>
+                )}
             </div>
           </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "200px" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "200px" }}>
             {events.length > 0 && <Btn small variant="outline" onClick={handleUndo} disabled={delayActive || isResolvingPlay}>↩ Undo</Btn>}
             <Btn small variant="ghost" onClick={() => setGameOverPrompt(true)}>🏁 End</Btn>
             <Btn small variant="ghost" onClick={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}>⬇</Btn>
@@ -3137,37 +3232,37 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "16px 0 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 32px 1fr", alignItems: "center", margin: "20px 0 10px" }}>
           {[["away", away], ["home", home]].map(([side, name], i) => (
             <div key={side} style={{ textAlign: i === 0 ? "left" : "right" }}>
-              <div style={{ fontSize: "11px", color: C.muted, fontFamily: MONO, fontWeight: "bold" }}>{name.toUpperCase()}</div>
-              <div style={{ fontSize: "64px", fontFamily: DISPLAY, lineHeight: 1, color: score[side] > score[side === "away" ? "home" : "away"] ? C.accent : C.text }}>{score[side]}</div>
+              <div style={{ fontSize: "12px", color: C.muted, fontWeight: "bold", textTransform: "uppercase" }}>{name}</div>
+              <div style={{ fontSize: "72px", fontWeight: "bold", lineHeight: 1, color: score[side] > score[side === "away" ? "home" : "away"] ? C.accent : C.text, letterSpacing: "-2px" }}>{score[side]}</div>
             </div>
           ))}
-          <div style={{ textAlign: "center", color: C.faint, fontFamily: DISPLAY, fontSize: "24px" }}>–</div>
+          <div style={{ textAlign: "center", color: C.faint, fontSize: "28px", fontWeight: "300" }}>–</div>
         </div>
       </div>
 
-      {est?.currentlyInWarmup && !delayActive && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "10px 16px", fontSize: "12px", fontFamily: MONO, color: C.blue, fontWeight: "bold" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
+      {est?.currentlyInWarmup && !delayActive && <div style={{ background: C.blueDim, borderBottom: `2px solid ${C.blue}`, padding: "12px 20px", fontSize: "13px", color: C.blue, fontWeight: "600" }}>⏸ WARMUP — Stats paused, tracking duration</div>}
 
-      <div style={{ padding: "16px 16px 0" }}>
+      <div style={{ padding: "20px 16px 0" }}>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "20px" }}>
           <Btn full variant={delayActive ? "highlight" : "outline"} onClick={handleToggleDelay}>
             {delayActive ? `⏸ WEATHER DELAY ACTIVE — ${formatDur(accumulatedDelaySec + liveDelaySec)}` : "⛅ WEATHER DELAY TOGGLE"}
           </Btn>
         </div>
 
         {gameOverPrompt && !delayActive && (
-          <div style={{ background: C.card, border: `2px solid ${C.yellow}`, padding: "16px", marginBottom: "16px" }}>
+          <Card style={{ border: `2px solid ${C.yellow}` }}>
             <Label>GAME OVER?</Label>
-            <div style={{ fontSize: "14px", color: C.text, fontFamily: MONO, marginBottom: "12px" }}>The game condition has been reached. Log end time to finalize.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
+            <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px" }}>The game condition has been reached. Log end time to finalize.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "end" }}>
               <div><Label>END TIME</Label><Inp value={endTimeInput} onChange={v => { setEndTimeInput(v); setIsTypingTime(true); }} placeholder="H:MM:SS" /></div>
               <Btn onClick={() => { setFinalEndTime(getSafeTime(endTimeInput, events)); setGameLog(p => [...p, { msg: `[${formatTime(getSafeTime(endTimeInput, events))}] 🏁 Final out logged`, batchId: Date.now() }]); setShowSummary(true); }} variant="highlight">END GAME</Btn>
-              <Btn onClick={() => { setGameOverPrompt(false); setExtraInningsAdded(p => p + 1); }} variant="ghost" small>MORE INN</Btn>
+              <Btn onClick={() => { setGameOverPrompt(false); setExtraInningsAdded(p => p + 1); }} variant="outline" small>MORE INN</Btn>
             </div>
-          </div>
+          </Card>
         )}
 
         {!gameOverPrompt && (
@@ -3198,7 +3293,7 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                 <>
                     {!pendingPitchCountPrompt && currentOuts < 3 && (
                         !isResolvingPlay ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('ball')}>Ball ({atBatCount.b})</Btn>
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('strike')}>Strike ({atBatCount.s})</Btn>
                                  <Btn style={{flex: 1}} small variant="outline" onClick={() => logPitch('foul')}>Foul</Btn>
@@ -3210,54 +3305,54 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
                                  <Btn style={{flex: 1}} variant="outline" onClick={handleBalk}>BALK</Btn>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', background: C.greenDim, padding: '10px', border: `2px solid ${C.green}`, borderRadius: '4px' }}>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: C.greenDim, padding: '12px', border: `2px solid ${C.green}`, borderRadius: '8px' }}>
                                  <Btn full variant="primary" onClick={commitPlay}>END PLAY</Btn>
-                                 <Btn full variant="ghost" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); }}>CANCEL</Btn>
+                                 <Btn full variant="outline" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); }}>CANCEL</Btn>
                             </div>
                         )
                     )}
                     {currentOuts >= 3 && !pendingPitchCountPrompt && (
-                        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(244, 241, 234, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)", border: `2px solid ${C.text}`, borderRadius: "8px" }}>
+                        <div style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(248, 250, 252, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(3px)", border: `1px solid ${C.borderBright}`, borderRadius: "12px" }}>
                             <Btn variant="highlight" onClick={() => setPendingPitchCountPrompt(true)} style={{ fontSize: "16px", padding: "16px 24px" }}>3 OUTS - END INNING →</Btn>
                         </div>
                     )}
                 </>
               ) : (
-                <div style={{ background: C.bg, border: `2px dashed ${C.text}`, padding: "16px", marginBottom: "16px", textAlign: "center" }}>
+                <Card style={{ border: `2px dashed ${C.borderBright}`, textAlign: "center" }}>
                   <Label>NEXT PHASE TO LOG</Label>
-                  <div style={{ fontSize: "24px", fontFamily: DISPLAY, color: C.accent, marginBottom: "4px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
-                  <div style={{ fontSize: "12px", color: C.muted, fontFamily: MONO, marginBottom: "16px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
+                  <div style={{ fontSize: "28px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>{phaseLabel(nextPhaseFallback.inning, nextPhaseFallback.phase)}</div>
+                  <div style={{ fontSize: "14px", color: C.muted, marginBottom: "20px" }}>{phaseDesc(nextPhaseFallback.phase, away, home)}</div>
                   
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "8px", alignItems: "end" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "end" }}>
                     <div style={{ textAlign: "left" }}><Label>TIME</Label><Inp disabled={delayActive} value={entryTime} onChange={v => { setEntryTime(v); setIsTypingTime(true); }} /></div>
-                    <Btn variant="ghost" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
+                    <Btn variant="outline" disabled={delayActive} onClick={() => { setIsTypingTime(false); setEntryTime(nowTime()); }}>LIVE</Btn>
                     <Btn variant="primary" disabled={delayActive} onClick={handleLogNextPhase}>LOG ↵</Btn>
                   </div>
-                </div>
+                </Card>
               )}
           </div>
         )}
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           {!est?.canEstimate ? (
-            <div style={{ padding: "8px 0", textAlign: "center" }}>
-              <div style={{ fontSize: "14px", color: C.muted, fontFamily: MONO, fontWeight: "bold" }}>GATHERING PACE DATA...</div>
-              <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, marginTop: "6px" }}>Log Pre-1 Warmup → Top 1 → Mid-1 Warmup</div>
+            <div style={{ padding: "12px 0", textAlign: "center" }}>
+              <div style={{ fontSize: "14px", color: C.muted, fontWeight: "bold" }}>GATHERING PACE DATA...</div>
+              <div style={{ fontSize: "12px", color: C.faint, marginTop: "8px" }}>Log Pre-1 Warmup → Top 1 → Mid-1 Warmup</div>
             </div>
           ) : (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <Label>ESTIMATED END</Label>
-                  <div style={{ fontSize: "48px", fontFamily: DISPLAY, color: C.accent, lineHeight: 1 }}>{formatTime(est.estimatedEnd)}</div>
-                  {est.inExtra && <div style={{ fontSize: "11px", color: C.orange, fontFamily: MONO, marginTop: "6px", fontWeight: "bold" }}>EXTRA INNINGS EXPECTED</div>}
+                  <div style={{ fontSize: "48px", fontWeight: "bold", color: C.accent, lineHeight: 1 }}>{formatTime(est.estimatedEnd)}</div>
+                  {est.inExtra && <div style={{ fontSize: "12px", color: C.orange, marginTop: "8px", fontWeight: "bold" }}>EXTRA INNINGS EXPECTED</div>}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <ConfChip confidence={est.confidence} />
                 </div>
               </div>
               <Divider label="Pace Stats" />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "6px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "10px" }}>
                 <StatBox label="½-Inn" value={formatDur(est.avgHalf)}   sub={est.measuredHalf   ? `${est.halfDurs.length}×`   : "default"} dim={est.currentlyInWarmup || delayActive} />
                 <StatBox label="Warmup" value={formatDur(est.avgWarmup)} sub={est.measuredWarmup ? `${est.warmupDurs.length}×` : "default"} dim={est.currentlyInWarmup || delayActive} />
                 <StatBox label="½ Left" value={est.remHalf}   dim={est.currentlyInWarmup || delayActive} />
@@ -3265,34 +3360,34 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               </div>
             </>
           )}
-        </div>
+        </Card>
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           <Label>PREDICTED WINNER</Label>
           {!est?.probs ? (
-            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: "12px", color: C.faint, textAlign: "center", padding: "12px 0" }}>
               Need at least 2 logged half-innings to simulate outcomes.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: allowTies ? "1fr 1fr 1fr" : "1fr 1fr", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: allowTies ? "1fr 1fr 1fr" : "1fr 1fr", gap: "12px" }}>
                 <StatBox label={`${away.toUpperCase()} WIN`} value={`${Math.round(est.probs.awayWin*100)}%`} color={C.blue} />
                 <StatBox label={`${home.toUpperCase()} WIN`} value={`${Math.max(0, 100 - Math.round(est.probs.awayWin*100) - (allowTies ? Math.round(est.probs.tie*100) : 0))}%`} color={C.accent} />
                 {allowTies && <StatBox label="TIE" value={`${Math.round(est.probs.tie*100)}%`} color={C.muted} />}
                </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "16px", marginBottom: "16px" }}>
+        <Card>
           <Label>OUTCOME PROBABILITIES</Label>
           {!est?.probs ? (
-            <div style={{ fontSize: "11px", color: C.faint, fontFamily: MONO, textAlign: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: "12px", color: C.faint, textAlign: "center", padding: "12px 0" }}>
               Need at least 2 logged half-innings to simulate outcomes.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontFamily: MONO, fontSize: "12px", background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "13px", background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "16px" }}>
                 {mercyAfter && <div>⚡ Mercy: <strong style={{color: C.accent}}>{Math.round(est.probs.mercy * 100)}%</strong></div>}
                 <div>🔝 Top {effTotalInnings} End: <strong>{Math.round(est.probs.endTop * 100)}%</strong></div>
                 <div>🔚 Bot {effTotalInnings} End: <strong>{Math.round(est.probs.endBot * 100)}%</strong></div>
@@ -3300,19 +3395,19 @@ function GameTracker({ config, onNewGame, initialState, rosterData, setRosterDat
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div style={{ marginBottom: "16px" }}>
+        <div style={{ marginBottom: "20px" }}>
           <Linescore away={away} home={home} score={score} runsLog={combinedRunsLog} totalInnings={effTotalInnings} lastCompletedInning={est?.lastCompletedInning} currentPhase={lastPhase?.phase} currentInning={activeInningNum || lastPhase?.inning} />
         </div>
 
-        <div style={{ background: C.card, border: `2px solid ${C.text}`, padding: "12px", marginBottom: "12px" }}>
+        <Card>
           <Label>GAME LOG</Label>
-          <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, padding: "10px", maxHeight: "160px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
+          <div ref={logRef} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "8px", padding: "12px", maxHeight: "200px", overflowY: "auto", fontFamily: MONO, fontSize: "12px", lineHeight: "1.8" }}>
             {gameLog.length === 0 ? <span style={{ color: C.faint }}>No events logged yet.</span>
               : gameLog.map((e, i) => <div key={i} style={{ color: i === gameLog.length - 1 ? C.text : C.muted }}>{e.msg}</div>)}
           </div>
-        </div>
+        </Card>
 
       </div>
     </div>
@@ -3339,6 +3434,9 @@ function App() {
           lineupIdx: { away: 0, home: 0 }
       };
   });
+  
+  const handleUpdateConfig = (newCfg) => setConfig(newCfg);
+  
   const handleStart = cfg => { 
       setConfig(cfg);
       if (cfg.lateStart) {
@@ -3386,7 +3484,6 @@ function App() {
   };
   
   const handleGlobalNameChange = (team, oldName, updatedPlayer) => {
-      // Stub to be passed down if needed globally, but handled internally in tracking logic
   };
 
   return (
@@ -3395,7 +3492,7 @@ function App() {
             {screen === 'latestart' && config && <LateStartScreen config={config} onComplete={handleLateStartSubmit} onCancel={() => setScreen("setup")} />}
         </div>
         <div style={{ display: screen === 'game' && config ? 'block' : 'none' }}>
-            {screen === 'game' && config && <GameTracker key={key} config={config} onNewGame={() => { setConfig(null); setScreen("setup"); }} initialState={initState} rosterData={rosterData} setRosterData={setRosterData} onOpenRoster={() => setShowRoster(true)} />}
+            {screen === 'game' && config && <GameTracker key={key} config={config} onUpdateConfig={handleUpdateConfig} onNewGame={() => { setConfig(null); setScreen("setup"); }} initialState={initState} rosterData={rosterData} setRosterData={setRosterData} onOpenRoster={() => setShowRoster(true)} />}
         </div>
         <div style={{ display: screen === 'setup' ? 'block' : 'none' }}>
             {screen === 'setup' && <SetupScreen onStart={handleStart} onImport={handleImport} onOpenRoster={() => setShowRoster(true)} />}
