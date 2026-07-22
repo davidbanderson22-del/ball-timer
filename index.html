@@ -139,7 +139,7 @@
             transform: translate(-50%, -50%);
         }
 
-        /* Animations delay color change until arrival */
+        /* Animations */
         @keyframes runnerOutAnim {
             0%   { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
             80%  { background: #FFFFFF; border-color: #1A1A1A; color: #1A1A1A; }
@@ -151,6 +151,7 @@
             100% { background: #2D6A4F; border-color: #143325; color: #FFFFFF; }
         }
         
+        /* Baseline Multi-Base Animations */
         @keyframes run-home-2b {
             0% { top: 88%; left: 50%; }
             50% { top: 65%; left: 73%; }
@@ -2869,6 +2870,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
               logs.push(`[${formatTime(t)}] ⚾ Batter (${bases.home?.name}) is Out${playType === 'd3k' ? ' on D3K' : ''} (${outType}${fielderName ? ` to ${fielderName}` : ''}).`);
               nextBases['home'] = null;
               
+              // Track path for animation
               transients.push({ id: bases.home.id, no: bases.home.no, currentBase: playType === 'd3k' ? 'home' : '1b', status: 'out', fromBase: 'home', toBase: playType === 'd3k' ? 'home' : '1b' });
           } else if (bState.dest !== 'home') {
               const dest = bState.dest;
@@ -3248,7 +3250,9 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           <InPlayModal 
               baseId={inPlayModalBaseId}
               stagedPlay={stagedPlay}
-              fieldingRoster={rosterData[fieldingTeam] || []}
+              fieldingRoster={Object.entries(activeFieldersMap)
+                  .filter(([pos, player]) => player)
+                  .map(([pos, player]) => ({ ...player, pos }))}
               onSave={(dest, isError, outType, fielderId) => handleStagedAction(inPlayModalBaseId, dest, isError, outType, fielderId)}
               onCancel={() => setInPlayModalBaseId(null)}
           />
@@ -3289,7 +3293,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                       setRunnerMenuState(null);
                       
                       const t = getSafeTime(nowTime(), events);
-                      setGameLog(p => [...p, { msg: `[${formatTime(t)}] 📋 ${battingTeam.toUpperCase()} lineup complete (closed at ${lineupIdx[battingTeam]} batters).`, batchId: Date.now() }]);
+                      setGameLog(p => [...p, { msg: `[${formatTime(t)}] 📋 ${battingTeam.toUpperCase()} lineup complete (closed at ${lineupIdx[battingTeam]} batters).`, batchId: Date.now() }] );
                       return;
                   }
 
