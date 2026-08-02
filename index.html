@@ -1913,7 +1913,7 @@ function RosterScreen({ rosterData, onSaveRoster, onGlobalNameChange, onClose, a
 }
 
 function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
-    const [count, useState] = React.useState(String(currentTotal || ""));
+    const [count, setCount] = React.useState(String(currentTotal || ""));
     return (
         <div style={overlayStyle}>
             <div style={modalStyle}>
