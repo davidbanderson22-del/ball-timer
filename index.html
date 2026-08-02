@@ -535,8 +535,8 @@ function computeEstimate({ phaseEvents, allEvents, score, totalInnings, mercyAft
 
 const SAVE_VERSION = 2;
 
-function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
-  const data = { v: SAVE_VERSION, savedAt: new Date().toISOString(), config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData };
+function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData, bases, atBatCount, pitchData) {
+  const data = { v: SAVE_VERSION, savedAt: new Date().toISOString(), config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData, bases, atBatCount, pitchData };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
@@ -547,12 +547,12 @@ function exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHis
   URL.revokeObjectURL(url);
 }
 
-function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData) {
+function exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData, bases, atBatCount, pitchData) {
   const lines = [
     `GAME: ${config.away} @ ${config.home}`,
     `SAVED: ${new Date().toLocaleString()}`,
     `---`,
-    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData }),
+    JSON.stringify({ v: SAVE_VERSION, config, events, baseScore, baseRunsLog, gameLog, estimateHistory, weatherDelayState, rosterData, bases, atBatCount, pitchData }),
   ];
   return lines.join("\n");
 }
@@ -2317,7 +2317,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
   const winner = score.home > score.away ? home : score.away > score.home ? away : null;
   
   const [showCopy, setShowCopy] = useState(false);
-  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData);
+  const exportText = exportGameText(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData, null, null, pitchData);
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "0 0 60px" }}>
       {showCopy && <CopyModal text={exportText} onClose={() => setShowCopy(false)} />}
@@ -2371,7 +2371,7 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "32px" }}>
           <Btn full variant="primary" onClick={onNewGame}>START NEW GAME →</Btn>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData)}>⬇ Download JSON</Btn>
+            <Btn full variant="outline" small onClick={() => exportGame(config, events, baseScore, baseRunsLog, [], estimateHistory, null, rosterData, null, null, pitchData)}>⬇ Download JSON</Btn>
             <Btn full variant="outline" small onClick={() => setShowCopy(true)}>📋 Copy Text</Btn>
           </div>
         </div>
@@ -2388,6 +2388,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const [events,          setEvents]          = useState(initialState?.events          ?? []);
   const [gameLog,         setGameLog]         = useState(initialState?.gameLog         ?? []);
   const [estimateHistory, setEstimateHistory] = useState(initialState?.estimateHistory ?? []);
+  const [redoStack, setRedoStack] = useState([]);
   
   const [baseScore,       setBaseScore]       = useState(initialState?.baseScore       ?? { home: 0, away: 0 });
   const [baseRunsLog,     setBaseRunsLog]     = useState(initialState?.baseRunsLog     ?? []);
@@ -2414,7 +2415,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           return { ...prev, lineupIdx: nextIdx };
       });
   }, [setRosterData]);
-  const [bases, setBases] = useState({ home: null, '1b': null, '2b': null, '3b': null });
+  const [bases, setBases] = useState(initialState?.bases ?? { home: null, '1b': null, '2b': null, '3b': null });
   const [activeFielderSubModal, setActiveFielderSubModal] = useState(null);
   const [offensiveSubModal, setOffensiveSubModal] = useState(null);
   const [runnerMenuState, setRunnerMenuState] = useState(null);
@@ -2437,6 +2438,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
 
   // IN PLAY STAGING STATES
   const [isResolvingPlay, setIsResolvingPlay] = useState(false);
+  const [wpPbPitchType, setWpPbPitchType] = useState(null); // 'ball' | 'strike' | null — applied atomically in commitPlay, not on modal tap
   const [stagedPlay, setStagedPlay] = useState(null);
   const [playType, setPlayType] = useState('regular'); // 'regular', 'd3k', 'wp_pb'
   const [inPlayModalBaseId, setInPlayModalBaseId] = useState(null);
@@ -2446,7 +2448,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       home: rosterData?.fielders?.home?.['P']?.name || rosterData?.home.find(p => p.pos === 'P')?.name || 'Unassigned'
   };
   const [pitchData, setPitchData] = useState(initialState?.pitchData ?? { away: { [defaultPitchers.away]: 0 }, home: { [defaultPitchers.home]: 0 } });
-  const [atBatCount, setAtBatCount] = useState({ b: 0, s: 0 });
+  const [atBatCount, setAtBatCount] = useState(initialState?.atBatCount ?? { b: 0, s: 0 });
 
   const logRef = useRef(null);
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [gameLog]);
@@ -2573,7 +2575,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   }, [events, score, showSummary, effTotalInnings, gameOverPrompt, mercyAfter, mercyRuns, allowTies, tieInningLimit]);
 
   const commitEventBatch = (newEvents, logs = [], incomingSnap = null) => {
-      const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = incomingSnap || JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       const batchId = newEvents.length > 0 ? newEvents[0].batchId : Date.now();
       if (newEvents.length > 0) {
           newEvents[0].snapshot = snap;
@@ -2582,6 +2584,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       if (logs.length > 0) {
           setGameLog(p => [...p, ...logs.map(msg => ({ msg, batchId }))]);
       }
+      setRedoStack([]);
       setIsTypingTime(false);
       setEntryTime(nowTime());
   };
@@ -2624,7 +2627,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       const t = getSafeTime(entryTime, events);
       const pName = currentPitcher?.name || 'Unknown';
       const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       
       let newB = atBatCount.b;
       let newS = atBatCount.s;
@@ -2709,7 +2712,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const handleBalk = () => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       const pName = currentPitcher?.name || 'Unknown';
       
       let nextBases = { home: bases.home, '1b': null, '2b': null, '3b': null };
@@ -2737,7 +2740,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const handlePickoff = (baseId) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       const pName = currentPitcher?.name || 'Unknown';
       
       let newEvents = [{ id: batchId, batchId, type: 'out', outType: 'Pickoff', batterId: null, runnerId: bases[baseId].id, val: 1, time: t, team: fieldingTeam, inning: activeInningNum, half: activeHalf, pitcher: pName }];
@@ -2754,7 +2757,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const handleSteal = (startBaseId, destId, isOut) => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       const pName = currentPitcher?.name || 'Unknown';
       const runner = bases[startBaseId];
 
@@ -2837,7 +2840,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const commitPlay = () => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
-      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+      const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
       const pName = currentPitcher?.name || 'Unknown';
 
       let newEvents = [];
@@ -2846,6 +2849,15 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       let nextBases = { home: null, '1b': null, '2b': null, '3b': null };
       let runsScored = 0;
       let outsRecorded = 0;
+
+      let wpPbAtBatCount = null;
+      if (playType === 'wp_pb' && wpPbPitchType) {
+          wpPbAtBatCount = {
+              b: atBatCount.b + (wpPbPitchType === 'ball' ? 1 : 0),
+              s: atBatCount.s + (wpPbPitchType === 'strike' ? 1 : 0),
+          };
+          logs.push(`[${formatTime(t)}] ⚾ WP/PB on a ${wpPbPitchType === 'ball' ? 'Ball' : 'Strike'} (${wpPbAtBatCount.b}-${wpPbAtBatCount.s})`);
+      }
 
       const pitchAdded = 1; 
       if (currentPitcher) {
@@ -2937,6 +2949,8 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       if (batterIsDone) {
           setAtBatCount({ b: 0, s: 0 });
           advanceBatter();
+      } else if (wpPbAtBatCount) {
+          setAtBatCount(wpPbAtBatCount);
       }
 
       if (currentOuts + outsRecorded >= 3) {
@@ -2947,6 +2961,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       setIsResolvingPlay(false);
       setStagedPlay(null);
       setPlayType('regular');
+      setWpPbPitchType(null);
   };
 
   const handleRunnerClick = (baseId) => {
@@ -2989,13 +3004,30 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   const handleUndo = () => {
       if (!events.length) return;
       const lastBatchId = events[events.length - 1].batchId || events[events.length - 1].id;
-      
-      const firstEventInBatch = events.find(e => (e.batchId || e.id) === lastBatchId);
+
+      const batchEvents = events.filter(e => (e.batchId || e.id) === lastBatchId);
+      const firstEventInBatch = batchEvents[0];
+      const batchLogs = gameLog.filter(l => l.batchId === lastBatchId);
+      const batchEstimateHistory = estimateHistory.filter(h => h.batchId === lastBatchId);
+
+      // Capture the current ("post-action") state before rewinding, so this undo can be redone later.
+      const postState = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
+
       if (firstEventInBatch && firstEventInBatch.snapshot) {
-          if (firstEventInBatch.snapshot.bases) setBases(JSON.parse(JSON.stringify(firstEventInBatch.snapshot.bases)));
-          if (firstEventInBatch.snapshot.lineupIdx) setLineupIdx(JSON.parse(JSON.stringify(firstEventInBatch.snapshot.lineupIdx)));
-          if (firstEventInBatch.snapshot.pitchData) setPitchData(JSON.parse(JSON.stringify(firstEventInBatch.snapshot.pitchData)));
-          if (firstEventInBatch.snapshot.atBatCount) setAtBatCount(JSON.parse(JSON.stringify(firstEventInBatch.snapshot.atBatCount)));
+          const snap = firstEventInBatch.snapshot;
+          if (snap.bases) setBases(JSON.parse(JSON.stringify(snap.bases)));
+          if (snap.pitchData) setPitchData(JSON.parse(JSON.stringify(snap.pitchData)));
+          if (snap.atBatCount) setAtBatCount(JSON.parse(JSON.stringify(snap.atBatCount)));
+          // Restoring the full roster/lineup here (not just the lineup index) is what actually
+          // fixes the "cloned batter" bug: substitutions, pinch hitters, and auto-added batters
+          // all live in rosterData, and previously only bases/lineupIdx were rewound on undo —
+          // leaving a stale/duplicate player behind in the lineup even after undoing the play
+          // that created them.
+          if (snap.rosterData) {
+              setRosterData(JSON.parse(JSON.stringify(snap.rosterData)));
+          } else if (snap.lineupIdx) {
+              setLineupIdx(JSON.parse(JSON.stringify(snap.lineupIdx)));
+          }
       }
 
       setEvents(p => p.filter(e => (e.batchId || e.id) !== lastBatchId));
@@ -3003,6 +3035,35 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       setEstimateHistory(p => p.filter(h => h.batchId !== lastBatchId));
       setGameOverPrompt(false);
       setPendingPitchCountPrompt(false);
+
+      // Defensively clear any in-progress "in play" staging state so an undo can never leave
+      // the app stuck mid-play (e.g. mid WP/PB resolution) with a stale staged runner.
+      setIsResolvingPlay(false);
+      setStagedPlay(null);
+      setPlayType('regular');
+
+      setRedoStack(prev => [...prev, { batchId: lastBatchId, events: batchEvents, logs: batchLogs, estimateHistory: batchEstimateHistory, postState }]);
+  };
+
+  const handleRedo = () => {
+      if (!redoStack.length) return;
+      const entry = redoStack[redoStack.length - 1];
+
+      setEvents(p => [...p, ...entry.events]);
+      setGameLog(p => [...p, ...entry.logs]);
+      setEstimateHistory(p => [...p, ...entry.estimateHistory]);
+      setBases(JSON.parse(JSON.stringify(entry.postState.bases)));
+      setPitchData(JSON.parse(JSON.stringify(entry.postState.pitchData)));
+      setAtBatCount(JSON.parse(JSON.stringify(entry.postState.atBatCount)));
+      if (entry.postState.rosterData) setRosterData(JSON.parse(JSON.stringify(entry.postState.rosterData)));
+      else if (entry.postState.lineupIdx) setLineupIdx(JSON.parse(JSON.stringify(entry.postState.lineupIdx)));
+
+      setIsResolvingPlay(false);
+      setStagedPlay(null);
+      setPlayType('regular');
+      setPendingPitchCountPrompt(false);
+
+      setRedoStack(prev => prev.slice(0, -1));
   };
 
   const handleSwapTeams = () => {
@@ -3031,7 +3092,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           hasActiveGame={events.length > 0}
           onImport={data => { /* Add logic if parent passes handler */ }}
           onCancel={() => setShowImport(false)}
-          onExportFirst={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}
+          onExportFirst={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData, bases, atBatCount, pitchData)}
         />
       )}
       
@@ -3219,7 +3280,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                   const runner = bases[courtesyModal.baseId];
                   const t = getSafeTime(entryTime, events);
                   const batchId = Date.now();
-                  const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount }));
+                  const snap = JSON.parse(JSON.stringify({ bases, lineupIdx, pitchData, atBatCount, rosterData }));
                   setBases(prev => ({
                       ...prev,
                       [courtesyModal.baseId]: { ...newPlayer, lineupIndex: runner.lineupIndex, isCourtesy: true }
@@ -3236,11 +3297,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           <WpPbModal 
               onSelect={(type) => {
                   setWpPbModalVisible(false);
-                  let newB = atBatCount.b;
-                  let newS = atBatCount.s;
-                  if (type === 'ball') newB++;
-                  if (type === 'strike') newS++;
-                  setAtBatCount({ b: newB, s: newS });
+                  setWpPbPitchType(type);
                   startInPlay('wp_pb');
               }}
               onCancel={() => setWpPbModalVisible(false)}
@@ -3355,9 +3412,10 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "200px" }}>
             {events.length > 0 && <Btn small variant="outline" onClick={handleUndo} disabled={delayActive || isResolvingPlay}>↩ Undo</Btn>}
+            {redoStack.length > 0 && <Btn small variant="outline" onClick={handleRedo} disabled={delayActive || isResolvingPlay}>↪ Redo</Btn>}
             <Btn small variant="ghost" onClick={() => setGameOverPrompt(true)}>🏁 End</Btn>
-            <Btn small variant="ghost" onClick={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)}>⬇</Btn>
-            <Btn small variant="ghost" onClick={() => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData)); setShowCopy(true); }}>📋</Btn>
+            <Btn small variant="ghost" onClick={() => exportGame(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData, bases, atBatCount, pitchData)}>⬇</Btn>
+            <Btn small variant="ghost" onClick={() => { setCopyText(exportGameText(config, events, baseScore, baseRunsLog, gameLog, estimateHistory, { active: delayActive, startTime: delayStartTime, accumulatedSec: accumulatedDelaySec }, rosterData, bases, atBatCount, pitchData)); setShowCopy(true); }}>📋</Btn>
             <Btn small variant="ghost" onClick={() => setShowImport(true)}>⬆</Btn>
             <Btn small variant="ghost" onClick={onNewGame}>Quit</Btn>
           </div>
@@ -3439,7 +3497,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
                         ) : (
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: C.greenDim, padding: '12px', border: `2px solid ${C.green}`, borderRadius: '4px' }}>
                                  <Btn full variant="primary" onClick={commitPlay}>END PLAY</Btn>
-                                 <Btn full variant="outline" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); }}>CANCEL</Btn>
+                                 <Btn full variant="outline" onClick={() => { setIsResolvingPlay(false); setStagedPlay(null); setPlayType('regular'); setWpPbPitchType(null); }}>CANCEL</Btn>
                             </div>
                         )
                     )}
