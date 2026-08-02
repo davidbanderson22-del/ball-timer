@@ -12,15 +12,24 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     <style>
+        :root {
+            --gte-bg: #F4F1EA;
+            --gte-text: #1A1A1A;
+            --gte-field: #2D6A4F;
+            --gte-field-border: #1A1A1A;
+            --gte-table-header: #E8E4D9;
+            --gte-table-border: #D0C8B6;
+        }
         body { 
             margin: 0;
             padding: 0; 
-            background-color: #F4F1EA;
+            background-color: var(--gte-bg);
             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
-            color: #1A1A1A;
+            color: var(--gte-text);
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
         button {
             transition: all 0.1s ease-in-out;
@@ -35,12 +44,13 @@
             max-width: 360px;
             aspect-ratio: 1 / 1;
             margin: 0 auto 16px;
-            background: #2D6A4F; 
-            border: 3px solid #1A1A1A;
+            background: var(--gte-field); 
+            border: 3px solid var(--gte-field-border);
             overflow: hidden;
             touch-action: none; 
             border-radius: 4px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.25);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
 
         .foul-line-left, .foul-line-right {
@@ -242,8 +252,8 @@
         }
         
         .stats-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: 'Courier Prime', monospace; }
-        .stats-table th { background: #E8E4D9; border-bottom: 2px solid #1A1A1A; padding: 6px; text-align: left; font-weight: bold; color: #1A1A1A;}
-        .stats-table td { border-bottom: 1px solid #D0C8B6; padding: 6px; text-align: center; }
+        .stats-table th { background: var(--gte-table-header); border-bottom: 2px solid var(--gte-text); padding: 6px; text-align: left; font-weight: bold; color: var(--gte-text);}
+        .stats-table td { border-bottom: 1px solid var(--gte-table-border); padding: 6px; text-align: center; }
         .stats-table td:first-child { text-align: left; font-weight: bold;}
     </style>
 </head>
@@ -265,6 +275,73 @@ const C = {
   accent: "#9B2226", accentDim: "#F8D7DA",
   orange: "#BB3E03",
 };
+
+// ── Color Themes ────────────────────────────────────────────────────────────
+// Three palettes: Light (default, warm paper), Dark (OLED-friendly, for night
+// games/dark dugouts), and High Contrast (pure white/black, for direct sun).
+// `field`/`fieldBorder`/`tableHeader` aren't part of the original C shape but
+// drive the .field-container and .stats-table CSS via custom properties,
+// since those live in a static <style> block rather than inline React styles.
+const THEMES = {
+  light: {
+    key: 'light', icon: '☀️', label: 'Light',
+    bg: "#F4F1EA", card: "#FFFFFF", border: "#1A1A1A", borderBright: "#D0C8B6",
+    text: "#1A1A1A", muted: "#5A5A5A", faint: "#8A8A8A",
+    green: "#2D6A4F", greenDim: "#D8E2DC",
+    red: "#9B2226", redDim: "#F8D7DA",
+    yellow: "#CA6702", yellowDim: "#FFEEDD",
+    blue: "#03045E", blueDim: "#CAF0F8",
+    accent: "#9B2226", accentDim: "#F8D7DA",
+    orange: "#BB3E03",
+    field: "#2D6A4F", fieldBorder: "#1A1A1A", tableHeader: "#E8E4D9",
+  },
+  dark: {
+    key: 'dark', icon: '🌙', label: 'Dark',
+    bg: "#121212", card: "#1E1E1E", border: "#F0F0F0", borderBright: "#3A3A3A",
+    text: "#F5F5F5", muted: "#B8B8B8", faint: "#8A8A8A",
+    green: "#52B788", greenDim: "#1B4332",
+    red: "#E76F70", redDim: "#4A1518",
+    yellow: "#F4A340", yellowDim: "#4A3410",
+    blue: "#7FB3F5", blueDim: "#0E2A4A",
+    accent: "#E76F70", accentDim: "#4A1518",
+    orange: "#F0904D",
+    field: "#1B4332", fieldBorder: "#0A1F16", tableHeader: "#252525",
+  },
+  highContrast: {
+    key: 'highContrast', icon: '👁️', label: 'High Contrast',
+    bg: "#FFFFFF", card: "#FFFFFF", border: "#000000", borderBright: "#000000",
+    text: "#000000", muted: "#000000", faint: "#2A2A2A",
+    green: "#006400", greenDim: "#CFFFCF",
+    red: "#CC0000", redDim: "#FFD6D6",
+    yellow: "#A85E00", yellowDim: "#FFEBC2",
+    blue: "#0000CC", blueDim: "#D6D6FF",
+    accent: "#CC0000", accentDim: "#FFD6D6",
+    orange: "#B34700",
+    field: "#0B6B3A", fieldBorder: "#000000", tableHeader: "#EFEFEF",
+  },
+};
+const THEME_ORDER = ['light', 'dark', 'highContrast'];
+const THEME_STORAGE_KEY = 'gte_theme_v1';
+
+function applyThemeCssVars(theme) {
+    const root = document.documentElement;
+    root.style.setProperty('--gte-bg', theme.bg);
+    root.style.setProperty('--gte-text', theme.text);
+    root.style.setProperty('--gte-field', theme.field);
+    root.style.setProperty('--gte-field-border', theme.fieldBorder);
+    root.style.setProperty('--gte-table-header', theme.tableHeader);
+    root.style.setProperty('--gte-table-border', theme.borderBright);
+}
+
+// Apply any saved theme immediately at script-load time (before first paint/render)
+// so switching themes in a previous session never causes a flash of the light theme.
+let initialThemeKey = 'light';
+try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved && THEMES[saved]) initialThemeKey = saved;
+} catch (e) { /* localStorage unavailable — fall back to light */ }
+Object.assign(C, THEMES[initialThemeKey]);
+applyThemeCssVars(THEMES[initialThemeKey]);
 
 const DISPLAY = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const MONO    = "'Courier Prime', monospace";
@@ -1035,7 +1112,7 @@ function StatsTable({ events, rosterData, config, pitchData }) {
 
 // ── Modals ────────────────────────────────────────────────────────────────────
 const overlayStyle = { position: "fixed", inset: 0, background: "rgba(26, 26, 26, 0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", backdropFilter: "blur(2px)" };
-const modalStyle   = { background: C.card, border: `2px solid ${C.border}`, borderRadius: "4px", padding: "24px", width: "100%", maxWidth: "380px", boxShadow: "4px 4px 0px rgba(0, 0, 0, 0.2)", maxHeight: "90vh", overflowY: "auto" };
+const modalStyle   = () => ({ background: C.card, border: `2px solid ${C.border}`, borderRadius: "4px", padding: "24px", width: "100%", maxWidth: "380px", boxShadow: "4px 4px 0px rgba(0, 0, 0, 0.2)", maxHeight: "90vh", overflowY: "auto" });
 
 function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   const [text, setText] = useState("");
@@ -1058,7 +1135,7 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
   if (step === "warn") {
     return (
       <div style={overlayStyle}>
-        <div style={modalStyle}>
+        <div style={modalStyle()}>
           <div style={{ fontSize: "20px", fontWeight: "bold", color: C.red, marginBottom: "10px" }}>GAME IN PROGRESS</div>
           <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", lineHeight: "1.6" }}>
             You have an active game. Importing will overwrite it.<br />Save the current game first?
@@ -1075,7 +1152,7 @@ function ImportModal({ onImport, onCancel, hasActiveGame, onExportFirst }) {
 
   return (
     <div style={overlayStyle}>
-      <div style={modalStyle}>
+      <div style={modalStyle()}>
         <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>IMPORT SAVED GAME</div>
         <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Upload a .json file or paste exported text.</div>
         <input ref={fileRef} type="file" accept=".json,text/plain" onChange={handleFile} style={{ display: "none" }} />
@@ -1100,7 +1177,7 @@ function CopyModal({ text, onClose }) {
   const copy = () => { navigator.clipboard?.writeText(text).then(() => setCopied(true)); };
   return (
     <div style={overlayStyle}>
-      <div style={modalStyle}>
+      <div style={modalStyle()}>
         <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>COPY SCORECARD</div>
         <div style={{ fontSize: "13px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Copy this text to save your game anywhere.</div>
         <textarea readOnly value={text} style={{ background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px", color: C.text, padding: "12px", fontSize: "11px", fontFamily: MONO, width: "100%", height: "120px", boxSizing: "border-box", resize: "none", outline: "none" }} />
@@ -1139,7 +1216,7 @@ function UpcomingBattersModal({ team, currentIdx, rosterData, onSave, onClose })
 
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>UPCOMING BATTERS</div>
                 <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Set the current and upcoming batters dynamically.</div>
                 
@@ -1175,7 +1252,7 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
     
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>COURTESY RUNNER</div>
                 <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     Running for: <strong>{runner?.name || 'Player'}</strong>
@@ -1205,7 +1282,7 @@ function CourtesyRunnerModal({ runner, rosterPool, defaultCourtesyId, onSave, on
 function WpPbModal({ onSelect, onCancel }) {
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>WILD PITCH / PASSED BALL</div>
                 <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "bold", fontFamily: MONO }}>
                     Was the pitch a ball or a strike?
@@ -1238,7 +1315,7 @@ function RunnerMenuModal({ baseId, runner, rosterPool, onPickoff, onSteal, onSub
 
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>
                     {isBatter ? "BATTER MENU" : "RUNNER MENU"}
                 </div>
@@ -1340,7 +1417,7 @@ function InPlayModal({ baseId, stagedPlay, fieldingRoster, onSave, onCancel }) {
 
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.green, marginBottom: "8px" }}>PLAY ACTION</div>
                 <div style={{ fontSize: "14px", color: C.text, marginBottom: "20px", fontWeight: "bold", fontFamily: MONO }}>
                     {baseName}: <strong>{runnerState.name || 'Player'}</strong>
@@ -1430,7 +1507,7 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
     if (mode === 'edit_info') {
         return (
             <div style={overlayStyle}>
-                <div style={modalStyle}>
+                <div style={modalStyle()}>
                     <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>EDIT {pos} INFO</div>
                     <div style={{ fontSize: "12px", color: C.muted, marginBottom: "16px", fontFamily: MONO }}>Changes will apply without resetting stats.</div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
@@ -1448,7 +1525,7 @@ function FielderSubModal({ team, pos, currentPlayer, rosterPool, activeFieldersM
 
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>ASSIGN {pos}</div>
                 <div style={{ fontSize: "13px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently assigned to ${pos}`}</span>
@@ -1510,7 +1587,7 @@ function OffensiveSubModal({ team, baseId, currentPlayer, rosterPool, onSave, on
     const label = baseId === 'home' ? 'PINCH HITTER' : baseId === 'lineup' ? 'LINEUP EDIT' : 'PINCH RUNNER';
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.accent, marginBottom: "8px" }}>{label}</div>
                 <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     {currentPlayer?.name ? `Current: ${currentPlayer.name} (#${currentPlayer.no})` : `No player currently populated.`}
@@ -1916,7 +1993,7 @@ function PitchCountModal({ pitcher, currentTotal, onSave, onSkip, onUndo }) {
     const [count, setCount] = React.useState(String(currentTotal || ""));
     return (
         <div style={overlayStyle}>
-            <div style={modalStyle}>
+            <div style={modalStyle()}>
                 <div style={{ fontSize: "20px", fontWeight: "bold", color: C.text, marginBottom: "8px" }}>INNING END / PITCH COUNT</div>
                 <div style={{ fontSize: "14px", color: C.text, marginBottom: "16px", fontWeight: "bold", fontFamily: MONO }}>
                     What is {pitcher?.name || "the pitcher"}'s TOTAL game pitch count right now?
@@ -3604,12 +3681,45 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
   );
 }
 
+function ThemeToggle({ themeKey, onSelect }) {
+    return (
+        <div style={{
+            position: 'fixed', top: '10px', right: '10px', zIndex: 2000,
+            display: 'flex', gap: '2px',
+            background: C.card, border: `2px solid ${C.border}`, borderRadius: '8px',
+            padding: '3px', boxShadow: '2px 2px 0px rgba(0,0,0,0.25)',
+        }}>
+            {THEME_ORDER.map(k => {
+                const t = THEMES[k];
+                const active = themeKey === k;
+                return (
+                    <button
+                        key={k}
+                        onClick={() => onSelect(k)}
+                        title={t.label}
+                        aria-label={`${t.label} theme`}
+                        style={{
+                            border: 'none', cursor: 'pointer',
+                            width: '30px', height: '30px', fontSize: '15px',
+                            borderRadius: '5px',
+                            background: active ? C.green : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'background-color 0.15s ease',
+                        }}
+                    >{t.icon}</button>
+                );
+            })}
+        </div>
+    );
+}
+
 function App() {
   const [screen, setScreen] = useState("setup");
   const [showRoster, setShowRoster] = useState(false);
   const [config,  setConfig]  = useState(null);
   const [initState, setInitState] = useState(null);
   const [key, setKey] = useState(0);
+  const [themeKey, setThemeKey] = useState(initialThemeKey);
   const [rosterData, setRosterData] = useState(() => {
       const awayLineup = [{ id: `blank_a0`, name: '', no: '', pos: '' }];
       const homeLineup = [{ id: `blank_h0`, name: '', no: '', pos: '' }];
@@ -3676,8 +3786,19 @@ function App() {
   const handleGlobalNameChange = (team, oldName, updatedPlayer) => {
   };
 
+  const handleSelectTheme = (k) => {
+      const theme = THEMES[k] || THEMES.light;
+      // Mutate the shared C object synchronously, before scheduling the re-render below,
+      // so that when React re-renders every component reads the already-updated colors.
+      Object.assign(C, theme);
+      applyThemeCssVars(theme);
+      try { window.localStorage.setItem(THEME_STORAGE_KEY, k); } catch (e) { /* ignore */ }
+      setThemeKey(k);
+  };
+
   return (
       <>
+        <ThemeToggle themeKey={themeKey} onSelect={handleSelectTheme} />
         <div style={{ display: screen === 'latestart' && config ? 'block' : 'none' }}>
             {screen === 'latestart' && config && <LateStartScreen config={config} onComplete={handleLateStartSubmit} onCancel={() => setScreen("setup")} />}
         </div>
