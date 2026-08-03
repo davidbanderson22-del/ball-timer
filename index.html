@@ -2586,7 +2586,13 @@ function SummaryScreen({ config, events, baseScore, baseRunsLog, endTime, estima
     </div>
   );
 }
-
+function RunLedger(props) {
+  return (
+    <div style={{ padding: "10px", border: "1px dashed red", marginTop: "10px" }}>
+      [RunLedger Component Under Construction]
+    </div>
+  );
+}
 // ── Game Tracker ──────────────────────────────────────────────────────────────
 function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterData, setRosterData, onOpenRoster }) {
   const { away, home, totalInnings, mercyAfter, mercyRuns, allowTies, tieInningLimit, gameStartTime, fallbackHalf, fallbackWarmup } = config;
