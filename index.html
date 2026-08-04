@@ -452,6 +452,14 @@ function isGameOverConditionMet(events, score, effTotalInnings, mercyAfter, merc
     return false;
 }
 
+function poissonSample(lambda) {
+  if (lambda <= 0) return 0;
+  const L = Math.exp(-Math.min(lambda, 20));
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
+}
+
 // ── Monte Carlo engine ───────────────────────────────────────────────────────
 // Simulates one possible remainder-of-game path, inning by inning, so we can
 // tell WHY/HOW a game ends (mercy vs walk-off vs regulation vs extras) rather
@@ -2891,6 +2899,18 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
       });
   };
 
+  const handleToggleEarnedRun = (runEventId) => {
+      // A manual scoring correction, not a "play" — mirrors handleGlobalPlayerEdit in
+      // deliberately living outside the undo/redo history rather than being a commit.
+      setEvents(prev => prev.map(e => {
+          if (e.id !== runEventId || e.type !== 'run') return e;
+          const auto = computeEarnedRunStatus(prev)[e.id]?.auto || 'ER';
+          const current = e.earnedOverride || auto;
+          const flipped = current === 'ER' ? 'UE' : 'ER';
+          return { ...e, earnedOverride: flipped };
+      }));
+  };
+
   const handleLogNextPhase = () => {
       const t = getSafeTime(entryTime, events);
       const batchId = Date.now();
@@ -3908,7 +3928,7 @@ function GameTracker({ config, onUpdateConfig, onNewGame, initialState, rosterDa
 function ThemeToggle({ themeKey, onSelect }) {
     return (
         <div style={{
-            position: 'fixed', top: '10px', right: '10px', zIndex: 2000,
+            position: 'fixed', bottom: '10px', right: '10px', zIndex: 2000,
             display: 'flex', gap: '2px',
             background: C.card, border: `2px solid ${C.border}`, borderRadius: '8px',
             padding: '3px', boxShadow: '2px 2px 0px rgba(0,0,0,0.25)',
