@@ -1119,12 +1119,13 @@ function StatsTable({ events, rosterData, config, pitchData }) {
                 }
                 if (e.pitcher) {
                     pStats[fieldingTeam][e.pitcher].R += (e.val || 1);
-                    if (!e.isError) pStats[fieldingTeam][e.pitcher].ER += (e.val || 1);
+                    const verdict = getRunVerdict(e, earnedVerdicts);
+                    if (verdict.status === 'ER') pStats[fieldingTeam][e.pitcher].ER += (e.val || 1);
                 }
             }
         });
         return { hStats, pStats, dStats };
-    }, [events, rosterData]);
+    }, [events, rosterData, earnedVerdicts]);
 
     const renderBatting = (teamName, teamKey) => {
         const players = Object.values(stats.hStats[teamKey]).filter(p => p.PA > 0 || p.R > 0 || p.H > 0);
@@ -1236,6 +1237,78 @@ function StatsTable({ events, rosterData, config, pitchData }) {
             <Divider label="Defense" />
             {renderDefense(config.away, 'away')}
             {renderDefense(config.home, 'home')}
+        </Card>
+    );
+}
+
+// ── Run Ledger (Earned Run tracker) ─────────────────────────────────────────
+function EarnedTag({ status, isOverridden, reason, onToggle }) {
+    const isEarned = status === 'ER';
+    return (
+        <button
+            onClick={onToggle}
+            title={reason ? `${reason} (tap to override)` : 'Tap to override'}
+            style={{
+                border: `1px solid ${isEarned ? C.green : C.orange}`,
+                background: isEarned ? C.greenDim : C.yellowDim,
+                color: isEarned ? C.green : C.orange,
+                fontFamily: MONO, fontSize: "10px", fontWeight: "bold",
+                borderRadius: "3px", padding: "2px 6px", cursor: "pointer",
+                display: "inline-flex", alignItems: "center", gap: "3px",
+                whiteSpace: "nowrap",
+            }}
+        >
+            {status}{isOverridden && <span style={{ fontSize: "8px" }}>✎</span>}
+        </button>
+    );
+}
+
+function RunLedger({ events, rosterData, awayName, homeName, onToggleEarned }) {
+    const [expanded, setExpanded] = useState(false);
+    const autoVerdicts = useMemo(() => computeEarnedRunStatus(events), [events]);
+    const runEvents = useMemo(() => events.filter(e => e.type === 'run'), [events]);
+
+    if (!runEvents.length) return null;
+
+    const findName = (team, id) => {
+        if (!id) return 'Unknown';
+        const p = rosterData.pool?.[team]?.find(pl => pl.id === id) || (rosterData[team] || []).find(pl => pl.id === id);
+        return p?.name || 'Unknown';
+    };
+
+    return (
+        <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={() => setExpanded(v => !v)}>
+                <Label>EARNED RUN TRACKER ({runEvents.length})</Label>
+                <span style={{ fontSize: "12px", color: C.faint }}>{expanded ? "▲ HIDE" : "▼ SHOW"}</span>
+            </div>
+            {expanded && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
+                    {runEvents.map(e => {
+                        const team = e.half === 'top' ? 'away' : 'home';
+                        const teamName = team === 'away' ? awayName : homeName;
+                        const scorerName = findName(team, e.scoredId);
+                        const verdict = getRunVerdict(e, autoVerdicts);
+                        return (
+                            <div key={e.id} style={{
+                                display: "flex", justifyContent: "space-between", alignItems: "center",
+                                fontSize: "11px", fontFamily: MONO, padding: "6px 8px",
+                                background: C.bg, border: `1px solid ${C.borderBright}`, borderRadius: "4px",
+                            }}>
+                                <div>
+                                    <span style={{ color: C.muted }}>Inn {e.inning} {e.half === 'top' ? '▲' : '▼'}</span>{' '}
+                                    <strong>{scorerName}</strong>{' '}
+                                    <span style={{ color: C.faint }}>({teamName})</span>
+                                </div>
+                                <EarnedTag status={verdict.status} isOverridden={verdict.isOverridden} reason={verdict.reason} onToggle={() => onToggleEarned(e.id)} />
+                            </div>
+                        );
+                    })}
+                    <div style={{ fontSize: "10px", color: C.faint, textAlign: "center", marginTop: "4px" }}>
+                        Auto-scored from the play sequence — tap ER/UE on any run to override.
+                    </div>
+                </div>
+            )}
         </Card>
     );
 }
